@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import type { Host } from "./host.ts";
+import { packagesFor } from "./package-map.ts";
 
 export type RunResult = {
   exitCode: number;
@@ -19,6 +20,9 @@ export async function run(args: string[], host: Host): Promise<RunResult> {
   if (!host.commandExists("bun")) {
     await host.runUpstreamInstall("bun");
   }
+  if (args[0] === "init") {
+    return await init(host);
+  }
   if (args[0] === "doctor") {
     return await doctor(host);
   }
@@ -26,6 +30,24 @@ export async function run(args: string[], host: Host): Promise<RunResult> {
     return await stow(host);
   }
   return { exitCode: 0, stdout: helpText, stderr: "" };
+}
+
+async function init(host: Host): Promise<RunResult> {
+  const pm = host.packageManager();
+  if (!pm) {
+    return {
+      exitCode: 1,
+      stdout: "",
+      stderr: "Unknown package manager. Bootstrap needs apt, pacman, dnf, or zypper.\n",
+    };
+  }
+  try {
+    await host.installPackages(packagesFor(pm));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Distro package install failed";
+    return { exitCode: 1, stdout: "", stderr: `${message}\n` };
+  }
+  return { exitCode: 0, stdout: "", stderr: "" };
 }
 
 async function doctor(host: Host): Promise<RunResult> {

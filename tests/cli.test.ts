@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { run } from "../src/cli.ts";
-import type { Host } from "../src/host.ts";
+import type { Host, PackageManager } from "../src/host.ts";
 import { backupStamp, toDayJS, type Dayjs } from "../src/time.ts";
 
 function createFakeHost(
@@ -13,15 +13,19 @@ function createFakeHost(
     brokenStowLinks?: string[];
     homeTree?: string[];
     now?: Dayjs;
+    packageManager?: PackageManager | null;
+    installError?: string;
   } = {},
 ): Host & {
   upstreamInstalls: string[];
+  packagesRequested: string[];
   backups: string[];
   linked: string[];
 } {
   const present = new Set(commands);
   const files = new Set(extras.files ?? []);
   const upstreamInstalls: string[] = [];
+  const packagesRequested: string[] = [];
   const homeDir = extras.homeDir ?? "/fake-home";
   const loginShell = extras.loginShell ?? null;
   const environmentKeys = extras.environmentKeys ?? {};
@@ -30,8 +34,11 @@ function createFakeHost(
   const backups: string[] = [];
   const linked: string[] = [];
   const clock = extras.now ?? toDayJS("1970-01-01T00:00:00.000Z");
+  const packageManager = extras.packageManager ?? null;
+  const installError = extras.installError;
   return {
     upstreamInstalls,
+    packagesRequested,
     backups,
     linked,
     commandExists(command) {
@@ -40,6 +47,18 @@ function createFakeHost(
     async runUpstreamInstall(tool) {
       upstreamInstalls.push(tool);
       present.add(tool);
+    },
+    packageManager() {
+      return packageManager;
+    },
+    async installPackages(packages) {
+      if (installError) {
+        throw new Error(installError);
+      }
+      packagesRequested.push(...packages);
+      for (const name of packages) {
+        present.add(name);
+      }
     },
     homeDir() {
       return homeDir;
@@ -187,4 +206,45 @@ test("herdr logs and sockets are not linked", async () => {
   const result = await run(["stow"], host);
   expect(result.exitCode).toBe(0);
   expect(host.linked).toEqual([".config/herdr/config.toml"]);
+});
+
+test("on a Host with a known package manager, init requests zsh, git, and stow from the Package Map", async () => {
+  const host = createFakeHost(["bun"], { packageManager: "apt" });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.packagesRequested).toEqual(["zsh", "git", "stow"]);
+});
+
+test("on a Host with an unknown package manager, init fails before any package or Upstream Install", async () => {
+  const host = createFakeHost(["bun"]);
+  const result = await run(["init"], host);
+  expect(result.exitCode).not.toBe(0);
+  expect(host.packagesRequested).toEqual([]);
+  expect(host.upstreamInstalls).toEqual([]);
+  expect(result.stderr).toContain("apt");
+  expect(result.stderr).toContain("pacman");
+  expect(result.stderr).toContain("dnf");
+  expect(result.stderr).toContain("zypper");
+});
+
+test("git config is not written", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["bun"], { homeDir: home, packageManager: "apt" });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.packagesRequested).toContain("git");
+  expect(host.fileExists(`${home}/.gitconfig`)).toBe(false);
+  expect(host.fileExists(`${home}/.config/git/config`)).toBe(false);
+  expect(host.linked).not.toContain(".gitconfig");
+  expect(host.linked).not.toContain(".config/git/config");
+});
+
+test("a failed required Distro package install fails the command", async () => {
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    installError: "apt-get failed",
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).not.toBe(0);
+  expect(host.upstreamInstalls).toEqual([]);
 });

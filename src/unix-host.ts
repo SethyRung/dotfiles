@@ -15,6 +15,41 @@ export const unixHost: Host = {
     }
     await $`curl -fsSL https://bun.com/install | bash`;
   },
+  packageManager() {
+    if (Bun.which("apt-get") ?? Bun.which("apt")) {
+      return "apt";
+    }
+    if (Bun.which("pacman")) {
+      return "pacman";
+    }
+    if (Bun.which("dnf")) {
+      return "dnf";
+    }
+    if (Bun.which("zypper")) {
+      return "zypper";
+    }
+    return null;
+  },
+  async installPackages(packages) {
+    const pm = unixHost.packageManager();
+    const cmd =
+      pm === "apt"
+        ? ["sudo", "apt-get", "install", "-y", ...packages]
+        : pm === "pacman"
+          ? ["sudo", "pacman", "-S", "--noconfirm", ...packages]
+          : pm === "dnf"
+            ? ["sudo", "dnf", "install", "-y", ...packages]
+            : pm === "zypper"
+              ? ["sudo", "zypper", "install", "-y", ...packages]
+              : null;
+    if (!cmd) {
+      throw new Error("unknown package manager");
+    }
+    const proc = Bun.spawn(cmd, { stdout: "inherit", stderr: "inherit" });
+    if ((await proc.exited) !== 0) {
+      throw new Error("Distro package install failed");
+    }
+  },
   homeDir() {
     return homedir();
   },
