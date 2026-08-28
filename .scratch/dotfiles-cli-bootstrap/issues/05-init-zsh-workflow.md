@@ -4,11 +4,11 @@
 
 **Blocked by:** 03: `dotfiles stow` backup-then-link; 04: `dotfiles init` Distro packages via Package Map
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Init requests the Oh My Zsh Upstream Install on the Host
-- [ ] A curated zshrc is Stowed without Android SDK paths or out-of-scope aliases
-- [ ] Login shell is changed to zsh
-- [ ] `~/.local/bin/dotfiles` is a symlink to the stub
-- [ ] Init succeeds even when the current session PATH does not yet include `~/.local/bin`
-- [ ] Behaviour is observed only through the CLI against a fake Host
+- [x] Init requests the Oh My Zsh Upstream Install on the Host
+- [x] A curated zshrc is Stowed without Android SDK paths or out-of-scope aliases
+- [x] Login shell is changed to zsh
+- [x] `~/.local/bin/dotfiles` is a symlink to the stub
+- [x] Init succeeds even when the current session PATH does not yet include `~/.local/bin`
+- [x] Behaviour is observed only through the CLI against a fake Host

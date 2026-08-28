@@ -43,8 +43,15 @@ async function init(host: Host): Promise<RunResult> {
   }
   try {
     await host.installPackages(packagesFor(pm));
+    await host.runUpstreamInstall("oh-my-zsh");
+    const stowed = await stow(host);
+    if (stowed.exitCode !== 0) {
+      return stowed;
+    }
+    await host.changeLoginShell("zsh");
+    await host.linkDotfiles();
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Distro package install failed";
+    const message = error instanceof Error ? error.message : "required step failed";
     return { exitCode: 1, stdout: "", stderr: `${message}\n` };
   }
   return { exitCode: 0, stdout: "", stderr: "" };

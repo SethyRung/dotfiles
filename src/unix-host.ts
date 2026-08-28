@@ -1,19 +1,24 @@
 import { $, Glob } from "bun";
-import { existsSync, lstatSync, renameSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, renameSync, symlinkSync } from "node:fs";
 import { homedir, userInfo } from "node:os";
 import { join } from "node:path";
 import type { Host } from "./host.ts";
 import { backupStamp } from "./time.ts";
+import { upstreamInstallFor } from "./upstream-installs.ts";
 
 export const unixHost: Host = {
   commandExists(command) {
     return Bun.which(command) !== null;
   },
   async runUpstreamInstall(tool) {
-    if (tool !== "bun") {
+    const install = upstreamInstallFor(tool);
+    if (!install) {
       throw new Error(`unknown Upstream Install: ${tool}`);
     }
-    await $`curl -fsSL https://bun.com/install | bash`;
+    await $`curl -fsSL ${install.url} | ${install.shell}`.env({
+      ...process.env,
+      ...install.env,
+    });
   },
   packageManager() {
     if (Bun.which("apt-get") ?? Bun.which("apt")) {
@@ -62,6 +67,22 @@ export const unixHost: Host = {
     } catch {
       return null;
     }
+  },
+  async changeLoginShell(shell) {
+    const path = Bun.which(shell);
+    if (!path) {
+      throw new Error(`login shell not found: ${shell}`);
+    }
+    await $`chsh -s ${path}`;
+  },
+  async linkDotfiles() {
+    const destDir = join(homedir(), ".local/bin");
+    mkdirSync(destDir, { recursive: true });
+    const dest = join(destDir, "dotfiles");
+    if (existsSync(dest)) {
+      return;
+    }
+    symlinkSync(join(import.meta.dir, "..", "dotfiles"), dest);
   },
   async environmentKeyNames() {
     const file = Bun.file("/etc/environment");

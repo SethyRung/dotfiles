@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { join } from "node:path";
 import { run } from "../src/cli.ts";
 import type { Host, PackageManager } from "../src/host.ts";
 import { backupStamp, toDayJS, type Dayjs } from "../src/time.ts";
@@ -27,7 +28,7 @@ function createFakeHost(
   const upstreamInstalls: string[] = [];
   const packagesRequested: string[] = [];
   const homeDir = extras.homeDir ?? "/fake-home";
-  const loginShell = extras.loginShell ?? null;
+  let loginShell = extras.loginShell ?? null;
   const environmentKeys = extras.environmentKeys ?? {};
   const stowLinks = extras.brokenStowLinks ?? [];
   const tree = extras.homeTree ?? [];
@@ -68,6 +69,12 @@ function createFakeHost(
     },
     loginShell() {
       return loginShell;
+    },
+    async changeLoginShell(shell) {
+      loginShell = shell;
+    },
+    async linkDotfiles() {
+      files.add(`${homeDir}/.local/bin/dotfiles`);
     },
     async environmentKeyNames() {
       return Object.keys(environmentKeys);
@@ -247,4 +254,59 @@ test("a failed required Distro package install fails the command", async () => {
   const result = await run(["init"], host);
   expect(result.exitCode).not.toBe(0);
   expect(host.upstreamInstalls).toEqual([]);
+});
+
+test("init requests the Oh My Zsh Upstream Install on the Host", async () => {
+  const host = createFakeHost(["bun"], { packageManager: "apt" });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.upstreamInstalls).toEqual(["oh-my-zsh"]);
+});
+
+test("a curated zshrc is Stowed without Android SDK paths or out-of-scope aliases", async () => {
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    homeTree: [".zshrc"],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.linked).toEqual([".zshrc"]);
+  const zshrc = await Bun.file(join(import.meta.dir, "../home/.zshrc")).text();
+  expect(zshrc).toContain('ZSH_THEME="bira"');
+  expect(zshrc).toContain("git");
+  expect(zshrc).toContain("docker");
+  expect(zshrc).toContain("zsh-autosuggestions");
+  expect(zshrc).toContain("zsh-syntax-highlighting");
+  expect(zshrc).toContain("$HOME/.bun");
+  expect(zshrc).toContain("HERDR_INSTALL_DIR");
+  expect(zshrc).toContain("$HOME/.local/bin");
+  expect(zshrc).not.toMatch(/ANDROID/i);
+  expect(zshrc).not.toContain("alias op=");
+  expect(zshrc).not.toContain("alias csp=");
+  expect(zshrc).not.toContain("alias cpsp=");
+  expect(zshrc).not.toContain("alias zshconfig=");
+});
+
+test("login shell is changed to zsh", async () => {
+  const host = createFakeHost(["bun"], { packageManager: "apt" });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.loginShell()).toBe("zsh");
+});
+
+test("`~/.local/bin/dotfiles` is a symlink to the stub", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["bun"], { homeDir: home, packageManager: "apt" });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.fileExists(`${home}/.local/bin/dotfiles`)).toBe(true);
+});
+
+test("init succeeds even when the current session PATH does not yet include ~/.local/bin", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["bun"], { homeDir: home, packageManager: "apt" });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.fileExists(`${home}/.local/bin/dotfiles`)).toBe(true);
+  expect(host.commandExists("dotfiles")).toBe(false);
 });

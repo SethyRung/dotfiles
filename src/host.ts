@@ -8,6 +8,8 @@ export type Host = {
   homeDir(): string;
   fileExists(path: string): boolean;
   loginShell(): string | null;
+  changeLoginShell(shell: string): Promise<void>;
+  linkDotfiles(): Promise<void>;
   environmentKeyNames(): Promise<string[]>;
   brokenStowLinks(): string[];
   homeTree(): string[];
