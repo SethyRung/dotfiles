@@ -9,6 +9,8 @@ No CLI code yet. Do not invent a parallel design.
 - Spec: `docs/specs/dotfiles-cli-bootstrap.md`
 - Tickets: `.scratch/dotfiles-cli-bootstrap/issues/`. Work the frontier (blockers done). Start at `01`.
 
+Lint is oxlint (`typescript`; `@typescript-eslint/no-explicit-any` is **off**). Format is oxfmt (2-space, semicolons, double quotes, trailing commas, printWidth 100). `bun run lint && bun run fmt:check && bun run typecheck && bun test` before asking for review.
+
 ## Implementation traps
 
 - Inspired by dmmulroy/.dotfiles, but this is Linux: Package Map + Upstream Installs, not Homebrew. v1 commands are only `init`, `doctor`, `stow`.
