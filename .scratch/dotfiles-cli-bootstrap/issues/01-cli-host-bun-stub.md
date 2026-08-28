@@ -4,9 +4,9 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `dotfiles` (not `dot`) is the command that prints help for `init`, `doctor`, and `stow`
-- [ ] With bun missing, the stub requests the bun Upstream Install on the Host, then the CLI runs
-- [ ] With bun present, the stub does not request bun again
-- [ ] Tests inject a fake Host; no real network or package manager is required
+- [x] `dotfiles` (not `dot`) is the command that prints help for `init`, `doctor`, and `stow`
+- [x] With bun missing, the stub requests the bun Upstream Install on the Host, then the CLI runs
+- [x] With bun present, the stub does not request bun again
+- [x] Tests inject a fake Host; no real network or package manager is required
