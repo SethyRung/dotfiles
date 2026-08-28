@@ -4,10 +4,10 @@
 
 **Blocked by:** 01: `dotfiles` CLI with fake Host and bun stub
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] On an empty Host, doctor reports the required Workflow pieces as missing and exits non-zero
-- [ ] Ghostty missing is a warning, not a required failure
-- [ ] Doctor never prints API Key values
-- [ ] Broken Stow links are reported
-- [ ] Behaviour is observed only through the CLI against a fake Host
+- [x] On an empty Host, doctor reports the required Workflow pieces as missing and exits non-zero
+- [x] Ghostty missing is a warning, not a required failure
+- [x] Doctor never prints API Key values
+- [x] Broken Stow links are reported
+- [x] Behaviour is observed only through the CLI against a fake Host
