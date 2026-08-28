@@ -1,0 +1,53 @@
+# Dotfiles
+
+Personal Linux Bootstrap for restoring a development Workflow after a Fresh Install.
+
+## Language
+
+**Bootstrap**:
+The process this repo runs to take a Fresh Install to a working Workflow.
+_Avoid_: setup, provisioning, ricing
+
+**Fresh Install**:
+A newly installed Linux Distro with no prior personal config.
+_Avoid_: clean machine, new box, blank laptop
+
+**Distro**:
+The Linux distribution Bootstrap runs on. Not Ubuntu-only; Bootstrap detects the package manager.
+_Avoid_: OS, flavor, platform
+
+**Workflow**:
+The development environment Bootstrap restores: zsh + Oh My Zsh, herdr, pi plus its current packages, global Skills (via skills.sh), XDG MCP, API Keys, optional Ghostty, and git installed with no git config.
+_Avoid_: using "dotfiles" for the running environment
+
+**Dotfiles**:
+This repository: the `dotfiles` CLI plus the config files Bootstrap applies.
+_Avoid_: using "dotfiles" for secrets or for software packages
+
+**dotfiles** (CLI):
+The CLI in this repo. `dotfiles init` runs Bootstrap. Not `dot` — that command already exists on PATH.
+_Avoid_: dot, install.sh, bootstrap.sh, script (as the user-facing name)
+
+**Stow**:
+GNU Stow; how `dotfiles` delivers config files from `home/` into `$HOME`.
+_Avoid_: copy, symlink (when you mean this delivery)
+
+**Package Map**:
+The file that names Distro packages per package manager (apt, pacman, dnf, zypper).
+_Avoid_: Brewfile, bundle
+
+**Upstream Install**:
+Install from the project's own script or binary (curl, GitHub release), not the Distro. Oh My Zsh, herdr, bun, and pi are Upstream Installs.
+_Avoid_: curl-pipe, bootstrap script (when you mean this class of install)
+
+**Skill**:
+An agent skill installed globally for pi and other agents to load.
+_Avoid_: plugin, prompt, instruction file
+
+**MCP**:
+A Model Context Protocol server entry in pi's MCP config.
+_Avoid_: tool server, plugin
+
+**API Key**:
+A secret environment variable needed by AI tools. Supplied during Bootstrap as `key=value` pairs, written to `/etc/environment`, never stored in the repo.
+_Avoid_: token, credential (when you mean these env vars)
