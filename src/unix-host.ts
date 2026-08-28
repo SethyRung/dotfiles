@@ -1,8 +1,9 @@
 import { $, Glob } from "bun";
-import { existsSync, lstatSync } from "node:fs";
+import { existsSync, lstatSync, renameSync } from "node:fs";
 import { homedir, userInfo } from "node:os";
 import { join } from "node:path";
 import type { Host } from "./host.ts";
+import { backupStamp } from "./time.ts";
 
 export const unixHost: Host = {
   commandExists(command) {
@@ -65,5 +66,24 @@ export const unixHost: Host = {
       }
     }
     return broken;
+  },
+  homeTree() {
+    const tree = join(import.meta.dir, "..", "home");
+    if (!existsSync(tree)) {
+      return [];
+    }
+    return [...new Glob("**/*").scanSync({ cwd: tree, dot: true })];
+  },
+  backup(path) {
+    const dest = `${path}.${backupStamp()}`;
+    renameSync(path, dest);
+    return dest;
+  },
+  async stow(relPaths) {
+    if (relPaths.length === 0) {
+      return;
+    }
+    const repoRoot = join(import.meta.dir, "..");
+    await $`stow -d ${repoRoot} -t ${homedir()} home`;
   },
 };

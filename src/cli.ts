@@ -22,6 +22,9 @@ export async function run(args: string[], host: Host): Promise<RunResult> {
   if (args[0] === "doctor") {
     return await doctor(host);
   }
+  if (args[0] === "stow") {
+    return await stow(host);
+  }
   return { exitCode: 0, stdout: helpText, stderr: "" };
 }
 
@@ -67,4 +70,27 @@ async function doctor(host: Host): Promise<RunResult> {
     stdout: `${lines.join("\n")}\n`,
     stderr: "",
   };
+}
+
+function isStowJunk(rel: string): boolean {
+  const parts = rel.split("/");
+  return (
+    parts.includes("logs") ||
+    parts.includes("sockets") ||
+    rel.endsWith(".log") ||
+    rel.endsWith(".sock")
+  );
+}
+
+async function stow(host: Host): Promise<RunResult> {
+  const rels = host.homeTree().filter((rel) => !isStowJunk(rel));
+  const home = host.homeDir();
+  for (const rel of rels) {
+    const dest = join(home, rel);
+    if (host.fileExists(dest)) {
+      host.backup(dest);
+    }
+  }
+  await host.stow(rels);
+  return { exitCode: 0, stdout: "", stderr: "" };
 }

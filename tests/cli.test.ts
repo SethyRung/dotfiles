@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { run } from "../src/cli.ts";
 import type { Host } from "../src/host.ts";
+import { backupStamp, toDayJS, type Dayjs } from "../src/time.ts";
 
 function createFakeHost(
   commands: string[] = [],
@@ -10,9 +11,13 @@ function createFakeHost(
     loginShell?: string | null;
     environmentKeys?: Record<string, string>;
     brokenStowLinks?: string[];
+    homeTree?: string[];
+    now?: Dayjs;
   } = {},
 ): Host & {
   upstreamInstalls: string[];
+  backups: string[];
+  linked: string[];
 } {
   const present = new Set(commands);
   const files = new Set(extras.files ?? []);
@@ -21,8 +26,14 @@ function createFakeHost(
   const loginShell = extras.loginShell ?? null;
   const environmentKeys = extras.environmentKeys ?? {};
   const stowLinks = extras.brokenStowLinks ?? [];
+  const tree = extras.homeTree ?? [];
+  const backups: string[] = [];
+  const linked: string[] = [];
+  const clock = extras.now ?? toDayJS("1970-01-01T00:00:00.000Z");
   return {
     upstreamInstalls,
+    backups,
+    linked,
     commandExists(command) {
       return present.has(command);
     },
@@ -44,6 +55,21 @@ function createFakeHost(
     },
     brokenStowLinks() {
       return stowLinks;
+    },
+    homeTree() {
+      return tree;
+    },
+    backup(path) {
+      const dest = `${path}.${backupStamp(clock)}`;
+      backups.push(dest);
+      files.delete(path);
+      return dest;
+    },
+    async stow(relPaths) {
+      for (const rel of relPaths) {
+        linked.push(rel);
+        files.add(`${homeDir}/${rel}`);
+      }
     },
   };
 }
@@ -124,4 +150,41 @@ test("doctor reports broken Stow links", async () => {
   });
   const result = await run(["doctor"], host);
   expect(result.stdout).toContain("/fake-home/.zshrc");
+});
+
+test("dotfiles stow on a clean fake $HOME links the home/ tree", async () => {
+  const host = createFakeHost(["bun"], {
+    homeTree: [".zshrc", ".config/herdr/config.toml"],
+  });
+  const result = await run(["stow"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.linked).toEqual([".zshrc", ".config/herdr/config.toml"]);
+  expect(host.backups).toEqual([]);
+});
+
+test("when a target file already exists, a timestamped backup is created and Stow then links", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["bun"], {
+    homeDir: home,
+    homeTree: [".zshrc"],
+    files: [`${home}/.zshrc`],
+    now: toDayJS("2026-01-01_10:30:20", "YYYY-MM-DD_HH:mm:ss"),
+  });
+  const result = await run(["stow"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.backups).toEqual([`${home}/.zshrc.2026-01-01_10:30:20`]);
+  expect(host.linked).toEqual([".zshrc"]);
+});
+
+test("herdr logs and sockets are not linked", async () => {
+  const host = createFakeHost(["bun"], {
+    homeTree: [
+      ".config/herdr/config.toml",
+      ".config/herdr/logs/session.log",
+      ".config/herdr/herdr.sock",
+    ],
+  });
+  const result = await run(["stow"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.linked).toEqual([".config/herdr/config.toml"]);
 });

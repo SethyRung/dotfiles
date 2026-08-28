@@ -6,4 +6,7 @@ export type Host = {
   loginShell(): string | null;
   environmentKeyNames(): Promise<string[]>;
   brokenStowLinks(): string[];
+  homeTree(): string[];
+  backup(path: string): string;
+  stow(relPaths: string[]): Promise<void>;
 };

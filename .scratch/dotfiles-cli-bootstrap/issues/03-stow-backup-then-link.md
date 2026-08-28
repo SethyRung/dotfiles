@@ -4,9 +4,9 @@
 
 **Blocked by:** 01: `dotfiles` CLI with fake Host and bun stub
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `dotfiles stow` on a clean fake `$HOME` links the `home/` tree
-- [ ] When a target file already exists, a timestamped backup is created and Stow then links
-- [ ] herdr logs and sockets are not linked
-- [ ] Behaviour is observed only through the CLI against a fake Host
+- [x] `dotfiles stow` on a clean fake `$HOME` links the `home/` tree
+- [x] When a target file already exists, a timestamped backup is created and Stow then links
+- [x] herdr logs and sockets are not linked
+- [x] Behaviour is observed only through the CLI against a fake Host
