@@ -70,7 +70,7 @@ A `dotfiles` CLI in this Dotfiles repo. `dotfiles init` runs Bootstrap, `dotfile
 
 - Respect ADRs 0001–0013 and the glossary in `CONTEXT.md`. Command name is `dotfiles`. Distro support is any Linux via Package Map. API Keys go to `/etc/environment` with merge. CLI is TypeScript on bun with a bash stub. Repo path is `~/Documents/projects/personal/dotfiles`. Skills via skills.sh; MCP is the XDG file. pi config is snapshotted minus model and minus auto-generated extensions. Upstream Installs are latest. Node.js is nvm + latest LTS when npm is missing.
 - One user-facing module: the `dotfiles` CLI. Commands in v1: `init`, `doctor`, `stow`. No `update`, `package`, `link`, or completions.
-- A Host boundary sits behind the CLI: filesystem, Distro package manager, Upstream Install runner, sudo, login-shell change, PATH symlink. Production Host talks to the real machine. Tests inject a fake Host. This is the only new seam.
+- A Host boundary sits behind the CLI: filesystem, Distro package manager, Upstream Install runner, sudo, login-shell change, reboot, PATH symlink. Production Host talks to the real machine. Tests inject a fake Host. This is the only new seam.
 - Package Map is data: tool → package name per package-manager family (apt, pacman, dnf, zypper). Detect the family from the machine. Unknown family: fail before installs.
 - Distro packages in v1: zsh, git, stow. Ghostty is optional and Package Map-backed. Missing Ghostty mapping: warn, do not abort the rest of init.
 - Upstream Installs in v1: bun (`https://bun.com/install`), Oh My Zsh (official install script), herdr (`https://herdr.dev/install.sh`), nvm (official install.sh, then `nvm install --lts` if npm is missing), pi (bun global coding-agent, latest), Skills (skills.sh from the repo's lock/list).
@@ -79,7 +79,7 @@ A `dotfiles` CLI in this Dotfiles repo. `dotfiles init` runs Bootstrap, `dotfile
 - Init interaction: if Workflow already looks present, one continue? prompt. Destructive prompts only for `/etc/environment` writes and Stow conflicts. Ghostty: `Install Ghostty? [y/N]`. API Keys: CSV prompt; empty skips.
 - `/etc/environment` write uses sudo, merges keys, does not replace the file. Values never logged.
 - After successful init, symlink the bash stub to `~/.local/bin/dotfiles`. Curated zshrc puts `~/.local/bin` on PATH.
-- chsh to zsh as part of init (not optional).
+- chsh to zsh as part of init (not optional). After the rest of init succeeds (only when the shell actually changed), show `Login shell is now zsh. Run `zsh`or`reboot` to fully apply the change.` then ask `Reboot to apply it? [y/N] ` (default no). Yes: reboot via sudo after all work is done. No: nothing further.
 - Fail fast on required step failure. Optional Ghostty failure is a warning.
 - Tests never hit real package managers, real network, or real `/etc/environment`.
 

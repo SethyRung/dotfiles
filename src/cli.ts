@@ -98,11 +98,31 @@ async function init(host: Host): Promise<RunResult> {
         stderr = `Ghostty is not in the Package Map for ${pm}.\n`;
       }
     }
+    let shellChanged = false;
     if (!isZsh(host.loginShell())) {
       await host.changeLoginShell("zsh");
+      shellChanged = true;
     }
     if (!host.fileExists(join(home, ".local/bin/dotfiles"))) {
       await host.linkDotfiles();
+    }
+    if (shellChanged) {
+      const message =
+        "Login shell is now zsh. Run `zsh` or `reboot` to fully apply the change.\n" +
+        "Reboot to apply it? [y/N] ";
+      const reboot = isYes(await host.prompt(message));
+      if (reboot) {
+        try {
+          await host.reboot();
+          return { exitCode: 0, stdout: "Rebooting; new sessions will start in zsh.\n", stderr };
+        } catch {
+          return {
+            exitCode: 0,
+            stdout: "",
+            stderr: `${stderr}Reboot failed. Run 'sudo reboot' when ready.\n`,
+          };
+        }
+      }
     }
     return { exitCode: 0, stdout: "", stderr };
   } catch (error) {

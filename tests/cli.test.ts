@@ -19,6 +19,7 @@ function createFakeHost(
     packageManager?: PackageManager | null;
     installError?: string;
     upstreamInstallError?: string;
+    rebootError?: boolean;
     promptAnswers?: string[];
     environmentFile?: string;
   } = {},
@@ -30,6 +31,7 @@ function createFakeHost(
   backups: string[];
   linked: string[];
   prompts: string[];
+  reboots: number;
   fileContents: Record<string, string>;
 } {
   const present = new Set(commands);
@@ -53,6 +55,8 @@ function createFakeHost(
   const packageManager = extras.packageManager ?? null;
   const installError = extras.installError;
   const upstreamInstallError = extras.upstreamInstallError;
+  const rebootError = extras.rebootError;
+  let reboots = 0;
   return {
     upstreamInstalls,
     packagesRequested,
@@ -61,6 +65,9 @@ function createFakeHost(
     backups,
     linked,
     prompts,
+    get reboots() {
+      return reboots;
+    },
     fileContents,
     commandExists(command) {
       return present.has(command);
@@ -95,6 +102,12 @@ function createFakeHost(
     },
     async changeLoginShell(shell) {
       loginShell = shell;
+    },
+    async reboot() {
+      reboots += 1;
+      if (rebootError) {
+        throw new Error("reboot failed");
+      }
     },
     async linkDotfiles() {
       files.add(`${homeDir}/.local/bin/dotfiles`);
@@ -345,6 +358,62 @@ test("login shell is changed to zsh", async () => {
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
   expect(host.loginShell()).toBe("zsh");
+});
+
+test("after changing the login shell, init shows the hint then offers a reboot; default no", async () => {
+  const host = createFakeHost(["bun"], { packageManager: "apt" });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  const message = host.prompts.find((p) => p.includes("Reboot to apply it?")) ?? "";
+  expect(message).toContain("Login shell is now zsh.");
+  expect(message).toContain("Run `zsh` or `reboot` to fully apply the change.");
+  expect(host.reboots).toBe(0);
+});
+
+test("answering yes reboots after the rest of init has finished", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["bun"], {
+    homeDir: home,
+    packageManager: "apt",
+    promptAnswers: ["", "", "y"],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.reboots).toBe(1);
+  expect(host.fileExists(`${home}/.local/bin/dotfiles`)).toBe(true);
+  expect(result.stdout).toContain("Rebooting");
+});
+
+test("no reboot question when the login shell is already zsh", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["zsh", "git", "stow", "npm", "bun", "pi", "herdr", "opencode"], {
+    homeDir: home,
+    packageManager: "apt",
+    files: [
+      `${home}/.oh-my-zsh`,
+      `${home}/.agents/skills`,
+      `${home}/.config/mcp/mcp.json`,
+      `${home}/.local/bin/dotfiles`,
+    ],
+    loginShell: "/bin/zsh",
+    promptAnswers: ["y", ""],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.prompts.some((p) => p.includes("Reboot"))).toBe(false);
+  expect(host.reboots).toBe(0);
+});
+
+test("a failed reboot warns instead of failing init", async () => {
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    promptAnswers: ["", "", "y"],
+    rebootError: true,
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.reboots).toBe(1);
+  expect(result.stderr).toContain("sudo reboot");
 });
 
 test("`~/.local/bin/dotfiles` is a symlink to the stub", async () => {

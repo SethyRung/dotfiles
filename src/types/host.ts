@@ -9,6 +9,7 @@ export type Host = {
   fileExists(path: string): boolean;
   loginShell(): string | null;
   changeLoginShell(shell: string): Promise<void>;
+  reboot(): Promise<void>;
   linkDotfiles(): Promise<void>;
   environmentKeyNames(): Promise<string[]>;
   brokenStowLinks(): string[];

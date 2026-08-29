@@ -9,6 +9,7 @@
 - [x] Init requests the Oh My Zsh Upstream Install on the Host
 - [x] A curated zshrc is Stowed without Android SDK paths or out-of-scope aliases
 - [x] Login shell is changed to zsh
+- [x] Reboot offer after the login-shell change: hint line (`zsh` or `reboot`) then `Reboot to apply it? [y/N]`, default no
 - [x] `~/.local/bin/dotfiles` is a symlink to the stub
 - [x] Init succeeds even when the current session PATH does not yet include `~/.local/bin`
 - [x] Behaviour is observed only through the CLI against a fake Host

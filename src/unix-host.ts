@@ -87,6 +87,12 @@ export const unixHost: Host = {
     }
     await $`chsh -s ${path}`;
   },
+  async reboot() {
+    const proc = Bun.spawn(["sudo", "reboot"], { stdout: "inherit", stderr: "inherit" });
+    if ((await proc.exited) !== 0) {
+      throw new Error("reboot failed");
+    }
+  },
   async linkDotfiles() {
     const destDir = join(homedir(), ".local/bin");
     mkdirSync(destDir, { recursive: true });
