@@ -14,3 +14,13 @@ export const packageMap: Record<
 export function packagesFor(pm: PackageManager): string[] {
   return requiredDistroTools.map((tool) => packageMap[tool][pm]);
 }
+
+export const ghosttyPackageMap: Partial<Record<PackageManager, string>> = {
+  apt: "ghostty",
+  pacman: "ghostty",
+  dnf: "ghostty",
+};
+
+export function ghosttyPackageFor(pm: PackageManager): string | undefined {
+  return ghosttyPackageMap[pm];
+}

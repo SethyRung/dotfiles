@@ -541,3 +541,44 @@ test("CLI output and logs never contain API Key values", async () => {
   expect(result.stderr).not.toContain(secret);
   expect(host.prompts.join("")).not.toContain(secret);
 });
+
+test("default / no skips Ghostty package and config", async () => {
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    homeTree: [".zshrc", ".config/ghostty/config"],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.prompts.some((p) => p.includes("Install Ghostty?"))).toBe(true);
+  expect(host.packagesRequested).toEqual(["zsh", "git", "stow"]);
+  expect(host.linked).toEqual([".zshrc"]);
+});
+
+test("yes on a Distro with a mapping installs Ghostty and Stows its config", async () => {
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    homeTree: [".zshrc", ".config/ghostty/config"],
+    promptAnswers: ["", "y"],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.packagesRequested).toEqual(["zsh", "git", "stow", "ghostty"]);
+  expect(host.linked).toContain(".config/ghostty/config");
+  const cfg = await Bun.file(join(import.meta.dir, "../home/.config/ghostty/config")).text();
+  expect(cfg).toContain("theme=Vercel");
+  expect(cfg).toContain("Geist Mono");
+});
+
+test("yes on a Distro without a mapping warns and does not abort the rest of init", async () => {
+  const host = createFakeHost(["bun"], {
+    packageManager: "zypper",
+    homeTree: [".zshrc", ".config/ghostty/config"],
+    promptAnswers: ["", "y"],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(result.stderr).toContain("Ghostty");
+  expect(host.packagesRequested).toEqual(["zsh", "git", "stow"]);
+  expect(host.linked).not.toContain(".config/ghostty/config");
+  expect(host.loginShell()).toBe("zsh");
+});

@@ -1,7 +1,7 @@
 import { $, Glob } from "bun";
 import { existsSync, lstatSync, mkdirSync, renameSync, symlinkSync } from "node:fs";
 import { homedir, userInfo } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import type { Host } from "./host.ts";
 import { backupStamp } from "./time.ts";
 import { upstreamInstallFor } from "./upstream-installs.ts";
@@ -139,11 +139,17 @@ export const unixHost: Host = {
     return dest;
   },
   async stow(relPaths) {
-    if (relPaths.length === 0) {
-      return;
+    const tree = join(import.meta.dir, "..", "home");
+    const home = homedir();
+    for (const rel of relPaths) {
+      const dest = join(home, rel);
+      mkdirSync(dirname(dest), { recursive: true });
+      try {
+        lstatSync(dest);
+      } catch {
+        symlinkSync(join(tree, rel), dest);
+      }
     }
-    const repoRoot = join(import.meta.dir, "..");
-    await $`stow -d ${repoRoot} -t ${homedir()} home`;
   },
   async installPiPackages(packages) {
     for (const pkg of packages) {

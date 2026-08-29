@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import type { Host } from "./host.ts";
-import { packagesFor } from "./package-map.ts";
+import { ghosttyPackageFor, packagesFor } from "./package-map.ts";
 import { piPackages } from "./pi-packages.ts";
 import { skillsList } from "./skills-list.ts";
 
@@ -50,7 +50,7 @@ async function init(host: Host): Promise<RunResult> {
     await host.runUpstreamInstall("pi");
     await host.installPiPackages(piPackages);
     await host.installSkills(skillsList);
-    const stowed = await stow(host);
+    const stowed = await stow(host, { skipGhostty: true });
     if (stowed.exitCode !== 0) {
       return stowed;
     }
@@ -65,13 +65,30 @@ async function init(host: Host): Promise<RunResult> {
         );
       }
     }
+    const wantGhostty = ["y", "yes"].includes(
+      (await host.prompt("Install Ghostty? [y/N] ")).trim().toLowerCase(),
+    );
+    let stderr = "";
+    if (wantGhostty) {
+      const ghostty = ghosttyPackageFor(pm);
+      if (ghostty) {
+        try {
+          await host.installPackages([ghostty]);
+          await stow(host, { onlyGhostty: true });
+        } catch {
+          stderr = "Ghostty install failed.\n";
+        }
+      } else {
+        stderr = `Ghostty is not in the Package Map for ${pm}.\n`;
+      }
+    }
     await host.changeLoginShell("zsh");
     await host.linkDotfiles();
+    return { exitCode: 0, stdout: "", stderr };
   } catch (error) {
     const message = error instanceof Error ? error.message : "required step failed";
     return { exitCode: 1, stdout: "", stderr: `${message}\n` };
   }
-  return { exitCode: 0, stdout: "", stderr: "" };
 }
 
 async function doctor(host: Host): Promise<RunResult> {
@@ -133,8 +150,26 @@ function isStowJunk(rel: string): boolean {
   );
 }
 
-async function stow(host: Host): Promise<RunResult> {
-  const rels = host.homeTree().filter((rel) => !isStowJunk(rel));
+function isGhosttyConfig(rel: string): boolean {
+  return rel.startsWith(".config/ghostty/");
+}
+
+async function stow(
+  host: Host,
+  options: { skipGhostty?: boolean; onlyGhostty?: boolean } = {},
+): Promise<RunResult> {
+  const rels = host.homeTree().filter((rel) => {
+    if (isStowJunk(rel)) {
+      return false;
+    }
+    if (options.onlyGhostty) {
+      return isGhosttyConfig(rel);
+    }
+    if (options.skipGhostty) {
+      return !isGhosttyConfig(rel);
+    }
+    return true;
+  });
   const home = host.homeDir();
   for (const rel of rels) {
     const dest = join(home, rel);
