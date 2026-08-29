@@ -15,4 +15,6 @@ export type Host = {
   homeTree(): string[];
   backup(path: string): string;
   stow(relPaths: string[]): Promise<void>;
+  installPiPackages(packages: string[]): Promise<void>;
+  installSkills(specs: string[]): Promise<void>;
 };

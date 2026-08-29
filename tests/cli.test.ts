@@ -20,6 +20,8 @@ function createFakeHost(
 ): Host & {
   upstreamInstalls: string[];
   packagesRequested: string[];
+  piPackagesRequested: string[];
+  skillsRequested: string[];
   backups: string[];
   linked: string[];
 } {
@@ -27,6 +29,8 @@ function createFakeHost(
   const files = new Set(extras.files ?? []);
   const upstreamInstalls: string[] = [];
   const packagesRequested: string[] = [];
+  const piPackagesRequested: string[] = [];
+  const skillsRequested: string[] = [];
   const homeDir = extras.homeDir ?? "/fake-home";
   let loginShell = extras.loginShell ?? null;
   const environmentKeys = extras.environmentKeys ?? {};
@@ -40,6 +44,8 @@ function createFakeHost(
   return {
     upstreamInstalls,
     packagesRequested,
+    piPackagesRequested,
+    skillsRequested,
     backups,
     linked,
     commandExists(command) {
@@ -96,6 +102,12 @@ function createFakeHost(
         linked.push(rel);
         files.add(`${homeDir}/${rel}`);
       }
+    },
+    async installPiPackages(packages) {
+      piPackagesRequested.push(...packages);
+    },
+    async installSkills(specs) {
+      skillsRequested.push(...specs);
     },
   };
 }
@@ -344,4 +356,108 @@ test("init does not Stow herdr logs and sockets", async () => {
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
   expect(host.linked).toEqual([".config/herdr/config.toml"]);
+});
+
+test("init requests latest pi and the agreed pi packages on the Host", async () => {
+  const host = createFakeHost(["bun"], { packageManager: "apt" });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.upstreamInstalls).toContain("pi");
+  expect(host.piPackagesRequested).toEqual([
+    "npm:pi-subagents",
+    "npm:pi-mcp-adapter",
+    "npm:@juicesharp/rpiv-ask-user-question",
+    "npm:@juicesharp/rpiv-todo",
+    "npm:@narumitw/pi-retry",
+    "npm:pi-zentui",
+    "npm:@ogulcancelik/pi-herdr",
+    "npm:@ollama/pi-web-search",
+  ]);
+});
+
+test("restored pi settings do not include default model or provider", async () => {
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    homeTree: [".pi/agent/settings.json"],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.linked).toContain(".pi/agent/settings.json");
+  const settings = await Bun.file(join(import.meta.dir, "../home/.pi/agent/settings.json")).json();
+  expect(settings).not.toHaveProperty("defaultModel");
+  expect(settings).not.toHaveProperty("defaultProvider");
+  expect(settings).not.toHaveProperty("model");
+  expect(settings).not.toHaveProperty("provider");
+  expect(settings.packages).toContain("npm:pi-subagents");
+});
+
+test("APPEND_SYSTEM, prompts, and extensions are restored; auth, sessions, caches, and model stores are not", async () => {
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    homeTree: [
+      ".pi/agent/APPEND_SYSTEM.md",
+      ".pi/agent/prompts/init.md",
+      ".pi/agent/extensions/herdr-agent-state.ts",
+      ".pi/agent/keybindings.json",
+      ".pi/agent/zentui.json",
+      ".pi/agent/auth.json",
+      ".pi/agent/sessions/x.jsonl",
+      ".pi/agent/mcp-cache.json",
+      ".pi/agent/models-store.json",
+    ],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.linked).toContain(".pi/agent/APPEND_SYSTEM.md");
+  expect(host.linked).toContain(".pi/agent/prompts/init.md");
+  expect(host.linked).toContain(".pi/agent/extensions/herdr-agent-state.ts");
+  expect(host.linked).toContain(".pi/agent/keybindings.json");
+  expect(host.linked).toContain(".pi/agent/zentui.json");
+  expect(host.linked).not.toContain(".pi/agent/auth.json");
+  expect(host.linked).not.toContain(".pi/agent/sessions/x.jsonl");
+  expect(host.linked).not.toContain(".pi/agent/mcp-cache.json");
+  expect(host.linked).not.toContain(".pi/agent/models-store.json");
+  const keybindings = await Bun.file(
+    join(import.meta.dir, "../home/.pi/agent/keybindings.json"),
+  ).json();
+  expect(keybindings["tui.input.newLine"]).toEqual(["alt+enter"]);
+  const zentui = await Bun.file(join(import.meta.dir, "../home/.pi/agent/zentui.json")).json();
+  expect(zentui).toHaveProperty("colorSources");
+});
+
+test("Skills are requested via skills.sh, not by snapshotting skill files as the install mechanism", async () => {
+  const host = createFakeHost(["bun"], { packageManager: "apt" });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.skillsRequested).toEqual([
+    "vercel-labs/skills@find-skills",
+    "mattpocock/skills@grill-me",
+    "mattpocock/skills@grill-with-docs",
+    "mattpocock/skills@to-spec",
+    "mattpocock/skills@to-tickets",
+    "firecrawl/anydoc@convert-documents-to-markdown",
+    "mattpocock/skills@code-review",
+    "mattpocock/skills@implement",
+    "mattpocock/skills@improve-codebase-architecture",
+    "mattpocock/skills@resolving-merge-conflicts",
+    "mattpocock/skills@tdd",
+    "mattpocock/skills@teach",
+    "mattpocock/skills@prototype",
+    "mattpocock/skills@wait-what",
+  ]);
+  expect(host.linked.some((rel) => rel.startsWith(".agents/skills/"))).toBe(false);
+});
+
+test("XDG MCP config is Stowed", async () => {
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    homeTree: [".config/mcp/mcp.json"],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.linked).toContain(".config/mcp/mcp.json");
+  expect(host.linked).not.toContain(".pi/agent/mcp.json");
+  const mcp = await Bun.file(join(import.meta.dir, "../home/.config/mcp/mcp.json")).json();
+  expect(mcp.mcpServers).toHaveProperty("mobile-mcp");
+  expect(mcp.mcpServers).toHaveProperty("bun");
 });

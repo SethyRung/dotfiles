@@ -1,6 +1,8 @@
 import { join } from "node:path";
 import type { Host } from "./host.ts";
 import { packagesFor } from "./package-map.ts";
+import { piPackages } from "./pi-packages.ts";
+import { skillsList } from "./skills-list.ts";
 
 export type RunResult = {
   exitCode: number;
@@ -45,6 +47,9 @@ async function init(host: Host): Promise<RunResult> {
     await host.installPackages(packagesFor(pm));
     await host.runUpstreamInstall("oh-my-zsh");
     await host.runUpstreamInstall("herdr");
+    await host.runUpstreamInstall("pi");
+    await host.installPiPackages(piPackages);
+    await host.installSkills(skillsList);
     const stowed = await stow(host);
     if (stowed.exitCode !== 0) {
       return stowed;
@@ -104,11 +109,16 @@ async function doctor(host: Host): Promise<RunResult> {
 
 function isStowJunk(rel: string): boolean {
   const parts = rel.split("/");
+  const base = parts.at(-1) ?? rel;
   return (
     parts.includes("logs") ||
     parts.includes("sockets") ||
+    parts.includes("sessions") ||
     rel.endsWith(".log") ||
-    rel.endsWith(".sock")
+    rel.endsWith(".sock") ||
+    base === "auth.json" ||
+    base.includes("cache") ||
+    base.startsWith("models")
   );
 }
 

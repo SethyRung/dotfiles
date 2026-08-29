@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "bun": {
+      "command": "npx",
+      "args": ["mcp-remote", "https://bun.com/docs/mcp"]
+    },
+    "nuxt": {
+      "command": "npx",
+      "args": ["mcp-remote", "https://nuxt.com/mcp"]
+    },
+    "nuxt-ui": {
+      "command": "npx",
+      "args": ["mcp-remote", "https://ui.nuxt.com/mcp"]
+    },
+    "better-auth": {
+      "command": "npx",
+      "args": ["mcp-remote", "https://mcp.better-auth.com/mcp"]
+    },
+    "mobile-mcp": {
+      "command": "npx",
+      "args": ["-y", "@mobilenext/mobile-mcp@latest"]
+    }
+  }
+}

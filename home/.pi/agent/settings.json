@@ -1,0 +1,30 @@
+{
+  "autocompleteMaxVisible": 5,
+  "defaultThinkingLevel": "high",
+  "doubleEscapeAction": "tree",
+  "hideThinkingBlock": true,
+  "outputPad": 1,
+  "packages": [
+    "npm:pi-subagents",
+    "npm:pi-mcp-adapter",
+    "npm:@juicesharp/rpiv-ask-user-question",
+    "npm:@juicesharp/rpiv-todo",
+    "npm:@narumitw/pi-retry",
+    "npm:pi-zentui",
+    "npm:@ogulcancelik/pi-herdr",
+    "npm:@ollama/pi-web-search"
+  ],
+  "showCacheMissNotices": false,
+  "showHardwareCursor": true,
+  "steeringMode": "one-at-a-time",
+  "terminal": {
+    "showTerminalProgress": true
+  },
+  "theme": "dark",
+  "transport": "auto",
+  "tuiMode": "regular",
+  "markdown": {
+    "mermaid": "streaming"
+  },
+  "editorPaddingX": 1
+}

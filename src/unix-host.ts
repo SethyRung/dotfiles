@@ -145,4 +145,14 @@ export const unixHost: Host = {
     const repoRoot = join(import.meta.dir, "..");
     await $`stow -d ${repoRoot} -t ${homedir()} home`;
   },
+  async installPiPackages(packages) {
+    for (const pkg of packages) {
+      await $`pi install ${pkg}`;
+    }
+  },
+  async installSkills(specs) {
+    for (const spec of specs) {
+      await $`bunx skills add ${spec} -g -y`;
+    }
+  },
 };

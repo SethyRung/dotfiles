@@ -4,11 +4,11 @@
 
 **Blocked by:** 03: `dotfiles stow` backup-then-link; 04: `dotfiles init` Distro packages via Package Map
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Init requests latest pi and the agreed pi packages on the Host
-- [ ] Restored pi settings do not include default model or provider
-- [ ] APPEND_SYSTEM, prompts, and extensions are restored; auth, sessions, caches, and model stores are not
-- [ ] Skills are requested via skills.sh, not by snapshotting skill files as the install mechanism
-- [ ] XDG MCP config is Stowed
-- [ ] Behaviour is observed only through the CLI against a fake Host
+- [x] Init requests latest pi and the agreed pi packages on the Host
+- [x] Restored pi settings do not include default model or provider
+- [x] APPEND_SYSTEM, prompts, and extensions are restored; auth, sessions, caches, and model stores are not
+- [x] Skills are requested via skills.sh, not by snapshotting skill files as the install mechanism
+- [x] XDG MCP config is Stowed
+- [x] Behaviour is observed only through the CLI against a fake Host

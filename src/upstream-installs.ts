@@ -22,6 +22,11 @@ export const upstreamInstalls = {
     shell: "sh",
     via: "pipe",
   },
+  pi: {
+    url: "https://pi.dev/install.sh",
+    shell: "sh",
+    via: "pipe",
+  },
 } as const satisfies Record<string, UpstreamInstall>;
 
 export function upstreamInstallFor(tool: string): UpstreamInstall | undefined {
