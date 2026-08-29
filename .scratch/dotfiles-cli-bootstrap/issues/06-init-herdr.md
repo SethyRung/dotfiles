@@ -4,9 +4,9 @@
 
 **Blocked by:** 03: `dotfiles stow` backup-then-link; 04: `dotfiles init` Distro packages via Package Map
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Init requests the herdr Upstream Install on the Host
-- [ ] herdr `config.toml` is Stowed into the fake `$HOME`
-- [ ] herdr logs and sockets are not Stowed
-- [ ] Behaviour is observed only through the CLI against a fake Host
+- [x] Init requests the herdr Upstream Install on the Host
+- [x] herdr `config.toml` is Stowed into the fake `$HOME`
+- [x] herdr logs and sockets are not Stowed
+- [x] Behaviour is observed only through the CLI against a fake Host

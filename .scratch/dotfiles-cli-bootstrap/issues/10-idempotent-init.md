@@ -4,10 +4,10 @@
 
 **Blocked by:** 05: `dotfiles init` installs the zsh Workflow; 06: `dotfiles init` installs herdr; 07: `dotfiles init` installs pi, Skills, and XDG MCP; 08: `dotfiles init` merges API Keys into `/etc/environment`; 09: `dotfiles init` optional Ghostty
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] When Workflow already looks present, init asks continue? before doing work
-- [ ] Decline leaves the Host unchanged
-- [ ] Continue does not re-request tools the Host already has
-- [ ] Continue still confirms before `/etc/environment` writes and Stow conflicts
-- [ ] Behaviour is observed only through the CLI against a fake Host
+- [x] When Workflow already looks present, init asks continue? before doing work
+- [x] Decline leaves the Host unchanged
+- [x] Continue does not re-request tools the Host already has
+- [x] Continue still confirms before `/etc/environment` writes and Stow conflicts
+- [x] Behaviour is observed only through the CLI against a fake Host

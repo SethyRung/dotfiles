@@ -4,11 +4,11 @@
 
 **Blocked by:** 04: `dotfiles init` Distro packages via Package Map
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Empty CSV skips the `/etc/environment` write
-- [ ] Non-empty CSV prompts for confirmation before writing
-- [ ] Declining confirmation does not write
-- [ ] Accepting merges keys only; other lines in the file remain
-- [ ] CLI output and logs never contain API Key values
-- [ ] Behaviour is observed only through the CLI against a fake Host
+- [x] Empty CSV skips the `/etc/environment` write
+- [x] Non-empty CSV prompts for confirmation before writing
+- [x] Declining confirmation does not write
+- [x] Accepting merges keys only; other lines in the file remain
+- [x] CLI output and logs never contain API Key values
+- [x] Behaviour is observed only through the CLI against a fake Host

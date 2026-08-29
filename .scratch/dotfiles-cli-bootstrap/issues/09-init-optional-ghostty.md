@@ -4,9 +4,9 @@
 
 **Blocked by:** 03: `dotfiles stow` backup-then-link; 04: `dotfiles init` Distro packages via Package Map
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Default / no skips Ghostty package and config
-- [ ] Yes on a Distro with a mapping installs Ghostty and Stows its config
-- [ ] Yes on a Distro without a mapping warns and does not abort the rest of init
-- [ ] Behaviour is observed only through the CLI against a fake Host
+- [x] Default / no skips Ghostty package and config
+- [x] Yes on a Distro with a mapping installs Ghostty and Stows its config
+- [x] Yes on a Distro without a mapping warns and does not abort the rest of init
+- [x] Behaviour is observed only through the CLI against a fake Host
