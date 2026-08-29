@@ -1,0 +1,18 @@
+onboarding = false
+[keys]
+prefix = "ctrl+space"
+
+[ui]
+agent_panel_sort = "priority"
+copy_on_select = false
+
+show_agent_labels_on_pane_borders = true
+[theme]
+name = "vesper"
+auto_switch = false
+
+[ui.toast]
+delivery = "herdr"
+
+[experimental]
+pane_history = true

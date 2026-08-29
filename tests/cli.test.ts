@@ -260,7 +260,7 @@ test("init requests the Oh My Zsh Upstream Install on the Host", async () => {
   const host = createFakeHost(["bun"], { packageManager: "apt" });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
-  expect(host.upstreamInstalls).toEqual(["oh-my-zsh"]);
+  expect(host.upstreamInstalls).toContain("oh-my-zsh");
 });
 
 test("a curated zshrc is Stowed without Android SDK paths or out-of-scope aliases", async () => {
@@ -309,4 +309,39 @@ test("init succeeds even when the current session PATH does not yet include ~/.l
   expect(result.exitCode).toBe(0);
   expect(host.fileExists(`${home}/.local/bin/dotfiles`)).toBe(true);
   expect(host.commandExists("dotfiles")).toBe(false);
+});
+
+test("init requests the herdr Upstream Install on the Host", async () => {
+  const host = createFakeHost(["bun"], { packageManager: "apt" });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.upstreamInstalls).toContain("herdr");
+});
+
+test("herdr config.toml is Stowed into the fake $HOME", async () => {
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    homeTree: [".config/herdr/config.toml"],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.linked).toEqual([".config/herdr/config.toml"]);
+  const toml = await Bun.file(join(import.meta.dir, "../home/.config/herdr/config.toml")).text();
+  expect(toml).toContain('prefix = "ctrl+space"');
+  expect(toml).toContain('name = "vesper"');
+  expect(toml).toContain("[ui]");
+});
+
+test("init does not Stow herdr logs and sockets", async () => {
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    homeTree: [
+      ".config/herdr/config.toml",
+      ".config/herdr/herdr-client.log",
+      ".config/herdr/herdr.sock",
+    ],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.linked).toEqual([".config/herdr/config.toml"]);
 });

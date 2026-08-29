@@ -15,10 +15,13 @@ export const unixHost: Host = {
     if (!install) {
       throw new Error(`unknown Upstream Install: ${tool}`);
     }
-    await $`curl -fsSL ${install.url} | ${install.shell}`.env({
-      ...process.env,
-      ...install.env,
-    });
+    const env = { ...process.env, ...install.env };
+    if (install.via === "sh-c") {
+      const script = await $`curl -fsSL ${install.url}`.text();
+      await $`${install.shell} -c ${script}`.env(env);
+      return;
+    }
+    await $`curl -fsSL ${install.url} | ${install.shell}`.env(env);
   },
   packageManager() {
     if (Bun.which("apt-get") ?? Bun.which("apt")) {

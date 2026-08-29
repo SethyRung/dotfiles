@@ -44,6 +44,7 @@ async function init(host: Host): Promise<RunResult> {
   try {
     await host.installPackages(packagesFor(pm));
     await host.runUpstreamInstall("oh-my-zsh");
+    await host.runUpstreamInstall("herdr");
     const stowed = await stow(host);
     if (stowed.exitCode !== 0) {
       return stowed;
