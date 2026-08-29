@@ -678,6 +678,18 @@ test("yes on a Distro with a mapping installs Ghostty and Stows its config", asy
   expect(cfg).toContain("Geist Mono");
 });
 
+test("answering yes when Ghostty is already installed does not request its package again", async () => {
+  const host = createFakeHost(["bun", "ghostty"], {
+    packageManager: "apt",
+    homeTree: [".zshrc", ".config/ghostty/config"],
+    promptAnswers: ["", "y"],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.packagesRequested).toEqual(["zsh", "git", "stow"]);
+  expect(host.linked).toContain(".config/ghostty/config");
+});
+
 test("yes on a Distro without a mapping warns and does not abort the rest of init", async () => {
   const host = createFakeHost(["bun"], {
     packageManager: "zypper",

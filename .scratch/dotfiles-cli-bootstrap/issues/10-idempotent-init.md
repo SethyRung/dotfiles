@@ -9,5 +9,7 @@
 - [x] When Workflow already looks present, init asks continue? before doing work
 - [x] Decline leaves the Host unchanged
 - [x] Continue does not re-request tools the Host already has
+- [x] Ghostty is not requested again when already installed (its config is still Stowed)
+- [x] Tools installed into the Workflow bin dirs are detected even when the current bash session PATH lacks them
 - [x] Continue still confirms before `/etc/environment` writes and Stow conflicts
 - [x] Behaviour is observed only through the CLI against a fake Host

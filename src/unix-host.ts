@@ -8,7 +8,27 @@ import { backupStamp } from "./utils/time.ts";
 
 export const unixHost: Host = {
   commandExists(command) {
-    return Bun.which(command) !== null;
+    if (Bun.which(command) !== null) {
+      return true;
+    }
+
+    const home = homedir();
+    const binDirs = [join(home, ".bun/bin"), join(home, ".local/bin"), join(home, ".opencode/bin")];
+    for (const dir of binDirs) {
+      if (existsSync(join(dir, command))) {
+        return true;
+      }
+    }
+    if (command === "npm") {
+      const nvm = join(home, ".nvm");
+      if (existsSync(nvm)) {
+        const found = [...new Glob("versions/node/*/bin/npm").scanSync({ cwd: nvm })];
+        if (found.length > 0) {
+          return true;
+        }
+      }
+    }
+    return false;
   },
   async runUpstreamInstall(tool) {
     const install = upstreamInstallFor(tool);

@@ -89,7 +89,9 @@ async function init(host: Host): Promise<RunResult> {
       const ghostty = ghosttyPackageFor(pm);
       if (ghostty) {
         try {
-          await host.installPackages([ghostty]);
+          if (!host.commandExists("ghostty")) {
+            await host.installPackages([ghostty]);
+          }
           await stow(host, { onlyGhostty: true });
         } catch {
           stderr = "Ghostty install failed.\n";
