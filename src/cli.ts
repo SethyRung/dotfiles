@@ -4,6 +4,7 @@ import { ghosttyPackageFor, packagesFor } from "./consts/package-map.ts";
 import { piPackages } from "./consts/pi-packages.ts";
 import { skillsList } from "./consts/skills-list.ts";
 import type { Host } from "./types/host.ts";
+import type { ProgressState, ProgressStep } from "./types/progress.ts";
 import type { RunResult, StowOptions } from "./types/result.ts";
 import { mergeEnvironment, parseApiKeyCsv } from "./utils/environment.ts";
 import { mirrorOpenCodeMcp } from "./utils/mcp.ts";
@@ -28,6 +29,47 @@ export async function run(args: string[], host: Host): Promise<RunResult> {
   return { exitCode: 0, stdout: helpText, stderr: "" };
 }
 
+const STEPS = {
+  DISTRO: 0,
+  OMZ: 1,
+  NVM: 2,
+  HERDR: 3,
+  PI: 4,
+  OPENCODE: 5,
+  ZED: 6,
+  SKILLS: 7,
+  STOW: 8,
+  MCP: 9,
+  KEYS: 10,
+  GHOSTTY: 11,
+  SHELL: 12,
+  CLI: 13,
+} as const;
+
+function initialSteps(): ProgressStep[] {
+  const pending = (label: string, detail: string): ProgressStep => ({
+    label,
+    detail,
+    state: "pending",
+  });
+  return [
+    pending("Distro packages", "zsh, git, stow"),
+    pending("Oh My Zsh", "latest"),
+    pending("nvm + Node LTS", "node LTS"),
+    pending("herdr", "latest"),
+    pending("pi + packages", "latest"),
+    pending("OpenCode", "latest"),
+    pending("Zed", "latest"),
+    pending("Skills", `${skillsList.length} skills`),
+    pending("Stow", "home/ tree"),
+    pending("OpenCode MCP", "mcp key"),
+    pending("API Keys", "will prompt"),
+    pending("Ghostty", "will prompt"),
+    pending("login shell", "zsh"),
+    pending("dotfiles CLI", "~/.local/bin"),
+  ];
+}
+
 async function init(host: Host): Promise<RunResult> {
   const pm = host.packageManager();
   if (!pm) {
@@ -46,37 +88,79 @@ async function init(host: Host): Promise<RunResult> {
   }
   try {
     const home = host.homeDir();
+    const steps = initialSteps();
+    const update = (i: number, state: ProgressState, detail: string) => {
+      steps[i] = { ...steps[i], state, detail };
+      host.progress({ title: `Distro: ${pm}`, steps: steps.map((step) => ({ ...step })) });
+    };
+    host.progress({ title: `Distro: ${pm}`, steps: steps.map((step) => ({ ...step })) });
     const pkgs = packagesFor(pm).filter((name) => !host.commandExists(name));
     if (pkgs.length > 0) {
+      update(STEPS.DISTRO, "running", pkgs.join(", "));
       await host.installPackages(pkgs);
+      update(STEPS.DISTRO, "done", pkgs.join(", "));
+    } else {
+      update(STEPS.DISTRO, "skipped", "present");
     }
     if (!host.fileExists(join(home, ".oh-my-zsh"))) {
+      update(STEPS.OMZ, "running", "latest");
       await host.runUpstreamInstall("oh-my-zsh");
+      update(STEPS.OMZ, "done", "latest");
+    } else {
+      update(STEPS.OMZ, "skipped", "present");
     }
     if (!host.commandExists("npm")) {
+      update(STEPS.NVM, "running", "node LTS");
       await host.runUpstreamInstall("nvm");
+      update(STEPS.NVM, "done", "node LTS");
+    } else {
+      update(STEPS.NVM, "skipped", "npm present");
     }
     if (!host.commandExists("herdr")) {
+      update(STEPS.HERDR, "running", "latest");
       await host.runUpstreamInstall("herdr");
+      update(STEPS.HERDR, "done", "latest");
+    } else {
+      update(STEPS.HERDR, "skipped", "present");
     }
     if (!host.commandExists("pi")) {
+      update(STEPS.PI, "running", `latest + ${piPackages.length} packages`);
       await host.runUpstreamInstall("pi");
       await host.installPiPackages(piPackages);
+      update(STEPS.PI, "done", `${piPackages.length} packages`);
+    } else {
+      update(STEPS.PI, "skipped", "present");
     }
     if (!host.commandExists("opencode")) {
+      update(STEPS.OPENCODE, "running", "latest");
       await host.runUpstreamInstall("opencode");
+      update(STEPS.OPENCODE, "done", "latest");
+    } else {
+      update(STEPS.OPENCODE, "skipped", "present");
     }
     if (!host.commandExists("zed")) {
+      update(STEPS.ZED, "running", "latest");
       await host.runUpstreamInstall("zed");
+      update(STEPS.ZED, "done", "latest");
+    } else {
+      update(STEPS.ZED, "skipped", "present");
     }
     if (!host.fileExists(join(home, ".agents/skills"))) {
+      update(STEPS.SKILLS, "running", `${skillsList.length} skills`);
       await host.installSkills(skillsList);
+      update(STEPS.SKILLS, "done", `${skillsList.length} skills`);
+    } else {
+      update(STEPS.SKILLS, "skipped", "present");
     }
+    update(STEPS.STOW, "running", "home/ tree");
     const stowed = await stow(host, { skipGhostty: true, confirmConflicts: reRun });
     if (stowed.exitCode !== 0) {
       return stowed;
     }
+    update(STEPS.STOW, "done", "linked");
+    update(STEPS.MCP, "running", "mirroring XDG mcp");
     await mirrorOpenCodeMcp(host);
+    update(STEPS.MCP, "done", "mcp key refreshed");
     const apiKeysCsv = (await host.prompt("API Keys (key=value CSV, empty skips): ")).trim();
     if (apiKeysCsv !== "") {
       const confirmed = await host.prompt("Write API Keys to /etc/environment? [y/N] ");
@@ -84,7 +168,12 @@ async function init(host: Host): Promise<RunResult> {
         await host.writeEnvironment(
           mergeEnvironment(await host.readEnvironment(), parseApiKeyCsv(apiKeysCsv)),
         );
+        update(STEPS.KEYS, "done", "merged into /etc/environment");
+      } else {
+        update(STEPS.KEYS, "skipped", "declined");
       }
+    } else {
+      update(STEPS.KEYS, "skipped", "empty");
     }
     let stderr = "";
     const wantGhostty = !reRun && isYes(await host.prompt("Install Ghostty? [y/N] "));
@@ -93,23 +182,39 @@ async function init(host: Host): Promise<RunResult> {
       if (ghostty) {
         try {
           if (!host.commandExists("ghostty")) {
+            update(STEPS.GHOSTTY, "running", "installing");
             await host.installPackages([ghostty]);
+            update(STEPS.GHOSTTY, "done", "installed");
+          } else {
+            update(STEPS.GHOSTTY, "skipped", "present");
           }
           await stow(host, { onlyGhostty: true });
         } catch {
+          update(STEPS.GHOSTTY, "failed", "install failed");
           stderr = "Ghostty install failed.\n";
         }
       } else {
+        update(STEPS.GHOSTTY, "failed", `not in Package Map for ${pm}`);
         stderr = `Ghostty is not in the Package Map for ${pm}.\n`;
       }
+    } else {
+      update(STEPS.GHOSTTY, "skipped", "declined");
     }
     let shellChanged = false;
     if (!isZsh(host.loginShell())) {
+      update(STEPS.SHELL, "running", "zsh");
       await host.changeLoginShell("zsh");
       shellChanged = true;
+      update(STEPS.SHELL, "done", "zsh");
+    } else {
+      update(STEPS.SHELL, "skipped", "already zsh");
     }
     if (!host.fileExists(join(home, ".local/bin/dotfiles"))) {
+      update(STEPS.CLI, "running", "~/.local/bin");
       await host.linkDotfiles();
+      update(STEPS.CLI, "done", "~/.local/bin");
+    } else {
+      update(STEPS.CLI, "skipped", "present");
     }
     if (shellChanged) {
       const message =

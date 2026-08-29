@@ -1,3 +1,5 @@
+import type { ProgressFrame } from "./progress.ts";
+
 export type PackageManager = "apt" | "pacman" | "dnf" | "zypper";
 
 export type Host = {
@@ -19,6 +21,7 @@ export type Host = {
   installPiPackages(packages: string[]): Promise<void>;
   installSkills(specs: string[]): Promise<void>;
   prompt(message: string): Promise<string>;
+  progress(frame: ProgressFrame): void;
   readEnvironment(): Promise<string>;
   writeEnvironment(content: string): Promise<void>;
   readFile(path: string): Promise<string | null>;

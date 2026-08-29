@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 import { join } from "node:path";
 import { run } from "../src/cli.ts";
 import type { Host, PackageManager } from "../src/types/host.ts";
+import type { ProgressFrame } from "../src/types/progress.ts";
 import { backupStamp, toDayJS, type Dayjs } from "../src/utils/time.ts";
 
 function createFakeHost(
@@ -32,6 +33,7 @@ function createFakeHost(
   linked: string[];
   prompts: string[];
   reboots: number;
+  progressFrames: ProgressFrame[];
   fileContents: Record<string, string>;
 } {
   const present = new Set(commands);
@@ -50,6 +52,7 @@ function createFakeHost(
   const linked: string[] = [];
   const prompts: string[] = [];
   const promptAnswers = extras.promptAnswers ?? [];
+  const progressFrames: ProgressFrame[] = [];
   let environmentFile = extras.environmentFile ?? "";
   const clock = extras.now ?? toDayJS("1970-01-01T00:00:00.000Z");
   const packageManager = extras.packageManager ?? null;
@@ -68,6 +71,7 @@ function createFakeHost(
     get reboots() {
       return reboots;
     },
+    progressFrames,
     fileContents,
     commandExists(command) {
       return present.has(command);
@@ -147,6 +151,9 @@ function createFakeHost(
       prompts.push(message);
       return promptAnswers.shift() ?? "";
     },
+    progress(frame) {
+      progressFrames.push({ title: frame.title, steps: frame.steps.map((step) => ({ ...step })) });
+    },
     async readEnvironment() {
       return environmentFile;
     },
@@ -161,6 +168,14 @@ function createFakeHost(
       files.add(path);
     },
   };
+}
+
+function finalSteps(host: ReturnType<typeof createFakeHost>) {
+  return new Map(host.progressFrames.at(-1)!.steps.map((step) => [step.label, step]));
+}
+
+function frameStep(frame: ProgressFrame, label: string) {
+  return frame.steps.find((step) => step.label === label)!;
 }
 
 test("dotfiles help lists init, doctor, and stow", async () => {
@@ -362,6 +377,89 @@ test("login shell is changed to zsh", async () => {
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
   expect(host.loginShell()).toBe("zsh");
+  expect(finalSteps(host).get("login shell")).toEqual({
+    label: "login shell",
+    detail: "zsh",
+    state: "done",
+  });
+});
+
+test("init reports live progress frames for each step", async () => {
+  const host = createFakeHost(["bun"], { packageManager: "apt" });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  const frames = host.progressFrames;
+  expect(frames[0].title).toBe("Distro: apt");
+  expect(frames[0].steps.every((step) => step.state === "pending")).toBe(true);
+  const distroRunning = frames.find(
+    (frame) => frameStep(frame, "Distro packages").state === "running",
+  );
+  expect(distroRunning?.steps[0].detail).toBe("zsh, git, stow");
+  const zedRunning = frames.find((frame) => frameStep(frame, "Zed").state === "running");
+  expect(zedRunning).toBeDefined();
+  expect(frameStep(zedRunning!, "Stow").state).toBe("pending");
+  for (const step of frames.at(-1)!.steps) {
+    expect(["done", "skipped"]).toContain(step.state);
+  }
+  const final = finalSteps(host);
+  expect(final.get("Distro packages")).toEqual({
+    label: "Distro packages",
+    detail: "zsh, git, stow",
+    state: "done",
+  });
+  expect(final.get("pi + packages")).toEqual({
+    label: "pi + packages",
+    detail: "8 packages",
+    state: "done",
+  });
+  expect(final.get("API Keys")).toEqual({ label: "API Keys", detail: "empty", state: "skipped" });
+  expect(final.get("Ghostty")).toEqual({
+    label: "Ghostty",
+    detail: "declined",
+    state: "skipped",
+  });
+  expect(final.get("dotfiles CLI")).toEqual({
+    label: "dotfiles CLI",
+    detail: "~/.local/bin",
+    state: "done",
+  });
+});
+
+test("when Workflow is already present, frames say skipped with present details", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(
+    ["zsh", "git", "stow", "npm", "bun", "pi", "herdr", "opencode", "zed"],
+    {
+      homeDir: home,
+      packageManager: "apt",
+      files: [
+        `${home}/.oh-my-zsh`,
+        `${home}/.agents/skills`,
+        `${home}/.config/mcp/mcp.json`,
+        `${home}/.local/bin/dotfiles`,
+      ],
+      loginShell: "/bin/zsh",
+      promptAnswers: ["y", ""],
+    },
+  );
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  const final = finalSteps(host);
+  expect(final.get("Distro packages")).toMatchObject({ state: "skipped", detail: "present" });
+  expect(final.get("Oh My Zsh")).toMatchObject({ state: "skipped", detail: "present" });
+  expect(final.get("nvm + Node LTS")).toMatchObject({ state: "skipped", detail: "npm present" });
+  expect(final.get("herdr")).toMatchObject({ state: "skipped", detail: "present" });
+  expect(final.get("pi + packages")).toMatchObject({ state: "skipped", detail: "present" });
+  expect(final.get("OpenCode")).toMatchObject({ state: "skipped", detail: "present" });
+  expect(final.get("Zed")).toMatchObject({ state: "skipped", detail: "present" });
+  expect(final.get("Skills")).toMatchObject({ state: "skipped", detail: "present" });
+  expect(final.get("Stow")).toMatchObject({ state: "done", detail: "linked" });
+  expect(final.get("login shell")).toMatchObject({ state: "skipped", detail: "already zsh" });
+  expect(final.get("Ghostty")).toMatchObject({ state: "skipped", detail: "declined" });
+  const zedNeverRan = host.progressFrames.every(
+    (frame) => frameStep(frame, "Zed").state !== "running",
+  );
+  expect(zedNeverRan).toBe(true);
 });
 
 test("after changing the login shell, init shows the hint then offers a reboot; default no", async () => {
@@ -630,6 +728,11 @@ test("accepting merges keys only; other lines in the file remain", async () => {
   expect(await host.readEnvironment()).toBe(
     'PATH="/usr/bin"\nKEEP=yes\nOPENROUTER_API_KEY=sk-secret\n',
   );
+  expect(finalSteps(host).get("API Keys")).toEqual({
+    label: "API Keys",
+    detail: "merged into /etc/environment",
+    state: "done",
+  });
 });
 
 test("declining confirmation does not write", async () => {
@@ -642,6 +745,7 @@ test("declining confirmation does not write", async () => {
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
   expect(await host.readEnvironment()).toBe(existing);
+  expect(finalSteps(host).get("API Keys")).toMatchObject({ state: "skipped", detail: "declined" });
 });
 
 test("CLI output and logs never contain API Key values", async () => {
@@ -656,6 +760,7 @@ test("CLI output and logs never contain API Key values", async () => {
   expect(result.stdout).not.toContain(secret);
   expect(result.stderr).not.toContain(secret);
   expect(host.prompts.join("")).not.toContain(secret);
+  expect(JSON.stringify(host.progressFrames)).not.toContain(secret);
 });
 
 test("default / no skips Ghostty package and config", async () => {
@@ -680,6 +785,14 @@ test("yes on a Distro with a mapping installs Ghostty and Stows its config", asy
   expect(result.exitCode).toBe(0);
   expect(host.packagesRequested).toEqual(["zsh", "git", "stow", "ghostty"]);
   expect(host.linked).toContain(".config/ghostty/config");
+  expect(finalSteps(host).get("Ghostty")).toEqual({
+    label: "Ghostty",
+    detail: "installed",
+    state: "done",
+  });
+  expect(host.progressFrames.some((frame) => frameStep(frame, "Ghostty").state === "running")).toBe(
+    true,
+  );
   const cfg = await Bun.file(join(import.meta.dir, "../home/.config/ghostty/config")).text();
   expect(cfg).toContain("theme=Vercel");
   expect(cfg).toContain("Geist Mono");
@@ -695,6 +808,11 @@ test("answering yes when Ghostty is already installed does not request its packa
   expect(result.exitCode).toBe(0);
   expect(host.packagesRequested).toEqual(["zsh", "git", "stow"]);
   expect(host.linked).toContain(".config/ghostty/config");
+  expect(finalSteps(host).get("Ghostty")).toEqual({
+    label: "Ghostty",
+    detail: "present",
+    state: "skipped",
+  });
 });
 
 test("yes on a Distro without a mapping warns and does not abort the rest of init", async () => {
@@ -706,6 +824,11 @@ test("yes on a Distro without a mapping warns and does not abort the rest of ini
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
   expect(result.stderr).toContain("Ghostty");
+  expect(finalSteps(host).get("Ghostty")).toEqual({
+    label: "Ghostty",
+    detail: "not in Package Map for zypper",
+    state: "failed",
+  });
   expect(host.packagesRequested).toEqual(["zsh", "git", "stow"]);
   expect(host.linked).not.toContain(".config/ghostty/config");
   expect(host.loginShell()).toBe("zsh");

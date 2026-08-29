@@ -68,12 +68,13 @@ A `dotfiles` CLI in this Dotfiles repo. `dotfiles init` runs Bootstrap, `dotfile
 54. As a developer, I want Zed installed via its official Upstream Install (`https://zed.dev/install.sh`) so that the IDE is on a Fresh Install without a Distro package.
 55. As a developer, I want Zed `settings.json` and `keymap.json` Stowed so that the IDE matches this machine on a Fresh Install.
 56. As a developer, I want Zed extensions declared in `auto_install_extensions` in settings.json so that Zed installs them itself on first start and no extension snapshot is committed.
+57. As a developer watching init run, I want a live ASCII dashboard of each step so that I can see where Bootstrap is, what it skipped, and how long it took.
 
 ## Implementation Decisions
 
 - Respect ADRs 0001–0013 and the glossary in `CONTEXT.md`. Command name is `dotfiles`. Distro support is any Linux via Package Map. API Keys go to `/etc/environment` with merge. CLI is TypeScript on bun with a bash stub. Repo path is `~/Documents/projects/personal/dotfiles`. Skills via skills.sh; MCP is the XDG file. pi config is snapshotted minus model and minus auto-generated extensions. Upstream Installs are latest. Node.js is nvm + latest LTS when npm is missing.
 - One user-facing module: the `dotfiles` CLI. Commands in v1: `init`, `doctor`, `stow`. No `update`, `package`, `link`, or completions.
-- A Host boundary sits behind the CLI: filesystem, Distro package manager, Upstream Install runner, sudo, login-shell change, reboot, PATH symlink. Production Host talks to the real machine. Tests inject a fake Host. This is the only new seam.
+- A Host boundary sits behind the CLI: filesystem, Distro package manager, Upstream Install runner, sudo, login-shell change, reboot, progress log, PATH symlink. Production Host talks to the real machine. Tests inject a fake Host. This is the only new seam.
 - `commandExists` means installed: found on PATH or in the Workflow bin dirs (`~/.bun/bin`, `~/.local/bin`, `~/.opencode/bin`, nvm's `node/*/bin`) that the curated zshrc puts on PATH, so a bash session that has not re-sourced its rc still skips re-installs.
 - Package Map is data: tool → package name per package-manager family (apt, pacman, dnf, zypper). Detect the family from the machine. Unknown family: fail before installs.
 - Distro packages in v1: zsh, git, stow. Ghostty is optional and Package Map-backed. Missing Ghostty mapping: warn, do not abort the rest of init. Nothing installed is requested again when it already exists; Ghostty's config is still Stowed.
@@ -85,11 +86,12 @@ A `dotfiles` CLI in this Dotfiles repo. `dotfiles init` runs Bootstrap, `dotfile
 - After successful init, symlink the bash stub to `~/.local/bin/dotfiles`. Curated zshrc puts `~/.local/bin` on PATH.
 - chsh to zsh as part of init (not optional). After the rest of init succeeds (only when the shell actually changed), show `Login shell is now zsh. Run `zsh`or`reboot` to fully apply the change.` then ask `Reboot to apply it? [y/N] ` (default no). Yes: reboot via sudo after all work is done. No: nothing further.
 - Fail fast on required step failure. Optional Ghostty failure is a warning.
+- Init reports progress through the Host as an ASCII dashboard: figlet banner and `Distro: <pm>` title once, one row per step with `[ok] [skip] [!!] [--]` cells and a spinning cell for the running step, `step n/14 - Ns elapsed` footer, `Bootstrap complete.` when done. Redrawn in place on a TTY; plain `label: detail` lines when piped; prompts and noisy commands (apt, sudo, chsh) print below the panel, which then reprints fresh. API Key values never appear.
 - Tests never hit real package managers, real network, or real `/etc/environment`.
 
 ## Testing Decisions
 
-- Good tests assert external behaviour only: CLI exit code, user-visible output, and Host effects (files written, packages requested, Upstream Installs invoked, sudo used, shell changed, backups created). No tests of private helpers, Package Map parsing in isolation, or Stow flags in isolation.
+- Good tests assert external behaviour only: CLI exit code, user-visible output, and Host effects (files written, packages requested, Upstream Installs invoked, sudo used, shell changed, backups created, progress log lines recorded). No tests of private helpers, Package Map parsing in isolation, or Stow flags in isolation.
 - The only module under test is the `dotfiles` CLI, with a fake Host injected at the Host seam. Cover init (fresh, idempotent continue/decline, API Key merge, Ghostty yes/no, unknown Distro), doctor (missing vs present, no secret leakage), and stow (backup-then-link, skip junk files).
 - Prior art: none. Greenfield repo.
 

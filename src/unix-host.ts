@@ -4,7 +4,35 @@ import { homedir, userInfo } from "node:os";
 import { dirname, join } from "node:path";
 import { upstreamInstallFor } from "./consts/upstream-installs.ts";
 import type { Host } from "./types/host.ts";
+import type { ProgressFrame } from "./types/progress.ts";
+import { renderBanner, renderPanel, spinnerFrames } from "./utils/panel.ts";
 import { backupStamp } from "./utils/time.ts";
+
+let progressStartedAt = 0;
+let progressLines = 0;
+let progressFresh = true;
+let spinnerPhase = 0;
+let spinnerTimer: ReturnType<typeof setInterval> | null = null;
+let lastFrame: ProgressFrame | null = null;
+const printedSteps = new Set<number>();
+
+function drawProgress(frame: ProgressFrame) {
+  const lines = renderPanel(
+    frame,
+    spinnerPhase,
+    Math.floor((Date.now() - progressStartedAt) / 1000),
+  );
+  if (progressLines > 0 && !progressFresh) {
+    process.stdout.write(`\x1b[${progressLines}A\r`);
+  }
+  process.stdout.write(`${lines.map((line) => `${line}\x1b[K`).join("\n")}\n`);
+  progressLines = lines.length;
+  progressFresh = false;
+}
+
+function markNoisy() {
+  progressFresh = true;
+}
 
 export const unixHost: Host = {
   commandExists(command) {
@@ -68,6 +96,7 @@ export const unixHost: Host = {
     return null;
   },
   async installPackages(packages) {
+    markNoisy();
     const pm = unixHost.packageManager();
     const cmd =
       pm === "apt"
@@ -101,6 +130,7 @@ export const unixHost: Host = {
     }
   },
   async changeLoginShell(shell) {
+    markNoisy();
     const path = Bun.which(shell);
     if (!path) {
       throw new Error(`login shell not found: ${shell}`);
@@ -108,6 +138,7 @@ export const unixHost: Host = {
     await $`chsh -s ${path}`;
   },
   async reboot() {
+    markNoisy();
     const proc = Bun.spawn(["sudo", "reboot"], { stdout: "inherit", stderr: "inherit" });
     if ((await proc.exited) !== 0) {
       throw new Error("reboot failed");
@@ -197,7 +228,38 @@ export const unixHost: Host = {
     }
   },
   async prompt(message) {
+    markNoisy();
     return globalThis.prompt(message) ?? "";
+  },
+  progress(frame) {
+    lastFrame = { title: frame.title, steps: frame.steps.map((step) => ({ ...step })) };
+    if (progressStartedAt === 0) {
+      progressStartedAt = Date.now();
+      process.stdout.write(renderBanner(frame.title));
+    }
+    if (!process.stdout.isTTY) {
+      lastFrame.steps.forEach((step, i) => {
+        const terminal = step.state !== "pending" && step.state !== "running";
+        if (terminal && !printedSteps.has(i)) {
+          printedSteps.add(i);
+          process.stdout.write(`  ${step.label}: ${step.detail}\n`);
+        }
+      });
+      return;
+    }
+    drawProgress(lastFrame);
+    const anyRunning = lastFrame.steps.some((step) => step.state === "running");
+    if (anyRunning && spinnerTimer === null) {
+      spinnerTimer = setInterval(() => {
+        spinnerPhase = (spinnerPhase + 1) % spinnerFrames();
+        if (lastFrame && progressLines > 0 && !progressFresh) {
+          drawProgress(lastFrame);
+        }
+      }, 120);
+    } else if (!anyRunning && spinnerTimer !== null) {
+      clearInterval(spinnerTimer);
+      spinnerTimer = null;
+    }
   },
   async readEnvironment() {
     const file = Bun.file("/etc/environment");
@@ -207,6 +269,7 @@ export const unixHost: Host = {
     return await file.text();
   },
   async writeEnvironment(content) {
+    markNoisy();
     const proc = Bun.spawn(["sudo", "tee", "/etc/environment"], {
       stdin: new Blob([content]),
       stdout: "ignore",
