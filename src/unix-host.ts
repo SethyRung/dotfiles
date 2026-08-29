@@ -155,4 +155,24 @@ export const unixHost: Host = {
       await $`bunx skills add ${spec} -g -y`;
     }
   },
+  async prompt(message) {
+    return globalThis.prompt(message) ?? "";
+  },
+  async readEnvironment() {
+    const file = Bun.file("/etc/environment");
+    if (!(await file.exists())) {
+      return "";
+    }
+    return await file.text();
+  },
+  async writeEnvironment(content) {
+    const proc = Bun.spawn(["sudo", "tee", "/etc/environment"], {
+      stdin: new Blob([content]),
+      stdout: "ignore",
+      stderr: "inherit",
+    });
+    if ((await proc.exited) !== 0) {
+      throw new Error("failed to write /etc/environment");
+    }
+  },
 };

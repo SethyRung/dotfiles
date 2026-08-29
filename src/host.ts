@@ -17,4 +17,7 @@ export type Host = {
   stow(relPaths: string[]): Promise<void>;
   installPiPackages(packages: string[]): Promise<void>;
   installSkills(specs: string[]): Promise<void>;
+  prompt(message: string): Promise<string>;
+  readEnvironment(): Promise<string>;
+  writeEnvironment(content: string): Promise<void>;
 };

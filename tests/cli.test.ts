@@ -16,6 +16,8 @@ function createFakeHost(
     now?: Dayjs;
     packageManager?: PackageManager | null;
     installError?: string;
+    promptAnswers?: string[];
+    environmentFile?: string;
   } = {},
 ): Host & {
   upstreamInstalls: string[];
@@ -24,6 +26,7 @@ function createFakeHost(
   skillsRequested: string[];
   backups: string[];
   linked: string[];
+  prompts: string[];
 } {
   const present = new Set(commands);
   const files = new Set(extras.files ?? []);
@@ -38,6 +41,9 @@ function createFakeHost(
   const tree = extras.homeTree ?? [];
   const backups: string[] = [];
   const linked: string[] = [];
+  const prompts: string[] = [];
+  const promptAnswers = extras.promptAnswers ?? [];
+  let environmentFile = extras.environmentFile ?? "";
   const clock = extras.now ?? toDayJS("1970-01-01T00:00:00.000Z");
   const packageManager = extras.packageManager ?? null;
   const installError = extras.installError;
@@ -48,6 +54,7 @@ function createFakeHost(
     skillsRequested,
     backups,
     linked,
+    prompts,
     commandExists(command) {
       return present.has(command);
     },
@@ -108,6 +115,16 @@ function createFakeHost(
     },
     async installSkills(specs) {
       skillsRequested.push(...specs);
+    },
+    async prompt(message) {
+      prompts.push(message);
+      return promptAnswers.shift() ?? "";
+    },
+    async readEnvironment() {
+      return environmentFile;
+    },
+    async writeEnvironment(content) {
+      environmentFile = content;
     },
   };
 }
@@ -460,4 +477,67 @@ test("XDG MCP config is Stowed", async () => {
   const mcp = await Bun.file(join(import.meta.dir, "../home/.config/mcp/mcp.json")).json();
   expect(mcp.mcpServers).toHaveProperty("mobile-mcp");
   expect(mcp.mcpServers).toHaveProperty("bun");
+});
+
+test("empty API Key CSV skips the /etc/environment write", async () => {
+  const existing = 'PATH="/usr/bin"\nKEEP=yes\n';
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    environmentFile: existing,
+    promptAnswers: [""],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.prompts[0]).toContain("key=value");
+  expect(await host.readEnvironment()).toBe(existing);
+});
+
+test("non-empty CSV prompts for confirmation before writing", async () => {
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    environmentFile: 'PATH="/usr/bin"\n',
+    promptAnswers: ["OPENROUTER_API_KEY=sk-secret", "n"],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.prompts[1]).toContain("/etc/environment");
+});
+
+test("accepting merges keys only; other lines in the file remain", async () => {
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    environmentFile: 'PATH="/usr/bin"\nKEEP=yes\n',
+    promptAnswers: ["OPENROUTER_API_KEY=sk-secret", "y"],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(await host.readEnvironment()).toBe(
+    'PATH="/usr/bin"\nKEEP=yes\nOPENROUTER_API_KEY=sk-secret\n',
+  );
+});
+
+test("declining confirmation does not write", async () => {
+  const existing = 'PATH="/usr/bin"\nKEEP=yes\n';
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    environmentFile: existing,
+    promptAnswers: ["OPENROUTER_API_KEY=sk-secret", "n"],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(await host.readEnvironment()).toBe(existing);
+});
+
+test("CLI output and logs never contain API Key values", async () => {
+  const secret = "sk-secret-do-not-leak";
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    environmentFile: 'PATH="/usr/bin"\n',
+    promptAnswers: [`OPENROUTER_API_KEY=${secret}`, "y"],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).not.toContain(secret);
+  expect(result.stderr).not.toContain(secret);
+  expect(host.prompts.join("")).not.toContain(secret);
 });
