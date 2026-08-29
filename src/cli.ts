@@ -195,6 +195,7 @@ function isStowJunk(rel: string): boolean {
     parts.includes("node_modules") ||
     parts.includes("cache") ||
     rel.startsWith(".config/opencode/skills/") ||
+    rel.startsWith(".pi/agent/extensions/") ||
     rel.endsWith(".log") ||
     rel.endsWith(".sock") ||
     rel.endsWith(".db") ||

@@ -5,7 +5,7 @@ No CLI code yet. Do not invent a parallel design.
 ## Read first
 
 - `CONTEXT.md` — glossary. Use those terms; do not say `dot` for the CLI.
-- `docs/adr/` — binding. Especially: any Distro (0001), API Keys in `/etc/environment` (0002), TypeScript on bun + bash stub (0005), repo path is this directory not `~/.dotfiles` (0006), Skills via skills.sh and MCP is the XDG file (0007), no pi model restore (0008), command is `dotfiles` (0009).
+- `docs/adr/` — binding. Especially: any Distro (0001), API Keys in `/etc/environment` (0002), TypeScript on bun + bash stub (0005), repo path is this directory not `~/.dotfiles` (0006), Skills via skills.sh and MCP is the XDG file (0007), no pi model restore (0008), command is `dotfiles` (0009), no pi extensions (0012).
 - Spec: `docs/specs/dotfiles-cli-bootstrap.md`
 - Tickets: `.scratch/dotfiles-cli-bootstrap/issues/`. Work the frontier (blockers done). Start at `01`.
 

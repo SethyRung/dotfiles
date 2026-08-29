@@ -430,13 +430,14 @@ test("restored pi settings do not include default model or provider", async () =
   expect(settings.packages).toContain("npm:pi-subagents");
 });
 
-test("APPEND_SYSTEM, prompts, and extensions are restored; auth, sessions, caches, and model stores are not", async () => {
+test("APPEND_SYSTEM and prompts are restored; extensions, auth, sessions, caches, and model stores are not", async () => {
   const host = createFakeHost(["bun"], {
     packageManager: "apt",
     homeTree: [
       ".pi/agent/APPEND_SYSTEM.md",
       ".pi/agent/prompts/init.md",
       ".pi/agent/extensions/herdr-agent-state.ts",
+      ".pi/agent/extensions/moshi-hooks.ts",
       ".pi/agent/keybindings.json",
       ".pi/agent/zentui.json",
       ".pi/agent/auth.json",
@@ -449,7 +450,8 @@ test("APPEND_SYSTEM, prompts, and extensions are restored; auth, sessions, cache
   expect(result.exitCode).toBe(0);
   expect(host.linked).toContain(".pi/agent/APPEND_SYSTEM.md");
   expect(host.linked).toContain(".pi/agent/prompts/init.md");
-  expect(host.linked).toContain(".pi/agent/extensions/herdr-agent-state.ts");
+  expect(host.linked).not.toContain(".pi/agent/extensions/herdr-agent-state.ts");
+  expect(host.linked).not.toContain(".pi/agent/extensions/moshi-hooks.ts");
   expect(host.linked).toContain(".pi/agent/keybindings.json");
   expect(host.linked).toContain(".pi/agent/zentui.json");
   expect(host.linked).not.toContain(".pi/agent/auth.json");

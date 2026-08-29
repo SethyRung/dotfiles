@@ -31,8 +31,8 @@ A `dotfiles` CLI in this Dotfiles repo. `dotfiles init` runs Bootstrap, `dotfile
 17. As a developer, I want pi installed as the latest bun global coding-agent package so that the agent exists after bun.
 18. As a developer, I want the current pi package list installed (subagents, mcp-adapter, ask-user-question, todo, retry, zentui, herdr, ollama web search) so that MCP and herdr integration work.
 19. As a developer, I want pi `settings.json` restored without default model or provider so that TUI prefs return but the Fresh Install keeps pi's default model.
-20. As a developer, I want `APPEND_SYSTEM.md`, `prompts/`, and `extensions/` restored so that pi's local behaviour matches this machine minus model.
-21. As a developer, I do not want `auth.json`, sessions, caches, or model stores in the repo so that secrets and machine state stay off git.
+20. As a developer, I want `APPEND_SYSTEM.md` and `prompts/` restored so that pi's local behaviour matches this machine minus model.
+21. As a developer, I do not want `auth.json`, sessions, caches, model stores, or auto-generated `extensions/` in the repo so that secrets, machine state, and herdr/moshi-hook output stay off git.
 22. As a developer, I want Skills reinstalled via skills.sh from a list/lock in the repo so that global Skills are current, not a frozen file snapshot.
 23. As a developer, I want `~/.config/mcp/mcp.json` Stowed (including mobile-mcp) so that MCP is the XDG file, not pi's private mcp.json.
 24. As a developer, I want to be prompted for API Keys as `key1=value1,key2=value2,...` so that secrets are supplied at Bootstrap and never stored in Dotfiles.
@@ -68,13 +68,13 @@ A `dotfiles` CLI in this Dotfiles repo. `dotfiles init` runs Bootstrap, `dotfile
 
 ## Implementation Decisions
 
-- Respect ADRs 0001–0009 and the glossary in `CONTEXT.md`. Command name is `dotfiles`. Distro support is any Linux via Package Map. API Keys go to `/etc/environment` with merge. CLI is TypeScript on bun with a bash stub. Repo path is `~/Documents/projects/personal/dotfiles`. Skills via skills.sh; MCP is the XDG file. pi config is snapshotted minus model. Upstream Installs are latest.
+- Respect ADRs 0001–0012 and the glossary in `CONTEXT.md`. Command name is `dotfiles`. Distro support is any Linux via Package Map. API Keys go to `/etc/environment` with merge. CLI is TypeScript on bun with a bash stub. Repo path is `~/Documents/projects/personal/dotfiles`. Skills via skills.sh; MCP is the XDG file. pi config is snapshotted minus model and minus auto-generated extensions. Upstream Installs are latest.
 - One user-facing module: the `dotfiles` CLI. Commands in v1: `init`, `doctor`, `stow`. No `update`, `package`, `link`, or completions.
 - A Host boundary sits behind the CLI: filesystem, Distro package manager, Upstream Install runner, sudo, login-shell change, PATH symlink. Production Host talks to the real machine. Tests inject a fake Host. This is the only new seam.
 - Package Map is data: tool → package name per package-manager family (apt, pacman, dnf, zypper). Detect the family from the machine. Unknown family: fail before installs.
 - Distro packages in v1: zsh, git, stow. Ghostty is optional and Package Map-backed. Missing Ghostty mapping: warn, do not abort the rest of init.
 - Upstream Installs in v1: bun (`https://bun.com/install`), Oh My Zsh (official install script), herdr (`https://herdr.dev/install.sh`), pi (bun global coding-agent, latest), Skills (skills.sh from the repo's lock/list).
-- pi packages to install: the current list (pi-subagents, pi-mcp-adapter, ask-user-question, todo, pi-retry, pi-zentui, pi-herdr, ollama web search). Restore settings without default model/provider; restore APPEND_SYSTEM, prompts, extensions. Never restore auth, sessions, caches, model stores.
+- pi packages to install: the current list (pi-subagents, pi-mcp-adapter, ask-user-question, todo, pi-retry, pi-zentui, pi-herdr, ollama web search). Restore settings without default model/provider; restore APPEND_SYSTEM and prompts. Never restore auth, sessions, caches, model stores, or auto-generated extensions.
 - Stow delivers: curated zshrc, herdr config.toml only, XDG mcp.json, Ghostty config only if Ghostty was requested, pi files listed above that belong in the home tree. Single `home/` tree. Conflict: timestamped backup, then Stow.
 - Init interaction: if Workflow already looks present, one continue? prompt. Destructive prompts only for `/etc/environment` writes and Stow conflicts. Ghostty: `Install Ghostty? [y/N]`. API Keys: CSV prompt; empty skips.
 - `/etc/environment` write uses sudo, merges keys, does not replace the file. Values never logged.
@@ -99,6 +99,7 @@ A `dotfiles` CLI in this Dotfiles repo. `dotfiles init` runs Bootstrap, `dotfile
 - Snapshotting Skill files instead of skills.sh
 - Using `~/.pi/agent/mcp.json` as the MCP source of truth
 - Restoring pi default model/provider
+- Restoring auto-generated pi extensions
 - Replacing `/etc/environment` wholesale, or storing API Keys in a user-owned file
 - Ubuntu-only or Nix/Homebrew as the package strategy
 - chezmoi, copying files instead of Stow

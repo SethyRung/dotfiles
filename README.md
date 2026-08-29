@@ -35,7 +35,7 @@ No TUI. Prompts are stdin. v1 has no `update`, `package`, or `link`.
 
 **Upstream Installs (always latest):** bun, Oh My Zsh, herdr, pi plus its packages, Skills via skills.sh.
 
-**Stow from `home/`:** curated zshrc, herdr `config.toml` only, XDG MCP (`~/.config/mcp/mcp.json`), pi settings/prompts/extensions without default model. Login shell becomes zsh.
+**Stow from `home/`:** curated zshrc, herdr `config.toml` only, XDG MCP (`~/.config/mcp/mcp.json`), pi settings/prompts without default model or auto-generated extensions. Login shell becomes zsh.
 
 **Ghostty:** optional. Prompt is `Install Ghostty? [y/N]`. No skips package and config. Yes on a Distro with no package mapping warns and continues.
 
