@@ -19,9 +19,18 @@ export const unixHost: Host = {
     if (install.via === "sh-c") {
       const script = await $`curl -fsSL ${install.url}`.text();
       await $`${install.shell} -c ${script}`.env(env);
-      return;
+    } else {
+      await $`curl -fsSL ${install.url} | ${install.shell}`.env(env);
     }
-    await $`curl -fsSL ${install.url} | ${install.shell}`.env(env);
+    if (install.then) {
+      await $`${install.shell} -c ${install.then}`.env(env);
+      const nodePath = (
+        await $`${install.shell} -c ${'. "$HOME/.nvm/nvm.sh" && command -v node'}`.env(env).text()
+      ).trim();
+      if (nodePath) {
+        process.env.PATH = `${dirname(nodePath)}:${process.env.PATH ?? ""}`;
+      }
+    }
   },
   packageManager() {
     if (Bun.which("apt-get") ?? Bun.which("apt")) {

@@ -3,6 +3,7 @@ export type UpstreamInstall = {
   shell: string;
   env?: Record<string, string>;
   via?: "pipe" | "sh-c";
+  then?: string;
 };
 
 export const upstreamInstalls = {
@@ -31,6 +32,12 @@ export const upstreamInstalls = {
     url: "https://opencode.ai/install",
     shell: "bash",
     via: "pipe",
+  },
+  nvm: {
+    url: "https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.7/install.sh",
+    shell: "bash",
+    via: "pipe",
+    then: '. "$HOME/.nvm/nvm.sh" && nvm install --lts',
   },
 } as const satisfies Record<string, UpstreamInstall>;
 

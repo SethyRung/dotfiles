@@ -29,7 +29,7 @@ A `dotfiles` CLI in this Dotfiles repo. `dotfiles init` runs Bootstrap, `dotfile
 15. As a developer, I want herdr `config.toml` Stowed so that prefix, theme, and UI prefs match this machine.
 16. As a developer, I do not want herdr logs or sockets in the repo so that secrets and junk never get committed.
 17. As a developer, I want pi installed as the latest bun global coding-agent package so that the agent exists after bun.
-18. As a developer, I want the current pi package list installed (subagents, mcp-adapter, ask-user-question, todo, retry, zentui, herdr, ollama web search) so that MCP and herdr integration work.
+18. As a developer, I want the current pi package list installed (subagents, mcp-adapter, ask-user-question, todo, retry, zentui, herdr, ollama web search) so that MCP and herdr integration work. npm comes from nvm (latest LTS) when missing, not a Distro package.
 19. As a developer, I want pi `settings.json` restored without default model or provider so that TUI prefs return but the Fresh Install keeps pi's default model.
 20. As a developer, I want `APPEND_SYSTEM.md` and `prompts/` restored so that pi's local behaviour matches this machine minus model.
 21. As a developer, I do not want `auth.json`, sessions, caches, model stores, or auto-generated `extensions/` in the repo so that secrets, machine state, and herdr/moshi-hook output stay off git.
@@ -53,7 +53,7 @@ A `dotfiles` CLI in this Dotfiles repo. `dotfiles init` runs Bootstrap, `dotfile
 39. As a developer, I want existing target files backed up with a timestamp and then Stowed so that I can recover from Stow.
 40. As a developer, I want `dotfiles stow` to apply the same backup-then-Stow rule so that I can re-link configs without running full init.
 41. As a developer, I want Upstream Installs to always take latest so that v1 does not maintain version pins.
-42. As a developer, I want `dotfiles doctor` to report whether zsh, Oh My Zsh, git, stow, bun, pi, herdr, Skills, XDG MCP, login shell, and the `dotfiles` PATH symlink are present so that I can see what Bootstrap missed.
+42. As a developer, I want `dotfiles doctor` to report whether zsh, Oh My Zsh, git, stow, npm, bun, pi, herdr, Skills, XDG MCP, login shell, and the `dotfiles` PATH symlink are present so that I can see what Bootstrap missed.
 43. As a developer, I want doctor to treat Ghostty as a warning when missing unless I opted in, so that optional software is not a hard failure.
 44. As a developer, I want doctor to report broken Stow links so that a half-linked `home/` is visible.
 45. As a developer, I want doctor to report whether expected API Key names exist in `/etc/environment` without printing values so that I can check secrets without leaking them.
@@ -68,12 +68,12 @@ A `dotfiles` CLI in this Dotfiles repo. `dotfiles init` runs Bootstrap, `dotfile
 
 ## Implementation Decisions
 
-- Respect ADRs 0001–0012 and the glossary in `CONTEXT.md`. Command name is `dotfiles`. Distro support is any Linux via Package Map. API Keys go to `/etc/environment` with merge. CLI is TypeScript on bun with a bash stub. Repo path is `~/Documents/projects/personal/dotfiles`. Skills via skills.sh; MCP is the XDG file. pi config is snapshotted minus model and minus auto-generated extensions. Upstream Installs are latest.
+- Respect ADRs 0001–0013 and the glossary in `CONTEXT.md`. Command name is `dotfiles`. Distro support is any Linux via Package Map. API Keys go to `/etc/environment` with merge. CLI is TypeScript on bun with a bash stub. Repo path is `~/Documents/projects/personal/dotfiles`. Skills via skills.sh; MCP is the XDG file. pi config is snapshotted minus model and minus auto-generated extensions. Upstream Installs are latest. Node.js is nvm + latest LTS when npm is missing.
 - One user-facing module: the `dotfiles` CLI. Commands in v1: `init`, `doctor`, `stow`. No `update`, `package`, `link`, or completions.
 - A Host boundary sits behind the CLI: filesystem, Distro package manager, Upstream Install runner, sudo, login-shell change, PATH symlink. Production Host talks to the real machine. Tests inject a fake Host. This is the only new seam.
 - Package Map is data: tool → package name per package-manager family (apt, pacman, dnf, zypper). Detect the family from the machine. Unknown family: fail before installs.
 - Distro packages in v1: zsh, git, stow. Ghostty is optional and Package Map-backed. Missing Ghostty mapping: warn, do not abort the rest of init.
-- Upstream Installs in v1: bun (`https://bun.com/install`), Oh My Zsh (official install script), herdr (`https://herdr.dev/install.sh`), pi (bun global coding-agent, latest), Skills (skills.sh from the repo's lock/list).
+- Upstream Installs in v1: bun (`https://bun.com/install`), Oh My Zsh (official install script), herdr (`https://herdr.dev/install.sh`), nvm (official install.sh, then `nvm install --lts` if npm is missing), pi (bun global coding-agent, latest), Skills (skills.sh from the repo's lock/list).
 - pi packages to install: the current list (pi-subagents, pi-mcp-adapter, ask-user-question, todo, pi-retry, pi-zentui, pi-herdr, ollama web search). Restore settings without default model/provider; restore APPEND_SYSTEM and prompts. Never restore auth, sessions, caches, model stores, or auto-generated extensions.
 - Stow delivers: curated zshrc, herdr config.toml only, XDG mcp.json, Ghostty config only if Ghostty was requested, pi files listed above that belong in the home tree. Single `home/` tree. Conflict: timestamped backup, then Stow.
 - Init interaction: if Workflow already looks present, one continue? prompt. Destructive prompts only for `/etc/environment` writes and Stow conflicts. Ghostty: `Install Ghostty? [y/N]`. API Keys: CSV prompt; empty skips.

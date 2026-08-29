@@ -61,6 +61,9 @@ async function init(host: Host): Promise<RunResult> {
     if (!host.fileExists(join(home, ".oh-my-zsh"))) {
       await host.runUpstreamInstall("oh-my-zsh");
     }
+    if (!host.commandExists("npm")) {
+      await host.runUpstreamInstall("nvm");
+    }
     if (!host.commandExists("herdr")) {
       await host.runUpstreamInstall("herdr");
     }
@@ -139,6 +142,7 @@ async function doctor(host: Host): Promise<RunResult> {
   check("Oh My Zsh", host.fileExists(join(home, ".oh-my-zsh")));
   check("git", host.commandExists("git"));
   check("stow", host.commandExists("stow"));
+  check("npm", host.commandExists("npm"));
   check("bun", host.commandExists("bun"));
   check("pi", host.commandExists("pi"));
   check("herdr", host.commandExists("herdr"));
@@ -174,6 +178,7 @@ function workflowLooksPresent(host: Host): boolean {
     host.fileExists(join(home, ".oh-my-zsh")) &&
     host.commandExists("git") &&
     host.commandExists("stow") &&
+    host.commandExists("npm") &&
     host.commandExists("bun") &&
     host.commandExists("pi") &&
     host.commandExists("herdr") &&

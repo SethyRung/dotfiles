@@ -33,7 +33,7 @@ No TUI. Prompts are stdin. v1 has no `update`, `package`, or `link`.
 
 **Distro packages:** zsh, git, stow. No git config.
 
-**Upstream Installs (always latest):** bun, Oh My Zsh, herdr, pi plus its packages, Skills via skills.sh.
+**Upstream Installs (always latest):** bun, Oh My Zsh, herdr, nvm plus latest Node.js LTS if npm is missing, pi plus its packages, Skills via skills.sh.
 
 **Stow from `home/`:** curated zshrc, herdr `config.toml` only, XDG MCP (`~/.config/mcp/mcp.json`), pi settings/prompts without default model or auto-generated extensions. Login shell becomes zsh.
 

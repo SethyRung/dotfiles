@@ -1,24 +1,24 @@
 {
   "mcpServers": {
     "bun": {
-      "command": "npx",
-      "args": ["mcp-remote", "https://bun.com/docs/mcp"]
+      "command": "bunx",
+      "args": ["--bun", "mcp-remote", "https://bun.com/docs/mcp"]
     },
     "nuxt": {
-      "command": "npx",
-      "args": ["mcp-remote", "https://nuxt.com/mcp"]
+      "command": "bunx",
+      "args": ["--bun", "mcp-remote", "https://nuxt.com/mcp"]
     },
     "nuxt-ui": {
-      "command": "npx",
-      "args": ["mcp-remote", "https://ui.nuxt.com/mcp"]
+      "command": "bunx",
+      "args": ["--bun", "mcp-remote", "https://ui.nuxt.com/mcp"]
     },
     "better-auth": {
-      "command": "npx",
-      "args": ["mcp-remote", "https://mcp.better-auth.com/mcp"]
+      "command": "bunx",
+      "args": ["--bun", "mcp-remote", "https://mcp.better-auth.com/mcp"]
     },
     "mobile-mcp": {
-      "command": "npx",
-      "args": ["-y", "@mobilenext/mobile-mcp@latest"]
+      "command": "bunx",
+      "args": ["--bun", "@mobilenext/mobile-mcp@latest"]
     }
   }
 }

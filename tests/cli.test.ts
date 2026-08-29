@@ -182,6 +182,7 @@ test("on an empty Host, doctor reports required Workflow pieces missing and exit
     "Oh My Zsh",
     "git",
     "stow",
+    "npm",
     "pi",
     "herdr",
     "OpenCode",
@@ -196,7 +197,7 @@ test("on an empty Host, doctor reports required Workflow pieces missing and exit
 
 test("Ghostty missing is a warning, not a required failure", async () => {
   const home = "/fake-home";
-  const host = createFakeHost(["zsh", "git", "stow", "bun", "pi", "herdr", "opencode"], {
+  const host = createFakeHost(["zsh", "git", "stow", "npm", "bun", "pi", "herdr", "opencode"], {
     homeDir: home,
     files: [
       `${home}/.oh-my-zsh`,
@@ -328,6 +329,7 @@ test("a curated zshrc is Stowed without Android SDK paths or out-of-scope aliase
   expect(zshrc).toContain("docker");
   expect(zshrc).toContain("zsh-autosuggestions");
   expect(zshrc).toContain("zsh-syntax-highlighting");
+  expect(zshrc).toContain("nvm");
   expect(zshrc).toContain("$HOME/.bun");
   expect(zshrc).toContain("HERDR_INSTALL_DIR");
   expect(zshrc).toContain("$HOME/.local/bin");
@@ -395,6 +397,20 @@ test("init does not Stow herdr logs and sockets", async () => {
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
   expect(host.linked).toEqual([".config/herdr/config.toml"]);
+});
+
+test("init requests nvm when npm is missing", async () => {
+  const host = createFakeHost(["bun"], { packageManager: "apt" });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.upstreamInstalls).toContain("nvm");
+});
+
+test("init does not request nvm when npm is already present", async () => {
+  const host = createFakeHost(["bun", "npm"], { packageManager: "apt" });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.upstreamInstalls).not.toContain("nvm");
 });
 
 test("init requests latest pi and the agreed pi packages on the Host", async () => {
@@ -609,7 +625,7 @@ test("yes on a Distro without a mapping warns and does not abort the rest of ini
 
 test("when Workflow already looks present, init asks continue? before doing work", async () => {
   const home = "/fake-home";
-  const host = createFakeHost(["zsh", "git", "stow", "bun", "pi", "herdr", "opencode"], {
+  const host = createFakeHost(["zsh", "git", "stow", "npm", "bun", "pi", "herdr", "opencode"], {
     homeDir: home,
     packageManager: "apt",
     files: [
@@ -630,7 +646,7 @@ test("when Workflow already looks present, init asks continue? before doing work
 test("declining continue leaves the Host unchanged", async () => {
   const home = "/fake-home";
   const existing = 'PATH="/usr/bin"\n';
-  const host = createFakeHost(["zsh", "git", "stow", "bun", "pi", "herdr", "opencode"], {
+  const host = createFakeHost(["zsh", "git", "stow", "npm", "bun", "pi", "herdr", "opencode"], {
     homeDir: home,
     packageManager: "apt",
     files: [
@@ -658,7 +674,7 @@ test("declining continue leaves the Host unchanged", async () => {
 
 test("continue does not re-request tools the Host already has", async () => {
   const home = "/fake-home";
-  const host = createFakeHost(["zsh", "git", "stow", "bun", "pi", "herdr", "opencode"], {
+  const host = createFakeHost(["zsh", "git", "stow", "npm", "bun", "pi", "herdr", "opencode"], {
     homeDir: home,
     packageManager: "apt",
     files: [
@@ -681,7 +697,7 @@ test("continue does not re-request tools the Host already has", async () => {
 test("continue still confirms before /etc/environment writes", async () => {
   const home = "/fake-home";
   const existing = 'PATH="/usr/bin"\n';
-  const host = createFakeHost(["zsh", "git", "stow", "bun", "pi", "herdr", "opencode"], {
+  const host = createFakeHost(["zsh", "git", "stow", "npm", "bun", "pi", "herdr", "opencode"], {
     homeDir: home,
     packageManager: "apt",
     files: [
@@ -702,7 +718,7 @@ test("continue still confirms before /etc/environment writes", async () => {
 
 test("continue still confirms before Stow conflicts", async () => {
   const home = "/fake-home";
-  const host = createFakeHost(["zsh", "git", "stow", "bun", "pi", "herdr", "opencode"], {
+  const host = createFakeHost(["zsh", "git", "stow", "npm", "bun", "pi", "herdr", "opencode"], {
     homeDir: home,
     packageManager: "apt",
     files: [
@@ -757,7 +773,7 @@ test("doctor reports OpenCode missing as a required failure", async () => {
 
 test("doctor reports OpenCode present without treating it as optional", async () => {
   const home = "/fake-home";
-  const host = createFakeHost(["zsh", "git", "stow", "bun", "pi", "herdr", "opencode"], {
+  const host = createFakeHost(["zsh", "git", "stow", "npm", "bun", "pi", "herdr", "opencode"], {
     homeDir: home,
     files: [
       `${home}/.oh-my-zsh`,
@@ -889,7 +905,7 @@ test("after init, OpenCode mcp key contains the XDG MCP servers", async () => {
   });
   expect(written.mcp["mobile-mcp"]).toEqual({
     type: "local",
-    command: ["npx", "-y", "@mobilenext/mobile-mcp@latest"],
+    command: ["bunx", "--bun", "@mobilenext/mobile-mcp@latest"],
   });
   expect(written.permission).toBe("allow");
   expect(written.autoupdate).toBe(true);
@@ -934,7 +950,7 @@ test("re-running init refreshes OpenCode mcp key from the XDG file", async () =>
 
 test("a Host missing OpenCode is not treated as Workflow already present", async () => {
   const home = "/fake-home";
-  const host = createFakeHost(["zsh", "git", "stow", "bun", "pi", "herdr"], {
+  const host = createFakeHost(["zsh", "git", "stow", "npm", "bun", "pi", "herdr"], {
     homeDir: home,
     packageManager: "apt",
     files: [
@@ -953,7 +969,7 @@ test("a Host missing OpenCode is not treated as Workflow already present", async
 
 test("continue does not re-request OpenCode if it is already installed", async () => {
   const home = "/fake-home";
-  const host = createFakeHost(["zsh", "git", "stow", "bun", "pi", "herdr", "opencode"], {
+  const host = createFakeHost(["zsh", "git", "stow", "npm", "bun", "pi", "herdr", "opencode"], {
     homeDir: home,
     packageManager: "apt",
     files: [
@@ -972,7 +988,7 @@ test("continue does not re-request OpenCode if it is already installed", async (
 
 test("continue still confirms before Stow conflicts for OpenCode config", async () => {
   const home = "/fake-home";
-  const host = createFakeHost(["zsh", "git", "stow", "bun", "pi", "herdr", "opencode"], {
+  const host = createFakeHost(["zsh", "git", "stow", "npm", "bun", "pi", "herdr", "opencode"], {
     homeDir: home,
     packageManager: "apt",
     files: [
