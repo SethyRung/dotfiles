@@ -43,14 +43,35 @@ async function init(host: Host): Promise<RunResult> {
       stderr: "Unknown package manager. Bootstrap needs apt, pacman, dnf, or zypper.\n",
     };
   }
+  const reRun = workflowLooksPresent(host);
+  if (reRun) {
+    const cont = (await host.prompt("Workflow already present. Continue? [y/N] "))
+      .trim()
+      .toLowerCase();
+    if (cont !== "y" && cont !== "yes") {
+      return { exitCode: 0, stdout: "", stderr: "" };
+    }
+  }
   try {
-    await host.installPackages(packagesFor(pm));
-    await host.runUpstreamInstall("oh-my-zsh");
-    await host.runUpstreamInstall("herdr");
-    await host.runUpstreamInstall("pi");
-    await host.installPiPackages(piPackages);
-    await host.installSkills(skillsList);
-    const stowed = await stow(host, { skipGhostty: true });
+    const home = host.homeDir();
+    const pkgs = packagesFor(pm).filter((name) => !host.commandExists(name));
+    if (pkgs.length > 0) {
+      await host.installPackages(pkgs);
+    }
+    if (!host.fileExists(join(home, ".oh-my-zsh"))) {
+      await host.runUpstreamInstall("oh-my-zsh");
+    }
+    if (!host.commandExists("herdr")) {
+      await host.runUpstreamInstall("herdr");
+    }
+    if (!host.commandExists("pi")) {
+      await host.runUpstreamInstall("pi");
+      await host.installPiPackages(piPackages);
+    }
+    if (!host.fileExists(join(home, ".agents/skills"))) {
+      await host.installSkills(skillsList);
+    }
+    const stowed = await stow(host, { skipGhostty: true, confirmConflicts: reRun });
     if (stowed.exitCode !== 0) {
       return stowed;
     }
@@ -65,10 +86,10 @@ async function init(host: Host): Promise<RunResult> {
         );
       }
     }
-    const wantGhostty = ["y", "yes"].includes(
-      (await host.prompt("Install Ghostty? [y/N] ")).trim().toLowerCase(),
-    );
     let stderr = "";
+    const wantGhostty =
+      !reRun &&
+      ["y", "yes"].includes((await host.prompt("Install Ghostty? [y/N] ")).trim().toLowerCase());
     if (wantGhostty) {
       const ghostty = ghosttyPackageFor(pm);
       if (ghostty) {
@@ -82,8 +103,13 @@ async function init(host: Host): Promise<RunResult> {
         stderr = `Ghostty is not in the Package Map for ${pm}.\n`;
       }
     }
-    await host.changeLoginShell("zsh");
-    await host.linkDotfiles();
+    const shell = host.loginShell();
+    if (shell !== "zsh" && !shell?.endsWith("/zsh")) {
+      await host.changeLoginShell("zsh");
+    }
+    if (!host.fileExists(join(home, ".local/bin/dotfiles"))) {
+      await host.linkDotfiles();
+    }
     return { exitCode: 0, stdout: "", stderr };
   } catch (error) {
     const message = error instanceof Error ? error.message : "required step failed";
@@ -135,6 +161,24 @@ async function doctor(host: Host): Promise<RunResult> {
   };
 }
 
+function workflowLooksPresent(host: Host): boolean {
+  const home = host.homeDir();
+  const shell = host.loginShell();
+  return (
+    host.commandExists("zsh") &&
+    host.fileExists(join(home, ".oh-my-zsh")) &&
+    host.commandExists("git") &&
+    host.commandExists("stow") &&
+    host.commandExists("bun") &&
+    host.commandExists("pi") &&
+    host.commandExists("herdr") &&
+    host.fileExists(join(home, ".agents/skills")) &&
+    host.fileExists(join(home, ".config/mcp/mcp.json")) &&
+    (shell === "zsh" || (shell?.endsWith("/zsh") ?? false)) &&
+    host.fileExists(join(home, ".local/bin/dotfiles"))
+  );
+}
+
 function isStowJunk(rel: string): boolean {
   const parts = rel.split("/");
   const base = parts.at(-1) ?? rel;
@@ -156,9 +200,9 @@ function isGhosttyConfig(rel: string): boolean {
 
 async function stow(
   host: Host,
-  options: { skipGhostty?: boolean; onlyGhostty?: boolean } = {},
+  options: { skipGhostty?: boolean; onlyGhostty?: boolean; confirmConflicts?: boolean } = {},
 ): Promise<RunResult> {
-  const rels = host.homeTree().filter((rel) => {
+  let rels = host.homeTree().filter((rel) => {
     if (isStowJunk(rel)) {
       return false;
     }
@@ -171,6 +215,17 @@ async function stow(
     return true;
   });
   const home = host.homeDir();
+  if (options.confirmConflicts) {
+    const conflicts = rels.filter((rel) => host.fileExists(join(home, rel)));
+    if (conflicts.length > 0) {
+      const overwrite = ["y", "yes"].includes(
+        (await host.prompt("Overwrite existing files with Stow? [y/N] ")).trim().toLowerCase(),
+      );
+      if (!overwrite) {
+        rels = rels.filter((rel) => !conflicts.includes(rel));
+      }
+    }
+  }
   for (const rel of rels) {
     const dest = join(home, rel);
     if (host.fileExists(dest)) {

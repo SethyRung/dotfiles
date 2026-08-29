@@ -582,3 +582,119 @@ test("yes on a Distro without a mapping warns and does not abort the rest of ini
   expect(host.linked).not.toContain(".config/ghostty/config");
   expect(host.loginShell()).toBe("zsh");
 });
+
+test("when Workflow already looks present, init asks continue? before doing work", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["zsh", "git", "stow", "bun", "pi", "herdr"], {
+    homeDir: home,
+    packageManager: "apt",
+    files: [
+      `${home}/.oh-my-zsh`,
+      `${home}/.agents/skills`,
+      `${home}/.config/mcp/mcp.json`,
+      `${home}/.local/bin/dotfiles`,
+    ],
+    loginShell: "/bin/zsh",
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.prompts[0]?.toLowerCase()).toContain("continue?");
+  expect(host.packagesRequested).toEqual([]);
+  expect(host.upstreamInstalls).toEqual([]);
+});
+
+test("declining continue leaves the Host unchanged", async () => {
+  const home = "/fake-home";
+  const existing = 'PATH="/usr/bin"\n';
+  const host = createFakeHost(["zsh", "git", "stow", "bun", "pi", "herdr"], {
+    homeDir: home,
+    packageManager: "apt",
+    files: [
+      `${home}/.oh-my-zsh`,
+      `${home}/.agents/skills`,
+      `${home}/.config/mcp/mcp.json`,
+      `${home}/.local/bin/dotfiles`,
+    ],
+    loginShell: "/bin/zsh",
+    homeTree: [".zshrc"],
+    environmentFile: existing,
+    promptAnswers: ["n"],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.packagesRequested).toEqual([]);
+  expect(host.upstreamInstalls).toEqual([]);
+  expect(host.piPackagesRequested).toEqual([]);
+  expect(host.skillsRequested).toEqual([]);
+  expect(host.linked).toEqual([]);
+  expect(host.backups).toEqual([]);
+  expect(await host.readEnvironment()).toBe(existing);
+  expect(host.loginShell()).toBe("/bin/zsh");
+});
+
+test("continue does not re-request tools the Host already has", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["zsh", "git", "stow", "bun", "pi", "herdr"], {
+    homeDir: home,
+    packageManager: "apt",
+    files: [
+      `${home}/.oh-my-zsh`,
+      `${home}/.agents/skills`,
+      `${home}/.config/mcp/mcp.json`,
+      `${home}/.local/bin/dotfiles`,
+    ],
+    loginShell: "/bin/zsh",
+    promptAnswers: ["y"],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.packagesRequested).toEqual([]);
+  expect(host.upstreamInstalls).toEqual([]);
+  expect(host.piPackagesRequested).toEqual([]);
+  expect(host.skillsRequested).toEqual([]);
+});
+
+test("continue still confirms before /etc/environment writes", async () => {
+  const home = "/fake-home";
+  const existing = 'PATH="/usr/bin"\n';
+  const host = createFakeHost(["zsh", "git", "stow", "bun", "pi", "herdr"], {
+    homeDir: home,
+    packageManager: "apt",
+    files: [
+      `${home}/.oh-my-zsh`,
+      `${home}/.agents/skills`,
+      `${home}/.config/mcp/mcp.json`,
+      `${home}/.local/bin/dotfiles`,
+    ],
+    loginShell: "/bin/zsh",
+    environmentFile: existing,
+    promptAnswers: ["y", "OPENROUTER_API_KEY=sk-secret", "n"],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.prompts.some((p) => p.includes("/etc/environment"))).toBe(true);
+  expect(await host.readEnvironment()).toBe(existing);
+});
+
+test("continue still confirms before Stow conflicts", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["zsh", "git", "stow", "bun", "pi", "herdr"], {
+    homeDir: home,
+    packageManager: "apt",
+    files: [
+      `${home}/.oh-my-zsh`,
+      `${home}/.agents/skills`,
+      `${home}/.config/mcp/mcp.json`,
+      `${home}/.local/bin/dotfiles`,
+      `${home}/.zshrc`,
+    ],
+    loginShell: "/bin/zsh",
+    homeTree: [".zshrc"],
+    promptAnswers: ["y", "n"],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.prompts.some((p) => p.toLowerCase().includes("stow"))).toBe(true);
+  expect(host.backups).toEqual([]);
+  expect(host.linked).not.toContain(".zshrc");
+});
