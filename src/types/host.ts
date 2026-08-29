@@ -1,4 +1,4 @@
-import type { ProgressFrame } from "./progress.ts";
+import type { ProgressFrame } from "@/types/progress.ts";
 
 export type PackageManager = "apt" | "pacman" | "dnf" | "zypper";
 

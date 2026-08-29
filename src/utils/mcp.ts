@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import type { Host } from "../types/host.ts";
+import type { Host } from "@/types/host.ts";
 
 type XdgMcp = {
   mcpServers?: Record<string, { command?: string; args?: string[] }>;

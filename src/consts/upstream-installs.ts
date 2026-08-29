@@ -1,4 +1,4 @@
-import type { UpstreamInstall } from "../types/upstream.ts";
+import type { UpstreamInstall } from "@/types/upstream.ts";
 
 export const upstreamInstalls = {
   bun: {

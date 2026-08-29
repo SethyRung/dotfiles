@@ -1,9 +1,9 @@
 import { expect, test } from "bun:test";
 import { join } from "node:path";
-import { run } from "../src/cli.ts";
-import type { Host, PackageManager } from "../src/types/host.ts";
-import type { ProgressFrame } from "../src/types/progress.ts";
-import { backupStamp, toDayJS, type Dayjs } from "../src/utils/time.ts";
+import { run } from "@/cli.ts";
+import type { Host, PackageManager } from "@/types/host.ts";
+import type { ProgressFrame } from "@/types/progress.ts";
+import { backupStamp, toDayJS, type Dayjs } from "@/utils/time.ts";
 
 function createFakeHost(
   commands: string[] = [],

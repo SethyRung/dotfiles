@@ -1,15 +1,15 @@
 import { join } from "node:path";
-import { helpText } from "./consts/help.ts";
-import { ghosttyPackageFor, packagesFor } from "./consts/package-map.ts";
-import { piPackages } from "./consts/pi-packages.ts";
-import { skillsList } from "./consts/skills-list.ts";
-import type { Host } from "./types/host.ts";
-import type { ProgressState, ProgressStep } from "./types/progress.ts";
-import type { RunResult, StowOptions } from "./types/result.ts";
-import { mergeEnvironment, parseApiKeyCsv } from "./utils/environment.ts";
-import { mirrorOpenCodeMcp } from "./utils/mcp.ts";
-import { isYes, isZsh } from "./utils/prompt.ts";
-import { isGhosttyConfig, isStowJunk } from "./utils/stow.ts";
+import { helpText } from "@/consts/help.ts";
+import { ghosttyPackageFor, packagesFor } from "@/consts/package-map.ts";
+import { piPackages } from "@/consts/pi-packages.ts";
+import { skillsList } from "@/consts/skills-list.ts";
+import type { Host } from "@/types/host.ts";
+import type { ProgressState, ProgressStep } from "@/types/progress.ts";
+import type { RunResult, StowOptions } from "@/types/result.ts";
+import { mergeEnvironment, parseApiKeyCsv } from "@/utils/environment.ts";
+import { mirrorOpenCodeMcp } from "@/utils/mcp.ts";
+import { isYes, isZsh } from "@/utils/prompt.ts";
+import { isGhosttyConfig, isStowJunk } from "@/utils/stow.ts";
 
 export type { RunResult };
 

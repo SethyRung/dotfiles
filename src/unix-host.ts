@@ -1,12 +1,12 @@
-import { $, Glob } from "bun";
+import Bun from "bun";
 import { existsSync, lstatSync, mkdirSync, renameSync, symlinkSync, unlinkSync } from "node:fs";
 import { homedir, userInfo } from "node:os";
 import { dirname, join } from "node:path";
-import { upstreamInstallFor } from "./consts/upstream-installs.ts";
-import type { Host } from "./types/host.ts";
-import type { ProgressFrame } from "./types/progress.ts";
-import { renderBanner, renderPanel, spinnerFrames } from "./utils/panel.ts";
-import { backupStamp } from "./utils/time.ts";
+import { upstreamInstallFor } from "@/consts/upstream-installs.ts";
+import type { Host } from "@/types/host.ts";
+import type { ProgressFrame } from "@/types/progress.ts";
+import { renderBanner, renderPanel, spinnerFrames } from "@/utils/panel.ts";
+import { backupStamp } from "@/utils/time.ts";
 
 let progressStartedAt = 0;
 let progressLines = 0;
@@ -50,7 +50,7 @@ export const unixHost: Host = {
     if (command === "npm") {
       const nvm = join(home, ".nvm");
       if (existsSync(nvm)) {
-        const found = [...new Glob("versions/node/*/bin/npm").scanSync({ cwd: nvm })];
+        const found = [...new Bun.Glob("versions/node/*/bin/npm").scanSync({ cwd: nvm })];
         if (found.length > 0) {
           return true;
         }
@@ -65,15 +65,17 @@ export const unixHost: Host = {
     }
     const env = { ...process.env, ...install.env };
     if (install.via === "sh-c") {
-      const script = await $`curl -fsSL ${install.url}`.text();
-      await $`${install.shell} -c ${script}`.env(env);
+      const script = await Bun.$`curl -fsSL ${install.url}`.text();
+      await Bun.$`${install.shell} -c ${script}`.env(env);
     } else {
-      await $`curl -fsSL ${install.url} | ${install.shell}`.env(env);
+      await Bun.$`curl -fsSL ${install.url} | ${install.shell}`.env(env);
     }
     if (install.then) {
-      await $`${install.shell} -c ${install.then}`.env(env);
+      await Bun.$`${install.shell} -c ${install.then}`.env(env);
       const nodePath = (
-        await $`${install.shell} -c ${'. "$HOME/.nvm/nvm.sh" && command -v node'}`.env(env).text()
+        await Bun.$`${install.shell} -c ${'. "$HOME/.nvm/nvm.sh" && command -v node'}`
+          .env(env)
+          .text()
       ).trim();
       if (nodePath) {
         process.env.PATH = `${dirname(nodePath)}:${process.env.PATH ?? ""}`;
@@ -135,7 +137,7 @@ export const unixHost: Host = {
     if (!path) {
       throw new Error(`login shell not found: ${shell}`);
     }
-    await $`chsh -s ${path}`;
+    await Bun.$`chsh -s ${path}`;
   },
   async reboot() {
     markNoisy();
@@ -179,7 +181,7 @@ export const unixHost: Host = {
       return [];
     }
     const broken: string[] = [];
-    const glob = new Glob("**/*");
+    const glob = new Bun.Glob("**/*");
     for (const rel of glob.scanSync({ cwd: tree, dot: true })) {
       const dest = join(homedir(), rel);
       try {
@@ -197,7 +199,7 @@ export const unixHost: Host = {
     if (!existsSync(tree)) {
       return [];
     }
-    return [...new Glob("**/*").scanSync({ cwd: tree, dot: true })];
+    return [...new Bun.Glob("**/*").scanSync({ cwd: tree, dot: true })];
   },
   backup(path) {
     const dest = `${path}.${backupStamp()}`;
@@ -219,12 +221,12 @@ export const unixHost: Host = {
   },
   async installPiPackages(packages) {
     for (const pkg of packages) {
-      await $`pi install ${pkg}`;
+      await Bun.$`pi install ${pkg}`;
     }
   },
   async installSkills(specs) {
     for (const spec of specs) {
-      await $`bunx skills add ${spec} -g -y`;
+      await Bun.$`bunx skills add ${spec} -g -y`;
     }
   },
   async prompt(message) {

@@ -1,4 +1,4 @@
-import type { ProgressFrame, ProgressStep } from "../types/progress.ts";
+import type { ProgressFrame, ProgressStep } from "@/types/progress.ts";
 
 const bannerLines = [
   "     _       _    __ _ _           ",
