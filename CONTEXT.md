@@ -29,7 +29,7 @@ The CLI in this repo. `dotfiles init` runs Bootstrap. Not `dot` — that command
 _Avoid_: dot, install.sh, bootstrap.sh, script (as the user-facing name)
 
 **Progress Log**:
-The live ASCII dashboard init draws through the Host while Bootstrap runs: figlet banner, one row per step with `[ok]`/`[skip]`/`[!!]`/spinner cells, redrawn in place on a terminal, plain lines when piped. Never contains API Key values.
+The live ASCII dashboard init draws through the Host while Bootstrap runs: ANSI block banner, one row per step with `[ok]`/`[skip]`/`[!!]`/spinner cells, redrawn in place on a terminal, plain lines when piped. Never contains API Key values.
 _Avoid_: verbose flag, debug logging, static log lines (when you mean the dashboard)
 
 **Stow**:

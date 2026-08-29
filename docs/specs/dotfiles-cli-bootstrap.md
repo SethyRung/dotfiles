@@ -86,7 +86,7 @@ A `dotfiles` CLI in this Dotfiles repo. `dotfiles init` runs Bootstrap, `dotfile
 - After successful init, symlink the bash stub to `~/.local/bin/dotfiles`. Curated zshrc puts `~/.local/bin` on PATH.
 - chsh to zsh as part of init (not optional). After the rest of init succeeds (only when the shell actually changed), show `Login shell is now zsh. Run `zsh`or`reboot` to fully apply the change.` then ask `Reboot to apply it? [y/N] ` (default no). Yes: reboot via sudo after all work is done. No: nothing further.
 - Fail fast on required step failure. Optional Ghostty failure is a warning.
-- Init reports progress through the Host as an ASCII dashboard: figlet banner and `Distro: <pm>` title once, one row per step with `[ok] [skip] [!!] [--]` cells and a spinning cell for the running step, `step n/14 - Ns elapsed` footer, `Bootstrap complete.` when done. Redrawn in place on a TTY; plain `label: detail` lines when piped; prompts and noisy commands (apt, sudo, chsh) print below the panel, which then reprints fresh. API Key values never appear.
+- Init reports progress through the Host as an ASCII dashboard: ANSI Shadow block banner and `Distro: <pm>` title once, one row per step with `[ok] [skip] [!!] [--]` cells and a spinning cell for the running step, `step n/14 - Ns elapsed` footer, `Bootstrap complete.` when done. Redrawn in place on a TTY; plain `label: detail` lines when piped; prompts and noisy commands (apt, sudo, chsh) print below the panel, which then reprints fresh. API Key values never appear.
 - Tests never hit real package managers, real network, or real `/etc/environment`.
 
 ## Testing Decisions
