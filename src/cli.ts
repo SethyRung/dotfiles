@@ -66,6 +66,9 @@ async function init(host: Host): Promise<RunResult> {
     if (!host.commandExists("opencode")) {
       await host.runUpstreamInstall("opencode");
     }
+    if (!host.commandExists("zed")) {
+      await host.runUpstreamInstall("zed");
+    }
     if (!host.fileExists(join(home, ".agents/skills"))) {
       await host.installSkills(skillsList);
     }
@@ -156,6 +159,7 @@ async function doctor(host: Host): Promise<RunResult> {
   check("pi", host.commandExists("pi"));
   check("herdr", host.commandExists("herdr"));
   check("OpenCode", host.commandExists("opencode"));
+  check("Zed", host.commandExists("zed"));
   check("Skills", host.fileExists(join(home, ".agents/skills")));
   check("XDG MCP", host.fileExists(join(home, ".config/mcp/mcp.json")));
   check("login shell", isZsh(host.loginShell()));
@@ -190,6 +194,7 @@ function workflowLooksPresent(host: Host): boolean {
     host.commandExists("pi") &&
     host.commandExists("herdr") &&
     host.commandExists("opencode") &&
+    host.commandExists("zed") &&
     host.fileExists(join(home, ".agents/skills")) &&
     host.fileExists(join(home, ".config/mcp/mcp.json")) &&
     isZsh(host.loginShell()) &&

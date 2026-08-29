@@ -17,7 +17,7 @@ The Linux distribution Bootstrap runs on. Not Ubuntu-only; Bootstrap detects the
 _Avoid_: OS, flavor, platform
 
 **Workflow**:
-The development environment Bootstrap restores: zsh + Oh My Zsh, herdr, pi plus its current packages, OpenCode, global Skills (via skills.sh), XDG MCP, API Keys, optional Ghostty, and git installed with no git config.
+The development environment Bootstrap restores: zsh + Oh My Zsh, herdr, pi plus its current packages, OpenCode, Zed, global Skills (via skills.sh), XDG MCP, API Keys, optional Ghostty, and git installed with no git config.
 _Avoid_: using "dotfiles" for the running environment
 
 **Dotfiles**:
@@ -37,12 +37,16 @@ The file that names Distro packages per package manager (apt, pacman, dnf, zyppe
 _Avoid_: Brewfile, bundle
 
 **Upstream Install**:
-Install from the project's own script or binary (curl, GitHub release), not the Distro. Oh My Zsh, herdr, bun, pi, and OpenCode are Upstream Installs.
+Install from the project's own script or binary (curl, GitHub release), not the Distro. Oh My Zsh, herdr, bun, pi, OpenCode, and Zed are Upstream Installs.
 _Avoid_: curl-pipe, bootstrap script (when you mean this class of install)
 
 **OpenCode**:
 A coding agent in the Workflow, restored by Bootstrap like pi: Upstream Install plus Stowed config.
 _Avoid_: opencode dotfiles, SST OpenCode
+
+**Zed**:
+The IDE in the Workflow, restored like OpenCode: Upstream Install plus Stowed settings and keymap. Extensions are declared in `auto_install_extensions`, never snapshotted.
+_Avoid_: zed dotfiles, editor bundle
 
 **Skill**:
 An agent skill installed globally for pi and other agents to load.

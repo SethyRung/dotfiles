@@ -4,11 +4,11 @@ Status: drafted locally — this repo has no issue tracker yet. After `/setup-ma
 
 ## Problem Statement
 
-After a Fresh Install of Linux, restoring the development Workflow by hand is slow and easy to get wrong: zsh + Oh My Zsh, herdr, pi (packages and config), global Skills, MCP, API Keys, optional Ghostty, and git. The user wants one personal command that does that Bootstrap on any Distro, inspired by dmmulroy's `dot` CLI but named `dotfiles` because `dot` already exists on PATH.
+After a Fresh Install of Linux, restoring the development Workflow by hand is slow and easy to get wrong: zsh + Oh My Zsh, herdr, pi (packages and config), OpenCode, Zed, global Skills, MCP, API Keys, optional Ghostty, and git. The user wants one personal command that does that Bootstrap on any Distro, inspired by dmmulroy's `dot` CLI but named `dotfiles` because `dot` already exists on PATH.
 
 ## Solution
 
-A `dotfiles` CLI in this Dotfiles repo. `dotfiles init` runs Bootstrap, `dotfiles doctor` reports missing Workflow pieces, `dotfiles stow` re-links config from `home/` into `$HOME`. Distro packages come from a Package Map; Oh My Zsh, bun, herdr, and pi are Upstream Installs (always latest). Config is delivered with Stow. API Keys are typed in at Bootstrap as `key=value` pairs and merged into `/etc/environment` (never committed). The repo lives at `~/Documents/projects/personal/dotfiles` and is public.
+A `dotfiles` CLI in this Dotfiles repo. `dotfiles init` runs Bootstrap, `dotfiles doctor` reports missing Workflow pieces, `dotfiles stow` re-links config from `home/` into `$HOME`. Distro packages come from a Package Map; Oh My Zsh, bun, herdr, pi, OpenCode, and Zed are Upstream Installs (always latest). Config is delivered with Stow. API Keys are typed in at Bootstrap as `key=value` pairs and merged into `/etc/environment` (never committed). The repo lives at `~/Documents/projects/personal/dotfiles` and is public.
 
 ## User Stories
 
@@ -53,7 +53,7 @@ A `dotfiles` CLI in this Dotfiles repo. `dotfiles init` runs Bootstrap, `dotfile
 39. As a developer, I want existing target files backed up with a timestamp and then Stowed so that I can recover from Stow.
 40. As a developer, I want `dotfiles stow` to apply the same backup-then-Stow rule so that I can re-link configs without running full init.
 41. As a developer, I want Upstream Installs to always take latest so that v1 does not maintain version pins.
-42. As a developer, I want `dotfiles doctor` to report whether zsh, Oh My Zsh, git, stow, npm, bun, pi, herdr, Skills, XDG MCP, login shell, and the `dotfiles` PATH symlink are present so that I can see what Bootstrap missed.
+42. As a developer, I want `dotfiles doctor` to report whether zsh, Oh My Zsh, git, stow, npm, bun, pi, herdr, OpenCode, Zed, Skills, XDG MCP, login shell, and the `dotfiles` PATH symlink are present so that I can see what Bootstrap missed.
 43. As a developer, I want doctor to treat Ghostty as a warning when missing unless I opted in, so that optional software is not a hard failure.
 44. As a developer, I want doctor to report broken Stow links so that a half-linked `home/` is visible.
 45. As a developer, I want doctor to report whether expected API Key names exist in `/etc/environment` without printing values so that I can check secrets without leaking them.
@@ -65,6 +65,9 @@ A `dotfiles` CLI in this Dotfiles repo. `dotfiles init` runs Bootstrap, `dotfile
 51. As a developer, I want Stow to use a single `home/` tree so that configs are obvious and match the inspiration layout.
 52. As a developer on this Yoga 9, I want init to be safe to test so that I do not have to wait for the next Fresh Install to find bugs.
 53. As an implementer, I want all of the above observable through the `dotfiles` CLI against a fake Host so that tests do not need real apt, curl, or sudo.
+54. As a developer, I want Zed installed via its official Upstream Install (`https://zed.dev/install.sh`) so that the IDE is on a Fresh Install without a Distro package.
+55. As a developer, I want Zed `settings.json` and `keymap.json` Stowed so that the IDE matches this machine on a Fresh Install.
+56. As a developer, I want Zed extensions declared in `auto_install_extensions` in settings.json so that Zed installs them itself on first start and no extension snapshot is committed.
 
 ## Implementation Decisions
 
@@ -74,9 +77,9 @@ A `dotfiles` CLI in this Dotfiles repo. `dotfiles init` runs Bootstrap, `dotfile
 - `commandExists` means installed: found on PATH or in the Workflow bin dirs (`~/.bun/bin`, `~/.local/bin`, `~/.opencode/bin`, nvm's `node/*/bin`) that the curated zshrc puts on PATH, so a bash session that has not re-sourced its rc still skips re-installs.
 - Package Map is data: tool → package name per package-manager family (apt, pacman, dnf, zypper). Detect the family from the machine. Unknown family: fail before installs.
 - Distro packages in v1: zsh, git, stow. Ghostty is optional and Package Map-backed. Missing Ghostty mapping: warn, do not abort the rest of init. Nothing installed is requested again when it already exists; Ghostty's config is still Stowed.
-- Upstream Installs in v1: bun (`https://bun.com/install`), Oh My Zsh (official install script), herdr (`https://herdr.dev/install.sh`), nvm (official install.sh, then `nvm install --lts` if npm is missing), pi (bun global coding-agent, latest), Skills (skills.sh from the repo's lock/list).
+- Upstream Installs in v1: bun (`https://bun.com/install`), Oh My Zsh (official install script), herdr (`https://herdr.dev/install.sh`), OpenCode (`https://opencode.ai/install`), zed (`https://zed.dev/install.sh`), nvm (official install.sh, then `nvm install --lts` if npm is missing), pi (bun global coding-agent, latest), Skills (skills.sh from the repo's lock/list).
 - pi packages to install: the current list (pi-subagents, pi-mcp-adapter, ask-user-question, todo, pi-retry, pi-zentui, pi-herdr, ollama web search). Restore settings without default model/provider; restore APPEND_SYSTEM and prompts. Never restore auth, sessions, caches, model stores, or auto-generated extensions.
-- Stow delivers: curated zshrc, herdr config.toml only, XDG mcp.json, Ghostty config only if Ghostty was requested, pi files listed above that belong in the home tree. Single `home/` tree. Conflict: timestamped backup, then Stow.
+- Stow delivers: curated zshrc, herdr config.toml only, XDG mcp.json, OpenCode config and TUI files, Zed settings.json and keymap.json, Ghostty config only if Ghostty was requested, pi files listed above that belong in the home tree. Single `home/` tree. Conflict: timestamped backup, then Stow.
 - Init interaction: if Workflow already looks present, one continue? prompt. Destructive prompts only for `/etc/environment` writes and Stow conflicts. Ghostty: `Install Ghostty? [y/N]`. API Keys: CSV prompt; empty skips.
 - `/etc/environment` write uses sudo, merges keys, does not replace the file. Values never logged.
 - After successful init, symlink the bash stub to `~/.local/bin/dotfiles`. Curated zshrc puts `~/.local/bin` on PATH.

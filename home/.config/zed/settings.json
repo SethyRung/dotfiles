@@ -1,0 +1,118 @@
+{
+  "git": {
+    "disable_git": false
+  },
+  "cli_default_open_behavior": "existing_window",
+  "project_panel": {
+    "dock": "left"
+  },
+  "collaboration_panel": {
+    "dock": "left"
+  },
+  "agent": {
+    "sidebar_side": "right",
+    "dock": "right",
+    "favorite_models": [],
+    "model_parameters": []
+  },
+  "git_panel": {
+    "dock": "left"
+  },
+  "format_on_save": "on",
+  "outline_panel": {
+    "dock": "left"
+  },
+  "line_ending": "prefer_lf",
+  "diff_view_style": "split",
+  "edit_predictions": {
+    "ollama": {
+      "model": "glm-5.2:cloud",
+      "api_url": "http://localhost:11434"
+    },
+    "mode": "subtle",
+    "provider": "copilot"
+  },
+  "theme": {
+    "mode": "system",
+    "light": "Dracula Light (Alucard)",
+    "dark": "Dracula Solid"
+  },
+  "icon_theme": {
+    "mode": "system",
+    "light": "Material Icon Theme",
+    "dark": "Material Icon Theme"
+  },
+  "auto_install_extensions": {
+    "catppuccin": true,
+    "dart": true,
+    "docker-compose": true,
+    "dockerfile": true,
+    "dracula": true,
+    "editorconfig": true,
+    "git-firefly": true,
+    "html": true,
+    "java": true,
+    "json5": true,
+    "kotlin": true,
+    "material-icon-theme": true,
+    "oxc": true,
+    "scss": true,
+    "sql": true,
+    "toml": true,
+    "vue": true,
+    "vue-snippets": true
+  },
+  "buffer_font_family": "JetBrains Mono",
+  "buffer_font_size": 14,
+  "ui_font_size": 14,
+  "minimap": {
+    "show": "auto"
+  },
+  "tabs": {
+    "file_icons": true,
+    "git_status": true
+  },
+  "terminal": {
+    "font_family": "JetBrains Mono",
+    "font_size": 12,
+    "cursor_shape": "block",
+    "blinking": "on"
+  },
+  "language_servers": ["!eslint", "!prettier", "..."],
+  "formatter": [{ "language_server": { "name": "oxfmt" } }],
+  "lsp": {
+    "tailwindcss-language-server": {
+      "settings": {
+        "classFunctions": ["tv", "defineAppConfig"],
+        "classAttributes": [
+          "class",
+          "className",
+          "ngClass",
+          "class:list",
+          "ui",
+          "active-class",
+          "inactive-class"
+        ]
+      }
+    },
+    "oxlint": {
+      "initialization_options": {
+        "settings": {
+          "configPath": null,
+          "run": "onType",
+          "disableNestedConfig": false,
+          "fixKind": "safe_fix",
+          "unusedDisableDirectives": "deny"
+        }
+      }
+    },
+    "oxfmt": {
+      "initialization_options": {
+        "settings": {
+          "fmt.configPath": null,
+          "run": "onSave"
+        }
+      }
+    }
+  }
+}

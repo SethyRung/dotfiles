@@ -27,6 +27,11 @@ export const upstreamInstalls = {
     shell: "bash",
     via: "pipe",
   },
+  zed: {
+    url: "https://zed.dev/install.sh",
+    shell: "sh",
+    via: "pipe",
+  },
   nvm: {
     url: "https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.7/install.sh",
     shell: "bash",
