@@ -9,5 +9,5 @@ export default defineConfig({
   singleQuote: false,
   trailingComma: "all",
   printWidth: 100,
-  ignorePatterns: ["node_modules", ".scratch", "bun.lock"],
+  ignorePatterns: ["node_modules", "bun.lock", "home"],
 });

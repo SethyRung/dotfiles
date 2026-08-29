@@ -17,7 +17,7 @@ The Linux distribution Bootstrap runs on. Not Ubuntu-only; Bootstrap detects the
 _Avoid_: OS, flavor, platform
 
 **Workflow**:
-The development environment Bootstrap restores: zsh + Oh My Zsh, herdr, pi plus its current packages, global Skills (via skills.sh), XDG MCP, API Keys, optional Ghostty, and git installed with no git config.
+The development environment Bootstrap restores: zsh + Oh My Zsh, herdr, pi plus its current packages, OpenCode, global Skills (via skills.sh), XDG MCP, API Keys, optional Ghostty, and git installed with no git config.
 _Avoid_: using "dotfiles" for the running environment
 
 **Dotfiles**:
@@ -37,16 +37,20 @@ The file that names Distro packages per package manager (apt, pacman, dnf, zyppe
 _Avoid_: Brewfile, bundle
 
 **Upstream Install**:
-Install from the project's own script or binary (curl, GitHub release), not the Distro. Oh My Zsh, herdr, bun, and pi are Upstream Installs.
+Install from the project's own script or binary (curl, GitHub release), not the Distro. Oh My Zsh, herdr, bun, pi, and OpenCode are Upstream Installs.
 _Avoid_: curl-pipe, bootstrap script (when you mean this class of install)
+
+**OpenCode**:
+A coding agent in the Workflow, restored by Bootstrap like pi: Upstream Install plus Stowed config.
+_Avoid_: opencode dotfiles, SST OpenCode
 
 **Skill**:
 An agent skill installed globally for pi and other agents to load.
 _Avoid_: plugin, prompt, instruction file
 
 **MCP**:
-A Model Context Protocol server entry in pi's MCP config.
-_Avoid_: tool server, plugin
+A Model Context Protocol server. The Workflow's list is the XDG file; OpenCode is given the same servers via a mirrored `mcp` key.
+_Avoid_: tool server, plugin, pi-private mcp.json as source of truth
 
 **API Key**:
 A secret environment variable needed by AI tools. Supplied during Bootstrap as `key=value` pairs, written to `/etc/environment`, never stored in the repo.

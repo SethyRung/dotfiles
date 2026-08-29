@@ -1,5 +1,5 @@
 import { $, Glob } from "bun";
-import { existsSync, lstatSync, mkdirSync, renameSync, symlinkSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, renameSync, symlinkSync, unlinkSync } from "node:fs";
 import { homedir, userInfo } from "node:os";
 import { dirname, join } from "node:path";
 import type { Host } from "./host.ts";
@@ -180,5 +180,21 @@ export const unixHost: Host = {
     if ((await proc.exited) !== 0) {
       throw new Error("failed to write /etc/environment");
     }
+  },
+  async readFile(path) {
+    const file = Bun.file(path);
+    if (!(await file.exists())) {
+      return null;
+    }
+    return await file.text();
+  },
+  async writeFile(path, content) {
+    mkdirSync(dirname(path), { recursive: true });
+    try {
+      if (lstatSync(path).isSymbolicLink()) {
+        unlinkSync(path);
+      }
+    } catch {}
+    await Bun.write(path, content);
   },
 };

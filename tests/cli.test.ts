@@ -13,9 +13,12 @@ function createFakeHost(
     environmentKeys?: Record<string, string>;
     brokenStowLinks?: string[];
     homeTree?: string[];
+    treeContents?: Record<string, string>;
+    fileContents?: Record<string, string>;
     now?: Dayjs;
     packageManager?: PackageManager | null;
     installError?: string;
+    upstreamInstallError?: string;
     promptAnswers?: string[];
     environmentFile?: string;
   } = {},
@@ -27,6 +30,7 @@ function createFakeHost(
   backups: string[];
   linked: string[];
   prompts: string[];
+  fileContents: Record<string, string>;
 } {
   const present = new Set(commands);
   const files = new Set(extras.files ?? []);
@@ -39,6 +43,7 @@ function createFakeHost(
   const environmentKeys = extras.environmentKeys ?? {};
   const stowLinks = extras.brokenStowLinks ?? [];
   const tree = extras.homeTree ?? [];
+  const fileContents: Record<string, string> = { ...(extras.fileContents ?? {}) };
   const backups: string[] = [];
   const linked: string[] = [];
   const prompts: string[] = [];
@@ -47,6 +52,7 @@ function createFakeHost(
   const clock = extras.now ?? toDayJS("1970-01-01T00:00:00.000Z");
   const packageManager = extras.packageManager ?? null;
   const installError = extras.installError;
+  const upstreamInstallError = extras.upstreamInstallError;
   return {
     upstreamInstalls,
     packagesRequested,
@@ -55,11 +61,15 @@ function createFakeHost(
     backups,
     linked,
     prompts,
+    fileContents,
     commandExists(command) {
       return present.has(command);
     },
     async runUpstreamInstall(tool) {
       upstreamInstalls.push(tool);
+      if (upstreamInstallError === tool) {
+        throw new Error(`${tool} Upstream Install failed`);
+      }
       present.add(tool);
     },
     packageManager() {
@@ -107,7 +117,11 @@ function createFakeHost(
     async stow(relPaths) {
       for (const rel of relPaths) {
         linked.push(rel);
-        files.add(`${homeDir}/${rel}`);
+        const dest = `${homeDir}/${rel}`;
+        files.add(dest);
+        if (extras.treeContents?.[rel] != null) {
+          fileContents[dest] = extras.treeContents[rel];
+        }
       }
     },
     async installPiPackages(packages) {
@@ -125,6 +139,13 @@ function createFakeHost(
     },
     async writeEnvironment(content) {
       environmentFile = content;
+    },
+    async readFile(path) {
+      return fileContents[path] ?? null;
+    },
+    async writeFile(path, content) {
+      fileContents[path] = content;
+      files.add(path);
     },
   };
 }
@@ -163,6 +184,7 @@ test("on an empty Host, doctor reports required Workflow pieces missing and exit
     "stow",
     "pi",
     "herdr",
+    "OpenCode",
     "Skills",
     "XDG MCP",
     "login shell",
@@ -174,7 +196,7 @@ test("on an empty Host, doctor reports required Workflow pieces missing and exit
 
 test("Ghostty missing is a warning, not a required failure", async () => {
   const home = "/fake-home";
-  const host = createFakeHost(["zsh", "git", "stow", "bun", "pi", "herdr"], {
+  const host = createFakeHost(["zsh", "git", "stow", "bun", "pi", "herdr", "opencode"], {
     homeDir: home,
     files: [
       `${home}/.oh-my-zsh`,
@@ -585,7 +607,7 @@ test("yes on a Distro without a mapping warns and does not abort the rest of ini
 
 test("when Workflow already looks present, init asks continue? before doing work", async () => {
   const home = "/fake-home";
-  const host = createFakeHost(["zsh", "git", "stow", "bun", "pi", "herdr"], {
+  const host = createFakeHost(["zsh", "git", "stow", "bun", "pi", "herdr", "opencode"], {
     homeDir: home,
     packageManager: "apt",
     files: [
@@ -606,7 +628,7 @@ test("when Workflow already looks present, init asks continue? before doing work
 test("declining continue leaves the Host unchanged", async () => {
   const home = "/fake-home";
   const existing = 'PATH="/usr/bin"\n';
-  const host = createFakeHost(["zsh", "git", "stow", "bun", "pi", "herdr"], {
+  const host = createFakeHost(["zsh", "git", "stow", "bun", "pi", "herdr", "opencode"], {
     homeDir: home,
     packageManager: "apt",
     files: [
@@ -634,7 +656,7 @@ test("declining continue leaves the Host unchanged", async () => {
 
 test("continue does not re-request tools the Host already has", async () => {
   const home = "/fake-home";
-  const host = createFakeHost(["zsh", "git", "stow", "bun", "pi", "herdr"], {
+  const host = createFakeHost(["zsh", "git", "stow", "bun", "pi", "herdr", "opencode"], {
     homeDir: home,
     packageManager: "apt",
     files: [
@@ -657,7 +679,7 @@ test("continue does not re-request tools the Host already has", async () => {
 test("continue still confirms before /etc/environment writes", async () => {
   const home = "/fake-home";
   const existing = 'PATH="/usr/bin"\n';
-  const host = createFakeHost(["zsh", "git", "stow", "bun", "pi", "herdr"], {
+  const host = createFakeHost(["zsh", "git", "stow", "bun", "pi", "herdr", "opencode"], {
     homeDir: home,
     packageManager: "apt",
     files: [
@@ -678,7 +700,7 @@ test("continue still confirms before /etc/environment writes", async () => {
 
 test("continue still confirms before Stow conflicts", async () => {
   const home = "/fake-home";
-  const host = createFakeHost(["zsh", "git", "stow", "bun", "pi", "herdr"], {
+  const host = createFakeHost(["zsh", "git", "stow", "bun", "pi", "herdr", "opencode"], {
     homeDir: home,
     packageManager: "apt",
     files: [
@@ -697,4 +719,274 @@ test("continue still confirms before Stow conflicts", async () => {
   expect(host.prompts.some((p) => p.toLowerCase().includes("stow"))).toBe(true);
   expect(host.backups).toEqual([]);
   expect(host.linked).not.toContain(".zshrc");
+});
+
+test("init requests the OpenCode Upstream Install on the Host", async () => {
+  const host = createFakeHost(["bun"], { packageManager: "apt" });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.upstreamInstalls).toContain("opencode");
+});
+
+test("if OpenCode is already present, init does not request it again", async () => {
+  const host = createFakeHost(["bun", "opencode"], { packageManager: "apt" });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.upstreamInstalls).not.toContain("opencode");
+});
+
+test("a failed OpenCode Upstream Install fails the command", async () => {
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    upstreamInstallError: "opencode",
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).not.toBe(0);
+  expect(host.upstreamInstalls).toContain("opencode");
+});
+
+test("doctor reports OpenCode missing as a required failure", async () => {
+  const host = createFakeHost();
+  const result = await run(["doctor"], host);
+  expect(result.exitCode).not.toBe(0);
+  expect(result.stdout).toContain("OpenCode: missing");
+  expect(result.stdout).not.toContain("OpenCode: missing (optional)");
+});
+
+test("doctor reports OpenCode present without treating it as optional", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["zsh", "git", "stow", "bun", "pi", "herdr", "opencode"], {
+    homeDir: home,
+    files: [
+      `${home}/.oh-my-zsh`,
+      `${home}/.agents/skills`,
+      `${home}/.config/mcp/mcp.json`,
+      `${home}/.local/bin/dotfiles`,
+    ],
+    loginShell: "/bin/zsh",
+  });
+  const result = await run(["doctor"], host);
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("OpenCode: ok");
+  expect(result.stdout).not.toContain("OpenCode: missing (optional)");
+});
+
+test("OpenCode global config and TUI config are Stowed", async () => {
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    homeTree: [
+      ".config/opencode/opencode.json",
+      ".config/opencode/tui.json",
+      ".config/opencode/tui.jsonc",
+    ],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.linked).toContain(".config/opencode/opencode.json");
+  expect(host.linked).toContain(".config/opencode/tui.json");
+  expect(host.linked).toContain(".config/opencode/tui.jsonc");
+  const cfg = await Bun.file(
+    join(import.meta.dir, "../home/.config/opencode/opencode.json"),
+  ).json();
+  expect(cfg.permission).toBe("allow");
+  expect(cfg.autoupdate).toBe(true);
+  expect(cfg).not.toHaveProperty("mcp");
+  expect(cfg).not.toHaveProperty("model");
+  expect(cfg).not.toHaveProperty("provider");
+  expect(cfg).not.toHaveProperty("defaultModel");
+  expect(cfg).not.toHaveProperty("defaultProvider");
+  const tui = await Bun.file(join(import.meta.dir, "../home/.config/opencode/tui.json")).json();
+  expect(tui.$schema).toBe("https://opencode.ai/tui.json");
+  const tuiC = await Bun.file(join(import.meta.dir, "../home/.config/opencode/tui.jsonc")).text();
+  expect(tuiC).toContain("./herdr-tui-session.js");
+});
+
+test("herdr OpenCode plugin files are Stowed", async () => {
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    homeTree: [
+      ".config/opencode/herdr-tui-session.js",
+      ".config/opencode/plugins/herdr-agent-state.js",
+    ],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.linked).toContain(".config/opencode/herdr-tui-session.js");
+  expect(host.linked).toContain(".config/opencode/plugins/herdr-agent-state.js");
+  const tuiPlugin = await Bun.file(
+    join(import.meta.dir, "../home/.config/opencode/herdr-tui-session.js"),
+  ).text();
+  expect(tuiPlugin).toContain("HERDR_INTEGRATION_ID=opencode-tui");
+  const agentPlugin = await Bun.file(
+    join(import.meta.dir, "../home/.config/opencode/plugins/herdr-agent-state.js"),
+  ).text();
+  expect(agentPlugin).toContain("HERDR_INTEGRATION_ID=opencode");
+});
+
+test("OpenCode-local skills, auth, sessions, and node_modules are not Stowed", async () => {
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    homeTree: [
+      ".config/opencode/opencode.json",
+      ".config/opencode/skills/android/SKILL.md",
+      ".config/opencode/auth.json",
+      ".config/opencode/sessions/x.json",
+      ".config/opencode/node_modules/foo/index.js",
+      ".config/opencode/cache/tools.json",
+      ".config/opencode/opencode.db",
+    ],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.linked).toEqual([".config/opencode/opencode.json"]);
+});
+
+test("curated zshrc puts OpenCode bin directory on PATH", async () => {
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    homeTree: [".zshrc"],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.linked).toContain(".zshrc");
+  const zshrc = await Bun.file(join(import.meta.dir, "../home/.zshrc")).text();
+  expect(zshrc).toContain("$HOME/.opencode/bin");
+});
+
+test("after init, OpenCode mcp key contains the XDG MCP servers", async () => {
+  const home = "/fake-home";
+  const xdg = await Bun.file(join(import.meta.dir, "../home/.config/mcp/mcp.json")).text();
+  const snapshot = await Bun.file(
+    join(import.meta.dir, "../home/.config/opencode/opencode.json"),
+  ).text();
+  const host = createFakeHost(["bun"], {
+    homeDir: home,
+    packageManager: "apt",
+    homeTree: [".config/mcp/mcp.json", ".config/opencode/opencode.json"],
+    treeContents: {
+      ".config/mcp/mcp.json": xdg,
+      ".config/opencode/opencode.json": snapshot,
+    },
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  const written = JSON.parse(host.fileContents[`${home}/.config/opencode/opencode.json`] ?? "{}");
+  expect(Object.keys(written.mcp).sort()).toEqual([
+    "better-auth",
+    "bun",
+    "mobile-mcp",
+    "nuxt",
+    "nuxt-ui",
+  ]);
+  expect(written.mcp.bun).toEqual({ type: "remote", url: "https://bun.com/docs/mcp" });
+  expect(written.mcp.nuxt).toEqual({ type: "remote", url: "https://nuxt.com/mcp" });
+  expect(written.mcp["nuxt-ui"]).toEqual({ type: "remote", url: "https://ui.nuxt.com/mcp" });
+  expect(written.mcp["better-auth"]).toEqual({
+    type: "remote",
+    url: "https://mcp.better-auth.com/mcp",
+  });
+  expect(written.mcp["mobile-mcp"]).toEqual({
+    type: "local",
+    command: ["npx", "-y", "@mobilenext/mobile-mcp@latest"],
+  });
+  expect(written.permission).toBe("allow");
+  expect(written.autoupdate).toBe(true);
+  const repoSnapshot = await Bun.file(
+    join(import.meta.dir, "../home/.config/opencode/opencode.json"),
+  ).json();
+  expect(repoSnapshot).not.toHaveProperty("mcp");
+});
+
+test("re-running init refreshes OpenCode mcp key from the XDG file", async () => {
+  const home = "/fake-home";
+  const ocPath = `${home}/.config/opencode/opencode.json`;
+  const treeContents = {
+    ".config/mcp/mcp.json": JSON.stringify({
+      mcpServers: {
+        bun: { command: "npx", args: ["mcp-remote", "https://bun.com/docs/mcp"] },
+      },
+    }),
+    ".config/opencode/opencode.json": JSON.stringify({ permission: "allow" }),
+  };
+  const host = createFakeHost(["bun"], {
+    homeDir: home,
+    packageManager: "apt",
+    homeTree: [".config/mcp/mcp.json", ".config/opencode/opencode.json"],
+    treeContents,
+  });
+  await run(["init"], host);
+  expect(Object.keys(JSON.parse(host.fileContents[ocPath] ?? "{}").mcp)).toEqual(["bun"]);
+  treeContents[".config/mcp/mcp.json"] = JSON.stringify({
+    mcpServers: {
+      bun: { command: "npx", args: ["mcp-remote", "https://bun.com/docs/mcp"] },
+      nuxt: { command: "npx", args: ["mcp-remote", "https://nuxt.com/mcp"] },
+    },
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(Object.keys(JSON.parse(host.fileContents[ocPath] ?? "{}").mcp).sort()).toEqual([
+    "bun",
+    "nuxt",
+  ]);
+});
+
+test("a Host missing OpenCode is not treated as Workflow already present", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["zsh", "git", "stow", "bun", "pi", "herdr"], {
+    homeDir: home,
+    packageManager: "apt",
+    files: [
+      `${home}/.oh-my-zsh`,
+      `${home}/.agents/skills`,
+      `${home}/.config/mcp/mcp.json`,
+      `${home}/.local/bin/dotfiles`,
+    ],
+    loginShell: "/bin/zsh",
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.prompts[0]?.toLowerCase()).not.toContain("continue?");
+  expect(host.upstreamInstalls).toContain("opencode");
+});
+
+test("continue does not re-request OpenCode if it is already installed", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["zsh", "git", "stow", "bun", "pi", "herdr", "opencode"], {
+    homeDir: home,
+    packageManager: "apt",
+    files: [
+      `${home}/.oh-my-zsh`,
+      `${home}/.agents/skills`,
+      `${home}/.config/mcp/mcp.json`,
+      `${home}/.local/bin/dotfiles`,
+    ],
+    loginShell: "/bin/zsh",
+    promptAnswers: ["y"],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.upstreamInstalls).not.toContain("opencode");
+});
+
+test("continue still confirms before Stow conflicts for OpenCode config", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["zsh", "git", "stow", "bun", "pi", "herdr", "opencode"], {
+    homeDir: home,
+    packageManager: "apt",
+    files: [
+      `${home}/.oh-my-zsh`,
+      `${home}/.agents/skills`,
+      `${home}/.config/mcp/mcp.json`,
+      `${home}/.local/bin/dotfiles`,
+      `${home}/.config/opencode/opencode.json`,
+    ],
+    loginShell: "/bin/zsh",
+    homeTree: [".config/opencode/opencode.json"],
+    promptAnswers: ["y", "n"],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.prompts.some((p) => p.toLowerCase().includes("stow"))).toBe(true);
+  expect(host.backups).toEqual([]);
+  expect(host.linked).not.toContain(".config/opencode/opencode.json");
 });

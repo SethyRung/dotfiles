@@ -68,6 +68,9 @@ async function init(host: Host): Promise<RunResult> {
       await host.runUpstreamInstall("pi");
       await host.installPiPackages(piPackages);
     }
+    if (!host.commandExists("opencode")) {
+      await host.runUpstreamInstall("opencode");
+    }
     if (!host.fileExists(join(home, ".agents/skills"))) {
       await host.installSkills(skillsList);
     }
@@ -75,6 +78,7 @@ async function init(host: Host): Promise<RunResult> {
     if (stowed.exitCode !== 0) {
       return stowed;
     }
+    await mirrorOpenCodeMcp(host);
     const apiKeysCsv = (await host.prompt("API Keys (key=value CSV, empty skips): ")).trim();
     if (apiKeysCsv !== "") {
       const confirmed = (await host.prompt("Write API Keys to /etc/environment? [y/N] "))
@@ -138,6 +142,7 @@ async function doctor(host: Host): Promise<RunResult> {
   check("bun", host.commandExists("bun"));
   check("pi", host.commandExists("pi"));
   check("herdr", host.commandExists("herdr"));
+  check("OpenCode", host.commandExists("opencode"));
   check("Skills", host.fileExists(join(home, ".agents/skills")));
   check("XDG MCP", host.fileExists(join(home, ".config/mcp/mcp.json")));
   const shell = host.loginShell();
@@ -172,6 +177,7 @@ function workflowLooksPresent(host: Host): boolean {
     host.commandExists("bun") &&
     host.commandExists("pi") &&
     host.commandExists("herdr") &&
+    host.commandExists("opencode") &&
     host.fileExists(join(home, ".agents/skills")) &&
     host.fileExists(join(home, ".config/mcp/mcp.json")) &&
     (shell === "zsh" || (shell?.endsWith("/zsh") ?? false)) &&
@@ -186,8 +192,14 @@ function isStowJunk(rel: string): boolean {
     parts.includes("logs") ||
     parts.includes("sockets") ||
     parts.includes("sessions") ||
+    parts.includes("node_modules") ||
+    parts.includes("cache") ||
+    rel.startsWith(".config/opencode/skills/") ||
     rel.endsWith(".log") ||
     rel.endsWith(".sock") ||
+    rel.endsWith(".db") ||
+    rel.endsWith(".db-shm") ||
+    rel.endsWith(".db-wal") ||
     base === "auth.json" ||
     base.includes("cache") ||
     base.startsWith("models")
@@ -234,6 +246,32 @@ async function stow(
   }
   await host.stow(rels);
   return { exitCode: 0, stdout: "", stderr: "" };
+}
+
+async function mirrorOpenCodeMcp(host: Host): Promise<void> {
+  const home = host.homeDir();
+  const xdgText = await host.readFile(join(home, ".config/mcp/mcp.json"));
+  if (xdgText == null) {
+    return;
+  }
+  const xdg = JSON.parse(xdgText) as {
+    mcpServers?: Record<string, { command?: string; args?: string[] }>;
+  };
+  const ocPath = join(home, ".config/opencode/opencode.json");
+  const existingText = await host.readFile(ocPath);
+  const existing = existingText ? JSON.parse(existingText) : {};
+  const mcp: Record<string, { type: string; url?: string; command?: string[] }> = {};
+  for (const [name, spec] of Object.entries(xdg.mcpServers ?? {})) {
+    const args = spec.args ?? [];
+    const url = args.find((arg) => arg.startsWith("https://") || arg.startsWith("http://"));
+    if (url) {
+      mcp[name] = { type: "remote", url };
+    } else {
+      mcp[name] = { type: "local", command: [spec.command, ...args].filter((p) => p != null) };
+    }
+  }
+  existing.mcp = mcp;
+  await host.writeFile(ocPath, `${JSON.stringify(existing, null, 2)}\n`);
 }
 
 function parseApiKeyCsv(csv: string): Record<string, string> {

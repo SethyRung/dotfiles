@@ -27,6 +27,11 @@ export const upstreamInstalls = {
     shell: "sh",
     via: "pipe",
   },
+  opencode: {
+    url: "https://opencode.ai/install",
+    shell: "bash",
+    via: "pipe",
+  },
 } as const satisfies Record<string, UpstreamInstall>;
 
 export function upstreamInstallFor(tool: string): UpstreamInstall | undefined {

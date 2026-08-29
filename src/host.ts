@@ -20,4 +20,6 @@ export type Host = {
   prompt(message: string): Promise<string>;
   readEnvironment(): Promise<string>;
   writeEnvironment(content: string): Promise<void>;
+  readFile(path: string): Promise<string | null>;
+  writeFile(path: string, content: string): Promise<void>;
 };
