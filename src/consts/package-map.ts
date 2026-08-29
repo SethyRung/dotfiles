@@ -1,4 +1,4 @@
-import type { PackageManager } from "./host.ts";
+import type { PackageManager } from "../types/host.ts";
 
 export const requiredDistroTools = ["zsh", "git", "stow"] as const;
 

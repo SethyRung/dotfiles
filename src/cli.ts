@@ -1,22 +1,16 @@
 import { join } from "node:path";
-import type { Host } from "./host.ts";
-import { ghosttyPackageFor, packagesFor } from "./package-map.ts";
-import { piPackages } from "./pi-packages.ts";
-import { skillsList } from "./skills-list.ts";
+import { helpText } from "./consts/help.ts";
+import { ghosttyPackageFor, packagesFor } from "./consts/package-map.ts";
+import { piPackages } from "./consts/pi-packages.ts";
+import { skillsList } from "./consts/skills-list.ts";
+import type { Host } from "./types/host.ts";
+import type { RunResult, StowOptions } from "./types/result.ts";
+import { mergeEnvironment, parseApiKeyCsv } from "./utils/environment.ts";
+import { mirrorOpenCodeMcp } from "./utils/mcp.ts";
+import { isYes, isZsh } from "./utils/prompt.ts";
+import { isGhosttyConfig, isStowJunk } from "./utils/stow.ts";
 
-export type RunResult = {
-  exitCode: number;
-  stdout: string;
-  stderr: string;
-};
-
-const helpText = `Usage: dotfiles <command>
-
-Commands:
-  init    Bootstrap the Workflow
-  doctor  Report what is present or missing
-  stow    Re-link home/ into $HOME
-`;
+export type { RunResult };
 
 export async function run(args: string[], host: Host): Promise<RunResult> {
   if (!host.commandExists("bun")) {
@@ -45,10 +39,8 @@ async function init(host: Host): Promise<RunResult> {
   }
   const reRun = workflowLooksPresent(host);
   if (reRun) {
-    const cont = (await host.prompt("Workflow already present. Continue? [y/N] "))
-      .trim()
-      .toLowerCase();
-    if (cont !== "y" && cont !== "yes") {
+    const cont = await host.prompt("Workflow already present. Continue? [y/N] ");
+    if (!isYes(cont)) {
       return { exitCode: 0, stdout: "", stderr: "" };
     }
   }
@@ -84,19 +76,15 @@ async function init(host: Host): Promise<RunResult> {
     await mirrorOpenCodeMcp(host);
     const apiKeysCsv = (await host.prompt("API Keys (key=value CSV, empty skips): ")).trim();
     if (apiKeysCsv !== "") {
-      const confirmed = (await host.prompt("Write API Keys to /etc/environment? [y/N] "))
-        .trim()
-        .toLowerCase();
-      if (confirmed === "y" || confirmed === "yes") {
+      const confirmed = await host.prompt("Write API Keys to /etc/environment? [y/N] ");
+      if (isYes(confirmed)) {
         await host.writeEnvironment(
           mergeEnvironment(await host.readEnvironment(), parseApiKeyCsv(apiKeysCsv)),
         );
       }
     }
     let stderr = "";
-    const wantGhostty =
-      !reRun &&
-      ["y", "yes"].includes((await host.prompt("Install Ghostty? [y/N] ")).trim().toLowerCase());
+    const wantGhostty = !reRun && isYes(await host.prompt("Install Ghostty? [y/N] "));
     if (wantGhostty) {
       const ghostty = ghosttyPackageFor(pm);
       if (ghostty) {
@@ -110,8 +98,7 @@ async function init(host: Host): Promise<RunResult> {
         stderr = `Ghostty is not in the Package Map for ${pm}.\n`;
       }
     }
-    const shell = host.loginShell();
-    if (shell !== "zsh" && !shell?.endsWith("/zsh")) {
+    if (!isZsh(host.loginShell())) {
       await host.changeLoginShell("zsh");
     }
     if (!host.fileExists(join(home, ".local/bin/dotfiles"))) {
@@ -149,8 +136,7 @@ async function doctor(host: Host): Promise<RunResult> {
   check("OpenCode", host.commandExists("opencode"));
   check("Skills", host.fileExists(join(home, ".agents/skills")));
   check("XDG MCP", host.fileExists(join(home, ".config/mcp/mcp.json")));
-  const shell = host.loginShell();
-  check("login shell", shell === "zsh" || (shell?.endsWith("/zsh") ?? false));
+  check("login shell", isZsh(host.loginShell()));
   check("dotfiles PATH symlink", host.fileExists(join(home, ".local/bin/dotfiles")));
   if (!host.commandExists("ghostty")) {
     lines.push("Ghostty: missing (optional)");
@@ -172,7 +158,6 @@ async function doctor(host: Host): Promise<RunResult> {
 
 function workflowLooksPresent(host: Host): boolean {
   const home = host.homeDir();
-  const shell = host.loginShell();
   return (
     host.commandExists("zsh") &&
     host.fileExists(join(home, ".oh-my-zsh")) &&
@@ -185,41 +170,12 @@ function workflowLooksPresent(host: Host): boolean {
     host.commandExists("opencode") &&
     host.fileExists(join(home, ".agents/skills")) &&
     host.fileExists(join(home, ".config/mcp/mcp.json")) &&
-    (shell === "zsh" || (shell?.endsWith("/zsh") ?? false)) &&
+    isZsh(host.loginShell()) &&
     host.fileExists(join(home, ".local/bin/dotfiles"))
   );
 }
 
-function isStowJunk(rel: string): boolean {
-  const parts = rel.split("/");
-  const base = parts.at(-1) ?? rel;
-  return (
-    parts.includes("logs") ||
-    parts.includes("sockets") ||
-    parts.includes("sessions") ||
-    parts.includes("node_modules") ||
-    parts.includes("cache") ||
-    rel.startsWith(".config/opencode/skills/") ||
-    rel.startsWith(".pi/agent/extensions/") ||
-    rel.endsWith(".log") ||
-    rel.endsWith(".sock") ||
-    rel.endsWith(".db") ||
-    rel.endsWith(".db-shm") ||
-    rel.endsWith(".db-wal") ||
-    base === "auth.json" ||
-    base.includes("cache") ||
-    base.startsWith("models")
-  );
-}
-
-function isGhosttyConfig(rel: string): boolean {
-  return rel.startsWith(".config/ghostty/");
-}
-
-async function stow(
-  host: Host,
-  options: { skipGhostty?: boolean; onlyGhostty?: boolean; confirmConflicts?: boolean } = {},
-): Promise<RunResult> {
+async function stow(host: Host, options: StowOptions = {}): Promise<RunResult> {
   let rels = host.homeTree().filter((rel) => {
     if (isStowJunk(rel)) {
       return false;
@@ -236,9 +192,7 @@ async function stow(
   if (options.confirmConflicts) {
     const conflicts = rels.filter((rel) => host.fileExists(join(home, rel)));
     if (conflicts.length > 0) {
-      const overwrite = ["y", "yes"].includes(
-        (await host.prompt("Overwrite existing files with Stow? [y/N] ")).trim().toLowerCase(),
-      );
+      const overwrite = isYes(await host.prompt("Overwrite existing files with Stow? [y/N] "));
       if (!overwrite) {
         rels = rels.filter((rel) => !conflicts.includes(rel));
       }
@@ -252,76 +206,4 @@ async function stow(
   }
   await host.stow(rels);
   return { exitCode: 0, stdout: "", stderr: "" };
-}
-
-async function mirrorOpenCodeMcp(host: Host): Promise<void> {
-  const home = host.homeDir();
-  const xdgText = await host.readFile(join(home, ".config/mcp/mcp.json"));
-  if (xdgText == null) {
-    return;
-  }
-  const xdg = JSON.parse(xdgText) as {
-    mcpServers?: Record<string, { command?: string; args?: string[] }>;
-  };
-  const ocPath = join(home, ".config/opencode/opencode.json");
-  const existingText = await host.readFile(ocPath);
-  const existing = existingText ? JSON.parse(existingText) : {};
-  const mcp: Record<string, { type: string; url?: string; command?: string[] }> = {};
-  for (const [name, spec] of Object.entries(xdg.mcpServers ?? {})) {
-    const args = spec.args ?? [];
-    const url = args.find((arg) => arg.startsWith("https://") || arg.startsWith("http://"));
-    if (url) {
-      mcp[name] = { type: "remote", url };
-    } else {
-      mcp[name] = { type: "local", command: [spec.command, ...args].filter((p) => p != null) };
-    }
-  }
-  existing.mcp = mcp;
-  await host.writeFile(ocPath, `${JSON.stringify(existing, null, 2)}\n`);
-}
-
-function parseApiKeyCsv(csv: string): Record<string, string> {
-  const keys: Record<string, string> = {};
-  for (const part of csv.split(",")) {
-    const trimmed = part.trim();
-    if (!trimmed) {
-      continue;
-    }
-    const eq = trimmed.indexOf("=");
-    if (eq <= 0) {
-      continue;
-    }
-    keys[trimmed.slice(0, eq).trim()] = trimmed.slice(eq + 1);
-  }
-  return keys;
-}
-
-function mergeEnvironment(existing: string, keys: Record<string, string>): string {
-  const pending = { ...keys };
-  const source =
-    existing === ""
-      ? []
-      : existing.endsWith("\n")
-        ? existing.slice(0, -1).split("\n")
-        : existing.split("\n");
-  const out: string[] = [];
-  for (const line of source) {
-    const trimmed = line.trim();
-    if (trimmed && !trimmed.startsWith("#")) {
-      const eq = trimmed.indexOf("=");
-      if (eq > 0) {
-        const name = trimmed.slice(0, eq);
-        if (Object.hasOwn(pending, name)) {
-          out.push(`${name}=${pending[name]}`);
-          delete pending[name];
-          continue;
-        }
-      }
-    }
-    out.push(line);
-  }
-  for (const [name, value] of Object.entries(pending)) {
-    out.push(`${name}=${value}`);
-  }
-  return `${out.join("\n")}\n`;
 }

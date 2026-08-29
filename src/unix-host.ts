@@ -2,9 +2,9 @@ import { $, Glob } from "bun";
 import { existsSync, lstatSync, mkdirSync, renameSync, symlinkSync, unlinkSync } from "node:fs";
 import { homedir, userInfo } from "node:os";
 import { dirname, join } from "node:path";
-import type { Host } from "./host.ts";
-import { backupStamp } from "./time.ts";
-import { upstreamInstallFor } from "./upstream-installs.ts";
+import { upstreamInstallFor } from "./consts/upstream-installs.ts";
+import type { Host } from "./types/host.ts";
+import { backupStamp } from "./utils/time.ts";
 
 export const unixHost: Host = {
   commandExists(command) {

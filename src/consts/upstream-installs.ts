@@ -1,10 +1,4 @@
-export type UpstreamInstall = {
-  url: string;
-  shell: string;
-  env?: Record<string, string>;
-  via?: "pipe" | "sh-c";
-  then?: string;
-};
+import type { UpstreamInstall } from "../types/upstream.ts";
 
 export const upstreamInstalls = {
   bun: {
