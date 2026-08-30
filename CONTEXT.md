@@ -33,12 +33,12 @@ The live ASCII dashboard init draws through the Host while Bootstrap runs: ANSI 
 _Avoid_: verbose flag, debug logging, static log lines (when you mean the dashboard)
 
 **Stow**:
-GNU Stow; how `dotfiles` delivers config files from `home/` into `$HOME`.
-_Avoid_: copy, symlink (when you mean this delivery)
+GNU Stow; how `dotfiles` delivers config files from `home/` into `$HOME`. `dotfiles stow` also relinks `~/.local/bin/dotfiles`. After the repo moves, run it from the new location.
+_Avoid_: copy, symlink (when you mean this delivery), repair
 
-**Update**:
-Syncing config from this repo to an already-Bootstrapped machine: `git pull --ff-only`, then Stow, then the OpenCode MCP mirror refresh. Never installs or upgrades Workflow tools.
-_Avoid_: upgrade, refresh (when you mean this sync), tool update
+**Sync**:
+Pulling this repo and re-applying config on an already-Bootstrapped machine: `git pull --ff-only`, then Stow, then the OpenCode MCP mirror refresh. Never installs or upgrades Workflow tools. Command is `dotfiles sync`.
+_Avoid_: update, upgrade, refresh (when you mean this command), tool update
 
 **Package Map**:
 The file that names Distro packages per package manager (apt, pacman, dnf, zypper).

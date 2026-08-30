@@ -27,6 +27,7 @@ function createFakeHost(
     pullRepoOutput?: string;
     pullRepoError?: string;
     repoLinks?: string[];
+    staleLinks?: string[];
   } = {},
 ): Host & {
   upstreamInstalls: string[];
@@ -41,6 +42,7 @@ function createFakeHost(
   repoPulls: number;
   progressFrames: ProgressFrame[];
   fileContents: Record<string, string>;
+  dotfilesLinks: number;
 } {
   const present = new Set(commands);
   const files = new Set(extras.files ?? []);
@@ -70,8 +72,10 @@ function createFakeHost(
   const pullRepoOutput = extras.pullRepoOutput ?? "Already up to date.";
   const pullRepoError = extras.pullRepoError;
   const repoLinks = new Set(extras.repoLinks ?? []);
+  const staleLinks = new Set(extras.staleLinks ?? []);
   let repoPulls = 0;
   let reboots = 0;
+  let dotfilesLinks = 0;
   return {
     upstreamInstalls,
     packagesRequested,
@@ -86,6 +90,9 @@ function createFakeHost(
     },
     get repoPulls() {
       return repoPulls;
+    },
+    get dotfilesLinks() {
+      return dotfilesLinks;
     },
     progressFrames,
     fileContents,
@@ -137,6 +144,7 @@ function createFakeHost(
       return pullRepoOutput;
     },
     async linkDotfiles() {
+      dotfilesLinks += 1;
       files.add(`${homeDir}/.local/bin/dotfiles`);
     },
     async environmentKeyNames() {
@@ -163,6 +171,9 @@ function createFakeHost(
     },
     linksIntoRepo(path) {
       return repoLinks.has(path);
+    },
+    isSymlink(path) {
+      return repoLinks.has(path) || staleLinks.has(path);
     },
     async stow(relPaths) {
       for (const rel of relPaths) {
@@ -211,7 +222,7 @@ function frameStep(frame: ProgressFrame, label: string) {
   return frame.steps.find((step) => step.label === label)!;
 }
 
-test("dotfiles help lists init, doctor, stow, clean, and update", async () => {
+test("dotfiles help lists init, doctor, stow, clean, and sync", async () => {
   const host = createFakeHost(["bun"]);
   const result = await run(["--help"], host);
   expect(result.exitCode).toBe(0);
@@ -219,7 +230,9 @@ test("dotfiles help lists init, doctor, stow, clean, and update", async () => {
   expect(result.stdout).toContain("doctor");
   expect(result.stdout).toContain("stow");
   expect(result.stdout).toContain("clean");
-  expect(result.stdout).toContain("update");
+  expect(result.stdout).toContain("sync");
+  expect(result.stdout).not.toContain("update");
+  expect(result.stdout).not.toContain("repair");
 });
 
 test("with bun missing, the stub requests the bun Upstream Install, then the CLI runs", async () => {
@@ -300,14 +313,18 @@ test("doctor reports broken Stow links", async () => {
   expect(result.stdout).toContain("/fake-home/.zshrc");
 });
 
-test("dotfiles stow on a clean fake $HOME links the home/ tree", async () => {
+test("dotfiles stow on a clean fake $HOME links the home/ tree and PATH stub", async () => {
+  const home = "/fake-home";
   const host = createFakeHost(["bun"], {
+    homeDir: home,
     homeTree: [".zshrc", ".config/herdr/config.toml"],
   });
   const result = await run(["stow"], host);
   expect(result.exitCode).toBe(0);
   expect(host.linked).toEqual([".zshrc", ".config/herdr/config.toml"]);
   expect(host.backups).toEqual([]);
+  expect(host.dotfilesLinks).toBe(1);
+  expect(host.fileExists(`${home}/.local/bin/dotfiles`)).toBe(true);
 });
 
 test("when a target file already exists, a timestamped backup is created and Stow then links", async () => {
@@ -337,7 +354,7 @@ test("re-Stowing a dest that already symlinks into the repo creates no backup", 
   expect(host.linked).toEqual([".zshrc", ".config/herdr/config.toml"]);
 });
 
-test("dotfiles update backs up only dests that are not already repo links", async () => {
+test("dotfiles sync backs up only dests that are not already repo links", async () => {
   const home = "/fake-home";
   const host = createFakeHost(["bun"], {
     homeDir: home,
@@ -346,7 +363,7 @@ test("dotfiles update backs up only dests that are not already repo links", asyn
     files: [`${home}/.config/mcp/mcp.json`],
     now: toDayJS("2026-01-01_10:30:20", "YYYY-MM-DD_HH:mm:ss"),
   });
-  const result = await run(["update"], host);
+  const result = await run(["sync"], host);
   expect(result.exitCode).toBe(0);
   expect(result.stdout).toContain("Config synced");
   expect(host.repoPulls).toBe(1);
@@ -407,7 +424,7 @@ test("dotfiles clean declined keeps the backups", async () => {
   expect(result.stdout).toContain(`${home}/.zshrc.2026-01-01_10:30:20`);
 });
 
-test("dotfiles update pulls the repo, re-Stows, and refreshes the OpenCode MCP mirror", async () => {
+test("dotfiles sync pulls the repo, re-Stows, and refreshes the OpenCode MCP mirror", async () => {
   const home = "/fake-home";
   const host = createFakeHost(["bun"], {
     homeDir: home,
@@ -419,7 +436,7 @@ test("dotfiles update pulls the repo, re-Stows, and refreshes the OpenCode MCP m
     },
     pullRepoOutput: "Fast-forward; new config.",
   });
-  const result = await run(["update"], host);
+  const result = await run(["sync"], host);
   expect(result.exitCode).toBe(0);
   expect(result.stdout).toContain("Fast-forward; new config.");
   expect(result.stdout).toContain("Config synced");
@@ -435,13 +452,47 @@ test("a failed repo pull exits non-zero and Stows nothing", async () => {
     homeTree: [".zshrc"],
     pullRepoError: "divergent branches",
   });
-  const result = await run(["update"], host);
+  const result = await run(["sync"], host);
   expect(result.exitCode).toBe(1);
   expect(result.stderr).toContain("Repo pull failed");
   expect(result.stderr).toContain("divergent branches");
   expect(result.stdout).toBe("");
   expect(host.repoPulls).toBe(1);
   expect(host.linked).toEqual([]);
+});
+
+test("dotfiles stow relinks the PATH stub even when a dest already exists", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["bun"], {
+    homeDir: home,
+    homeTree: [".zshrc", ".config/herdr/config.toml"],
+    files: [`${home}/.local/bin/dotfiles`, `${home}/.zshrc`],
+    repoLinks: [`${home}/.zshrc`],
+  });
+  const result = await run(["stow"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.dotfilesLinks).toBe(1);
+  expect(host.fileExists(`${home}/.local/bin/dotfiles`)).toBe(true);
+  expect(host.linked).toEqual([".zshrc", ".config/herdr/config.toml"]);
+  expect(host.backups).toEqual([]);
+  expect(host.repoPulls).toBe(0);
+  expect(host.upstreamInstalls).toEqual([]);
+  expect(host.packagesRequested).toEqual([]);
+});
+
+test("dotfiles stow replaces stale dest symlinks without a backup", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["bun"], {
+    homeDir: home,
+    homeTree: [".zshrc", ".config/herdr/config.toml"],
+    files: [`${home}/.zshrc`, `${home}/.config/herdr/config.toml`],
+    staleLinks: [`${home}/.zshrc`, `${home}/.config/herdr/config.toml`],
+  });
+  const result = await run(["stow"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.backups).toEqual([]);
+  expect(host.linked).toEqual([".zshrc", ".config/herdr/config.toml"]);
+  expect(host.dotfilesLinks).toBe(1);
 });
 
 test("on a Host with a known package manager, init requests zsh, git, and stow from the Package Map", async () => {
@@ -721,6 +772,20 @@ test("`~/.local/bin/dotfiles` is a symlink to the stub", async () => {
   const host = createFakeHost(["bun"], { homeDir: home, packageManager: "apt" });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
+  expect(host.fileExists(`${home}/.local/bin/dotfiles`)).toBe(true);
+  expect(host.dotfilesLinks).toBe(1);
+});
+
+test("init replaces an existing ~/.local/bin/dotfiles dest", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["bun"], {
+    homeDir: home,
+    packageManager: "apt",
+    files: [`${home}/.local/bin/dotfiles`],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.dotfilesLinks).toBe(1);
   expect(host.fileExists(`${home}/.local/bin/dotfiles`)).toBe(true);
 });
 

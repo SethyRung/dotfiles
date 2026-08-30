@@ -21,6 +21,7 @@ export type Host = {
   backup(path: string): string;
   removeFile(path: string): void;
   linksIntoRepo(path: string): boolean;
+  isSymlink(path: string): boolean;
   stow(relPaths: string[]): Promise<void>;
   installPiPackages(packages: string[]): Promise<void>;
   installSkills(specs: string[]): Promise<void>;

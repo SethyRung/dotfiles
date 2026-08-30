@@ -27,13 +27,14 @@ export async function run(args: string[], host: Host): Promise<RunResult> {
     return await doctor(host);
   }
   if (args[0] === "stow") {
+    await host.linkDotfiles();
     return await stow(host);
   }
   if (args[0] === "clean") {
     return await clean(host);
   }
-  if (args[0] === "update") {
-    return await update(host);
+  if (args[0] === "sync") {
+    return await sync(host);
   }
   return { exitCode: 0, stdout: helpText, stderr: "" };
 }
@@ -231,13 +232,9 @@ async function init(host: Host): Promise<RunResult> {
     } else {
       update(STEPS.SHELL, "skipped", "already zsh");
     }
-    if (!host.fileExists(join(home, ".local/bin/dotfiles"))) {
-      update(STEPS.CLI, "running", "~/.local/bin");
-      await host.linkDotfiles();
-      update(STEPS.CLI, "done", "~/.local/bin");
-    } else {
-      update(STEPS.CLI, "skipped", "present");
-    }
+    update(STEPS.CLI, "running", "~/.local/bin");
+    await host.linkDotfiles();
+    update(STEPS.CLI, "done", "~/.local/bin");
     if (shellChanged) {
       const message =
         "Login shell is now zsh. Run `zsh` or `reboot` to fully apply the change.\n" +
@@ -343,7 +340,7 @@ async function clean(host: Host): Promise<RunResult> {
   };
 }
 
-async function update(host: Host): Promise<RunResult> {
+async function sync(host: Host): Promise<RunResult> {
   let pull;
   try {
     pull = await host.pullRepo();
@@ -352,7 +349,7 @@ async function update(host: Host): Promise<RunResult> {
     return {
       exitCode: 1,
       stdout: "",
-      stderr: `Repo pull failed: ${message}\ndotfiles update needs a clean repo that fast-forwards from origin.\n`,
+      stderr: `Repo pull failed: ${message}\ndotfiles sync needs a clean repo that fast-forwards from origin.\n`,
     };
   }
   const stowed = await stow(host);
@@ -407,7 +404,7 @@ async function stow(host: Host, options: StowOptions = {}): Promise<RunResult> {
   }
   for (const rel of rels) {
     const dest = join(home, rel);
-    if (host.fileExists(dest) && !host.linksIntoRepo(dest)) {
+    if (host.fileExists(dest) && !host.linksIntoRepo(dest) && !host.isSymlink(dest)) {
       host.backup(dest);
     }
   }

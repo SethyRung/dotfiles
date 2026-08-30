@@ -171,9 +171,10 @@ export const unixHost: Host = {
     const destDir = join(homedir(), ".local/bin");
     mkdirSync(destDir, { recursive: true });
     const dest = join(destDir, "dotfiles");
-    if (existsSync(dest)) {
-      return;
-    }
+    try {
+      lstatSync(dest);
+      unlinkSync(dest);
+    } catch {}
     symlinkSync(join(import.meta.dir, "..", "dotfiles"), dest);
   },
   async environmentKeyNames() {
@@ -258,6 +259,13 @@ export const unixHost: Host = {
       return false;
     }
   },
+  isSymlink(path) {
+    try {
+      return lstatSync(path).isSymbolicLink();
+    } catch {
+      return false;
+    }
+  },
   async stow(relPaths) {
     const tree = join(import.meta.dir, "..", "home");
     const home = homedir();
@@ -265,10 +273,13 @@ export const unixHost: Host = {
       const dest = join(home, rel);
       mkdirSync(dirname(dest), { recursive: true });
       try {
-        lstatSync(dest);
-      } catch {
-        symlinkSync(join(tree, rel), dest);
-      }
+        const stat = lstatSync(dest);
+        if (!stat.isSymbolicLink()) {
+          continue;
+        }
+        unlinkSync(dest);
+      } catch {}
+      symlinkSync(join(tree, rel), dest);
     }
   },
   async installPiPackages(packages) {

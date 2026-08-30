@@ -69,13 +69,13 @@ Existing target files are backed up with a timestamp, then Stowed.
 
 ## Commands
 
-| Command           | What it does                                                               |
-| ----------------- | -------------------------------------------------------------------------- |
-| `dotfiles init`   | Bootstrap the Workflow, guided by the live dashboard                       |
-| `dotfiles doctor` | Report every Workflow piece present or missing                             |
-| `dotfiles stow`   | Re-link `home/` into `$HOME` (timestamped backup if a file already exists) |
-| `dotfiles clean`  | Delete the timestamped Stow backups from `$HOME` (lists them, asks first)  |
-| `dotfiles update` | Sync config: `git pull --ff-only`, re-Stow `home/`, refresh OpenCode MCP   |
+| Command           | What it does                                                              |
+| ----------------- | ------------------------------------------------------------------------- |
+| `dotfiles init`   | Bootstrap the Workflow, guided by the live dashboard                      |
+| `dotfiles doctor` | Report every Workflow piece present or missing                            |
+| `dotfiles stow`   | Re-link `home/` into `$HOME` and `~/.local/bin/dotfiles`                  |
+| `dotfiles clean`  | Delete the timestamped Stow backups from `$HOME` (lists them, asks first) |
+| `dotfiles sync`   | Sync config: `git pull --ff-only`, re-Stow `home/`, refresh OpenCode MCP  |
 
 `doctor` never prints API Key values, reports Ghostty as an optional warning, and lists broken Stow links.
 
@@ -101,14 +101,24 @@ Empty skips. Otherwise confirm, then **merge** into `/etc/environment` (sudo, wo
 The maintainer edits config in this repo (anything under `home/`, the XDG MCP file), commits, and pushes. On every Bootstrapped machine:
 
 ```bash
-dotfiles update
+dotfiles sync
 ```
 
-pulls the repo fast-forward only, re-Stows `home/` into `$HOME`, and refreshes the OpenCode MCP mirror. `update` never installs or upgrades tools (ADR 0014) — presence is `init`'s job and upgrades belong to each tool. A dirty or diverged repo fails fast before anything is Stowed.
+pulls the repo fast-forward only, re-Stows `home/` into `$HOME`, and refreshes the OpenCode MCP mirror. `sync` never installs or upgrades tools (ADR 0014, 0015) — presence is `init`'s job and upgrades belong to each tool. A dirty or diverged repo fails fast before anything is Stowed.
+
+## After moving the repo
+
+Stow dests and `~/.local/bin/dotfiles` still point at the old path. From the **new** location:
+
+```bash
+./dotfiles stow
+```
+
+That replaces the PATH symlink and re-Stows `home/`.
 
 ## Out of scope
 
-nvim, docker, macOS / Windows, `package` / `link`, tool upgrades via `update` (config sync only — ADR 0014).
+nvim, docker, macOS / Windows, `package` / `link`, tool upgrades via a CLI command (config sync is `dotfiles sync` — ADR 0014, 0015).
 
 ## Docs
 
