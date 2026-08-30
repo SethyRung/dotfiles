@@ -851,7 +851,7 @@ test("yes on a Distro with a mapping installs Ghostty and Stows its config", asy
   expect(cfg).toContain("Geist Mono");
 });
 
-test("answering yes when Ghostty is already installed does not request its package again", async () => {
+test("already-installed Ghostty is not offered again but its config is still Stowed", async () => {
   const host = createFakeHost(["bun", "ghostty"], {
     packageManager: "apt",
     homeTree: [".zshrc", ".config/ghostty/config"],
@@ -859,12 +859,45 @@ test("answering yes when Ghostty is already installed does not request its packa
   });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
+  expect(host.prompts.some((p) => p.includes("Install Ghostty?"))).toBe(false);
   expect(host.packagesRequested).toEqual(["zsh", "git", "stow"]);
   expect(host.linked).toContain(".config/ghostty/config");
   expect(finalSteps(host).get("Ghostty")).toEqual({
     label: "Ghostty",
     detail: "present",
     state: "skipped",
+  });
+});
+
+test("on a re-run, init still offers Ghostty when it is missing", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(
+    ["zsh", "git", "stow", "npm", "bun", "pi", "herdr", "opencode", "zed"],
+    {
+      homeDir: home,
+      packageManager: "apt",
+      files: [
+        `${home}/.oh-my-zsh`,
+        `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
+        `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
+        `${home}/.agents/skills`,
+        `${home}/.config/mcp/mcp.json`,
+        `${home}/.local/bin/dotfiles`,
+      ],
+      loginShell: "/bin/zsh",
+      homeTree: [".zshrc", ".config/ghostty/config"],
+      promptAnswers: ["y", "", "y"],
+    },
+  );
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.prompts.some((p) => p.includes("Install Ghostty?"))).toBe(true);
+  expect(host.packagesRequested).toEqual(["ghostty"]);
+  expect(host.linked).toContain(".config/ghostty/config");
+  expect(finalSteps(host).get("Ghostty")).toEqual({
+    label: "Ghostty",
+    detail: "installed",
+    state: "done",
   });
 });
 

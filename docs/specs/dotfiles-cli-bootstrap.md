@@ -70,6 +70,7 @@ A `dotfiles` CLI in this Dotfiles repo. `dotfiles init` runs Bootstrap, `dotfile
 56. As a developer, I want Zed extensions declared in `auto_install_extensions` in settings.json so that Zed installs them itself on first start and no extension snapshot is committed.
 57. As a developer watching init run, I want a live ASCII dashboard of each step so that I can see where Bootstrap is, what it skipped, and how long it took.
 58. As a developer, I want zsh-autosuggestions and zsh-syntax-highlighting cloned into Oh My Zsh's custom plugins when missing so that the curated zshrc loads without plugin warnings.
+59. As a developer re-running init on a machine without Ghostty, I want the Ghostty offer anyway so that I can opt in later, not never.
 
 ## Implementation Decisions
 
@@ -82,7 +83,7 @@ A `dotfiles` CLI in this Dotfiles repo. `dotfiles init` runs Bootstrap, `dotfile
 - Upstream Installs in v1: bun (`https://bun.com/install`), Oh My Zsh (official install script), zsh-autosuggestions and zsh-syntax-highlighting (git clone into `~/.oh-my-zsh/custom/plugins/` when missing), herdr (`https://herdr.dev/install.sh`), OpenCode (`https://opencode.ai/install`), zed (`https://zed.dev/install.sh`), nvm (official install.sh, then `nvm install --lts` if npm is missing), pi (bun global coding-agent, latest), Skills (skills.sh from the repo's lock/list).
 - pi packages to install: the current list (pi-subagents, pi-mcp-adapter, ask-user-question, todo, pi-retry, pi-zentui, pi-herdr, ollama web search). Restore settings without default model/provider; restore APPEND_SYSTEM and prompts. Never restore auth, sessions, caches, model stores, or auto-generated extensions.
 - Stow delivers: curated zshrc, herdr config.toml only, XDG mcp.json, OpenCode config and TUI files, Zed settings.json and keymap.json, Ghostty config only if Ghostty was requested, pi files listed above that belong in the home tree. Single `home/` tree. Conflict: timestamped backup, then Stow.
-- Init interaction: if Workflow already looks present, one continue? prompt. Destructive prompts only for `/etc/environment` writes and Stow conflicts. Ghostty: `Install Ghostty? [y/N]`. API Keys: CSV prompt; empty skips.
+- Init interaction: if Workflow already looks present, one continue? prompt. Destructive prompts only for `/etc/environment` writes and Stow conflicts. Ghostty: `Install Ghostty? [y/N]` whenever it is missing, including on re-runs; already-installed Ghostty is not offered again but its config is still Stowed. API Keys: CSV prompt; empty skips.
 - `/etc/environment` write uses sudo, merges keys, does not replace the file. Values never logged.
 - After successful init, symlink the bash stub to `~/.local/bin/dotfiles`. Curated zshrc puts `~/.local/bin` on PATH.
 - chsh to zsh as part of init (not optional). After the rest of init succeeds (only when the shell actually changed), show `Login shell is now zsh. Run `zsh`or`reboot` to fully apply the change.` then ask `Reboot to apply it? [y/N] ` (default no). Yes: reboot via sudo after all work is done. No: nothing further.

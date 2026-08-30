@@ -191,19 +191,15 @@ async function init(host: Host): Promise<RunResult> {
       update(STEPS.KEYS, "skipped", "empty");
     }
     let stderr = "";
-    const wantGhostty = !reRun && isYes(await host.prompt("Install Ghostty? [y/N] "));
+    const ghosttyMissing = !host.commandExists("ghostty");
+    const wantGhostty = ghosttyMissing && isYes(await host.prompt("Install Ghostty? [y/N] "));
     if (wantGhostty) {
       const ghostty = ghosttyPackageFor(pm);
       if (ghostty) {
         try {
-          if (!host.commandExists("ghostty")) {
-            update(STEPS.GHOSTTY, "running", "installing");
-            await host.installPackages([ghostty]);
-            update(STEPS.GHOSTTY, "done", "installed");
-          } else {
-            update(STEPS.GHOSTTY, "skipped", "present");
-          }
-          await stow(host, { onlyGhostty: true });
+          update(STEPS.GHOSTTY, "running", "installing");
+          await host.installPackages([ghostty]);
+          update(STEPS.GHOSTTY, "done", "installed");
         } catch {
           update(STEPS.GHOSTTY, "failed", "install failed");
           stderr = "Ghostty install failed.\n";
@@ -213,7 +209,10 @@ async function init(host: Host): Promise<RunResult> {
         stderr = `Ghostty is not in the Package Map for ${pm}.\n`;
       }
     } else {
-      update(STEPS.GHOSTTY, "skipped", "declined");
+      update(STEPS.GHOSTTY, "skipped", ghosttyMissing ? "declined" : "present");
+    }
+    if (host.commandExists("ghostty")) {
+      await stow(host, { onlyGhostty: true });
     }
     let shellChanged = false;
     if (!isZsh(host.loginShell())) {
