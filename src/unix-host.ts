@@ -1,12 +1,20 @@
 import Bun from "bun";
-import { existsSync, lstatSync, mkdirSync, renameSync, symlinkSync, unlinkSync } from "node:fs";
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readdirSync,
+  renameSync,
+  symlinkSync,
+  unlinkSync,
+} from "node:fs";
 import { homedir, userInfo } from "node:os";
 import { dirname, join } from "node:path";
 import { upstreamInstallFor } from "@/consts/upstream-installs.ts";
 import type { Host } from "@/types/host.ts";
 import type { ProgressFrame } from "@/types/progress.ts";
 import { renderBanner, renderPanel, spinnerFrames } from "@/utils/panel.ts";
-import { backupStamp } from "@/utils/time.ts";
+import { backupStamp, isBackupStamp } from "@/utils/time.ts";
 
 let progressStartedAt = 0;
 let progressLines = 0;
@@ -201,6 +209,26 @@ export const unixHost: Host = {
     }
     return broken;
   },
+  stowBackups() {
+    const home = homedir();
+    const found: string[] = [];
+    for (const rel of unixHost.homeTree()) {
+      const dir = join(home, dirname(rel));
+      const base = rel.split("/").at(-1) ?? rel;
+      let entries: string[];
+      try {
+        entries = readdirSync(dir);
+      } catch {
+        continue;
+      }
+      for (const entry of entries) {
+        if (entry.startsWith(`${base}.`) && isBackupStamp(entry.slice(base.length + 1))) {
+          found.push(join(dir, entry));
+        }
+      }
+    }
+    return found;
+  },
   homeTree() {
     const tree = join(import.meta.dir, "..", "home");
     if (!existsSync(tree)) {
@@ -212,6 +240,9 @@ export const unixHost: Host = {
     const dest = `${path}.${backupStamp()}`;
     renameSync(path, dest);
     return dest;
+  },
+  removeFile(path) {
+    unlinkSync(path);
   },
   async stow(relPaths) {
     const tree = join(import.meta.dir, "..", "home");

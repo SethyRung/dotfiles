@@ -23,3 +23,9 @@ export function toDayJS(iso: string, format?: string): Dayjs {
 export function backupStamp(d: Dayjs = now()): string {
   return d.format("YYYY-MM-DD_HH:mm:ss");
 }
+
+const backupStampPattern = /^\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2}$/;
+
+export function isBackupStamp(value: string): boolean {
+  return backupStampPattern.test(value);
+}

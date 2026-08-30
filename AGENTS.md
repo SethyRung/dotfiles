@@ -13,7 +13,7 @@ Lint is oxlint (`typescript`; `@typescript-eslint/no-explicit-any` is **off**). 
 
 ## Implementation traps
 
-- Inspired by dmmulroy/.dotfiles, but this is Linux: Package Map + Upstream Installs, not Homebrew. v1 commands are only `init`, `doctor`, `stow`.
+- Inspired by dmmulroy/.dotfiles, but this is Linux: Package Map + Upstream Installs, not Homebrew. v1 commands are `init`, `doctor`, `stow`, and `clean`.
 - Tests go through the `dotfiles` CLI with a fake Host. No real apt, curl, sudo, or `/etc/environment` in tests. Do not unit-test internals.
 - Never commit API Keys or `auth.json`. Merge keys into `/etc/environment`; do not replace the file; do not log values.
 - git package only — no gitconfig. Ghostty is optional (prompt default no). Do not add nvim/tmux/Android or `dotfiles update`/`package`/`link`.

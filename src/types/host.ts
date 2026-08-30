@@ -15,8 +15,10 @@ export type Host = {
   linkDotfiles(): Promise<void>;
   environmentKeyNames(): Promise<string[]>;
   brokenStowLinks(): string[];
+  stowBackups(): string[];
   homeTree(): string[];
   backup(path: string): string;
+  removeFile(path: string): void;
   stow(relPaths: string[]): Promise<void>;
   installPiPackages(packages: string[]): Promise<void>;
   installSkills(specs: string[]): Promise<void>;

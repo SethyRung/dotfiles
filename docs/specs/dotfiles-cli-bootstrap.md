@@ -8,7 +8,7 @@ After a Fresh Install of Linux, restoring the development Workflow by hand is sl
 
 ## Solution
 
-A `dotfiles` CLI in this Dotfiles repo. `dotfiles init` runs Bootstrap, `dotfiles doctor` reports missing Workflow pieces, `dotfiles stow` re-links config from `home/` into `$HOME`. Distro packages come from a Package Map; Oh My Zsh, bun, herdr, pi, OpenCode, and Zed are Upstream Installs (always latest). Config is delivered with Stow. API Keys are typed in at Bootstrap as `key=value` pairs and merged into `/etc/environment` (never committed). The repo lives at `~/Documents/projects/personal/dotfiles` and is public.
+A `dotfiles` CLI in this Dotfiles repo. `dotfiles init` runs Bootstrap, `dotfiles doctor` reports missing Workflow pieces, `dotfiles stow` re-links config from `home/` into `$HOME`, and `dotfiles clean` deletes the timestamped Stow backups left in `$HOME`. Distro packages come from a Package Map; Oh My Zsh, bun, herdr, pi, OpenCode, and Zed are Upstream Installs (always latest). Config is delivered with Stow. API Keys are typed in at Bootstrap as `key=value` pairs and merged into `/etc/environment` (never committed). The repo lives at `~/Documents/projects/personal/dotfiles` and is public.
 
 ## User Stories
 
@@ -71,11 +71,12 @@ A `dotfiles` CLI in this Dotfiles repo. `dotfiles init` runs Bootstrap, `dotfile
 57. As a developer watching init run, I want a live ASCII dashboard of each step so that I can see where Bootstrap is, what it skipped, and how long it took.
 58. As a developer, I want zsh-autosuggestions and zsh-syntax-highlighting cloned into Oh My Zsh's custom plugins when missing so that the curated zshrc loads without plugin warnings.
 59. As a developer re-running init on a machine without Ghostty, I want the Ghostty offer anyway so that I can opt in later, not never.
+60. As a developer with leftover timestamped backups from Stow conflicts, I want `dotfiles clean` to list and delete them after a confirmation prompt so that `$HOME` does not accumulate clutter.
 
 ## Implementation Decisions
 
 - Respect ADRs 0001–0013 and the glossary in `CONTEXT.md`. Command name is `dotfiles`. Distro support is any Linux via Package Map. API Keys go to `/etc/environment` with merge. CLI is TypeScript on bun with a bash stub. Repo path is `~/Documents/projects/personal/dotfiles`. Skills via skills.sh; MCP is the XDG file. pi config is snapshotted minus model and minus auto-generated extensions. Upstream Installs are latest. Node.js is nvm + latest LTS when npm is missing.
-- One user-facing module: the `dotfiles` CLI. Commands in v1: `init`, `doctor`, `stow`. No `update`, `package`, `link`, or completions.
+- One user-facing module: the `dotfiles` CLI. Commands in v1: `init`, `doctor`, `stow`, `clean`. No `update`, `package`, `link`, or completions.
 - A Host boundary sits behind the CLI: filesystem, Distro package manager, Upstream Install runner, sudo, login-shell change, reboot, progress log, PATH symlink. Production Host talks to the real machine. Tests inject a fake Host. This is the only new seam.
 - `commandExists` means installed: found on PATH or in the Workflow bin dirs (`~/.bun/bin`, `~/.local/bin`, `~/.opencode/bin`, nvm's `node/*/bin`) that the curated zshrc puts on PATH, so a bash session that has not re-sourced its rc still skips re-installs.
 - Package Map is data: tool → package name per package-manager family (apt, pacman, dnf, zypper). Detect the family from the machine. Unknown family: fail before installs.
@@ -83,6 +84,7 @@ A `dotfiles` CLI in this Dotfiles repo. `dotfiles init` runs Bootstrap, `dotfile
 - Upstream Installs in v1: bun (`https://bun.com/install`), Oh My Zsh (official install script), zsh-autosuggestions and zsh-syntax-highlighting (git clone into `~/.oh-my-zsh/custom/plugins/` when missing), herdr (`https://herdr.dev/install.sh`), OpenCode (`https://opencode.ai/install`), zed (`https://zed.dev/install.sh`), nvm (official install.sh, then `nvm install --lts` if npm is missing), pi (bun global coding-agent, latest), Skills (skills.sh from the repo's lock/list).
 - pi packages to install: the current list (pi-subagents, pi-mcp-adapter, ask-user-question, todo, pi-retry, pi-zentui, pi-herdr, ollama web search). Restore settings without default model/provider; restore APPEND_SYSTEM and prompts. Never restore auth, sessions, caches, model stores, or auto-generated extensions.
 - Stow delivers: curated zshrc, herdr config.toml only, XDG mcp.json, OpenCode config and TUI files, Zed settings.json and keymap.json, Ghostty config only if Ghostty was requested, pi files listed above that belong in the home tree. Single `home/` tree. Conflict: timestamped backup, then Stow.
+- `dotfiles clean` finds backups by scanning stowed destinations for the backup stamp suffix, asks `Delete N Stow backup file(s)? [y/N]` (default no), and removes them through the Host. No backups: no-op, exit 0.
 - Init interaction: if Workflow already looks present, one continue? prompt. Destructive prompts only for `/etc/environment` writes and Stow conflicts. Ghostty: `Install Ghostty? [y/N]` whenever it is missing, including on re-runs; already-installed Ghostty is not offered again but its config is still Stowed. API Keys: CSV prompt; empty skips.
 - `/etc/environment` write uses sudo, merges keys, does not replace the file. Values never logged.
 - After successful init, symlink the bash stub to `~/.local/bin/dotfiles`. Curated zshrc puts `~/.local/bin` on PATH.
@@ -94,7 +96,7 @@ A `dotfiles` CLI in this Dotfiles repo. `dotfiles init` runs Bootstrap, `dotfile
 ## Testing Decisions
 
 - Good tests assert external behaviour only: CLI exit code, user-visible output, and Host effects (files written, packages requested, Upstream Installs invoked, sudo used, shell changed, backups created, progress log lines recorded). No tests of private helpers, Package Map parsing in isolation, or Stow flags in isolation.
-- The only module under test is the `dotfiles` CLI, with a fake Host injected at the Host seam. Cover init (fresh, idempotent continue/decline, API Key merge, Ghostty yes/no, unknown Distro), doctor (missing vs present, no secret leakage), and stow (backup-then-link, skip junk files).
+- The only module under test is the `dotfiles` CLI, with a fake Host injected at the Host seam. Cover init (fresh, idempotent continue/decline, API Key merge, Ghostty yes/no, unknown Distro), doctor (missing vs present, no secret leakage), and stow (backup-then-link, skip junk files), and clean (no-op, confirm deletes, decline keeps files).
 - Prior art: none. Greenfield repo.
 
 ## Out of Scope

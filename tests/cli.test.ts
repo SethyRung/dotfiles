@@ -13,6 +13,7 @@ function createFakeHost(
     loginShell?: string | null;
     environmentKeys?: Record<string, string>;
     brokenStowLinks?: string[];
+    stowBackups?: string[];
     homeTree?: string[];
     treeContents?: Record<string, string>;
     fileContents?: Record<string, string>;
@@ -30,6 +31,7 @@ function createFakeHost(
   piPackagesRequested: string[];
   skillsRequested: string[];
   backups: string[];
+  removedFiles: string[];
   linked: string[];
   prompts: string[];
   reboots: number;
@@ -46,6 +48,8 @@ function createFakeHost(
   let loginShell = extras.loginShell ?? null;
   const environmentKeys = extras.environmentKeys ?? {};
   const stowLinks = extras.brokenStowLinks ?? [];
+  const stowBackupList = extras.stowBackups ?? [];
+  const removedFiles: string[] = [];
   const tree = extras.homeTree ?? [];
   const fileContents: Record<string, string> = { ...(extras.fileContents ?? {}) };
   const backups: string[] = [];
@@ -66,6 +70,7 @@ function createFakeHost(
     piPackagesRequested,
     skillsRequested,
     backups,
+    removedFiles,
     linked,
     prompts,
     get reboots() {
@@ -122,6 +127,9 @@ function createFakeHost(
     brokenStowLinks() {
       return stowLinks;
     },
+    stowBackups() {
+      return [...stowBackupList];
+    },
     homeTree() {
       return tree;
     },
@@ -130,6 +138,10 @@ function createFakeHost(
       backups.push(dest);
       files.delete(path);
       return dest;
+    },
+    removeFile(path) {
+      removedFiles.push(path);
+      files.delete(path);
     },
     async stow(relPaths) {
       for (const rel of relPaths) {
@@ -178,13 +190,14 @@ function frameStep(frame: ProgressFrame, label: string) {
   return frame.steps.find((step) => step.label === label)!;
 }
 
-test("dotfiles help lists init, doctor, and stow", async () => {
+test("dotfiles help lists init, doctor, stow, and clean", async () => {
   const host = createFakeHost(["bun"]);
   const result = await run(["--help"], host);
   expect(result.exitCode).toBe(0);
   expect(result.stdout).toContain("init");
   expect(result.stdout).toContain("doctor");
   expect(result.stdout).toContain("stow");
+  expect(result.stdout).toContain("clean");
 });
 
 test("with bun missing, the stub requests the bun Upstream Install, then the CLI runs", async () => {
@@ -300,6 +313,46 @@ test("herdr logs and sockets are not linked", async () => {
   const result = await run(["stow"], host);
   expect(result.exitCode).toBe(0);
   expect(host.linked).toEqual([".config/herdr/config.toml"]);
+});
+
+test("dotfiles clean with no Stow backups is a no-op", async () => {
+  const host = createFakeHost(["bun"]);
+  const result = await run(["clean"], host);
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("No Stow backups to clean.");
+  expect(host.prompts).toEqual([]);
+  expect(host.removedFiles).toEqual([]);
+});
+
+test("dotfiles clean lists the backups, confirms, then deletes them", async () => {
+  const home = "/fake-home";
+  const backups = [
+    `${home}/.zshrc.2026-01-01_10:30:20`,
+    `${home}/.config/ghostty/config.2026-01-01_10:30:20`,
+  ];
+  const host = createFakeHost(["bun"], {
+    stowBackups: backups,
+    promptAnswers: ["y"],
+  });
+  const result = await run(["clean"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.prompts).toEqual(["Delete 2 Stow backup file(s)? [y/N] "]);
+  expect(host.removedFiles).toEqual(backups);
+  expect(result.stdout).toContain("Deleted 2 Stow backup file(s):");
+  expect(result.stdout).toContain(`${home}/.zshrc.2026-01-01_10:30:20`);
+  expect(result.stdout).toContain(`${home}/.config/ghostty/config.2026-01-01_10:30:20`);
+});
+
+test("dotfiles clean declined keeps the backups", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["bun"], {
+    stowBackups: [`${home}/.zshrc.2026-01-01_10:30:20`],
+  });
+  const result = await run(["clean"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.removedFiles).toEqual([]);
+  expect(result.stdout).toContain("Kept 1 Stow backup file(s):");
+  expect(result.stdout).toContain(`${home}/.zshrc.2026-01-01_10:30:20`);
 });
 
 test("on a Host with a known package manager, init requests zsh, git, and stow from the Package Map", async () => {
