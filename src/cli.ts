@@ -407,7 +407,7 @@ async function stow(host: Host, options: StowOptions = {}): Promise<RunResult> {
   }
   for (const rel of rels) {
     const dest = join(home, rel);
-    if (host.fileExists(dest)) {
+    if (host.fileExists(dest) && !host.linksIntoRepo(dest)) {
       host.backup(dest);
     }
   }

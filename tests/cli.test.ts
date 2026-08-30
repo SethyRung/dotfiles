@@ -26,6 +26,7 @@ function createFakeHost(
     environmentFile?: string;
     pullRepoOutput?: string;
     pullRepoError?: string;
+    repoLinks?: string[];
   } = {},
 ): Host & {
   upstreamInstalls: string[];
@@ -68,6 +69,7 @@ function createFakeHost(
   const rebootError = extras.rebootError;
   const pullRepoOutput = extras.pullRepoOutput ?? "Already up to date.";
   const pullRepoError = extras.pullRepoError;
+  const repoLinks = new Set(extras.repoLinks ?? []);
   let repoPulls = 0;
   let reboots = 0;
   return {
@@ -158,6 +160,9 @@ function createFakeHost(
     removeFile(path) {
       removedFiles.push(path);
       files.delete(path);
+    },
+    linksIntoRepo(path) {
+      return repoLinks.has(path);
     },
     async stow(relPaths) {
       for (const rel of relPaths) {
@@ -317,6 +322,36 @@ test("when a target file already exists, a timestamped backup is created and Sto
   expect(result.exitCode).toBe(0);
   expect(host.backups).toEqual([`${home}/.zshrc.2026-01-01_10:30:20`]);
   expect(host.linked).toEqual([".zshrc"]);
+});
+
+test("re-Stowing a dest that already symlinks into the repo creates no backup", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["bun"], {
+    homeDir: home,
+    homeTree: [".zshrc", ".config/herdr/config.toml"],
+    repoLinks: [`${home}/.zshrc`, `${home}/.config/herdr/config.toml`],
+  });
+  const result = await run(["stow"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.backups).toEqual([]);
+  expect(host.linked).toEqual([".zshrc", ".config/herdr/config.toml"]);
+});
+
+test("dotfiles update backs up only dests that are not already repo links", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["bun"], {
+    homeDir: home,
+    homeTree: [".zshrc", ".config/mcp/mcp.json"],
+    repoLinks: [`${home}/.zshrc`],
+    files: [`${home}/.config/mcp/mcp.json`],
+    now: toDayJS("2026-01-01_10:30:20", "YYYY-MM-DD_HH:mm:ss"),
+  });
+  const result = await run(["update"], host);
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("Config synced");
+  expect(host.repoPulls).toBe(1);
+  expect(host.backups).toEqual([`${home}/.config/mcp/mcp.json.2026-01-01_10:30:20`]);
+  expect(host.linked).toEqual([".zshrc", ".config/mcp/mcp.json"]);
 });
 
 test("herdr logs and sockets are not linked", async () => {

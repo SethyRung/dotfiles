@@ -4,6 +4,7 @@ import {
   lstatSync,
   mkdirSync,
   readdirSync,
+  readlinkSync,
   renameSync,
   symlinkSync,
   unlinkSync,
@@ -248,6 +249,14 @@ export const unixHost: Host = {
   },
   removeFile(path) {
     unlinkSync(path);
+  },
+  linksIntoRepo(path) {
+    try {
+      const tree = join(import.meta.dir, "..", "home");
+      return readlinkSync(path).startsWith(`${tree}/`);
+    } catch {
+      return false;
+    }
   },
   async stow(relPaths) {
     const tree = join(import.meta.dir, "..", "home");
