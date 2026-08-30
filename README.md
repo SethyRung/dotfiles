@@ -31,6 +31,7 @@ A live ASCII dashboard redraws as each step runs:
   --------------------------------------------
   [ok]   Distro packages  zsh, git, stow
   [ok]   Oh My Zsh        latest
+  [ok]   OMZ plugins      autosuggestions, syntax-highlighting
   [skip] nvm + Node LTS   npm present
   [ok]   herdr            latest
   [ok]   pi + packages    8 packages
@@ -44,7 +45,7 @@ A live ASCII dashboard redraws as each step runs:
   [--]   login shell      zsh
   [--]   dotfiles CLI     ~/.local/bin
   --------------------------------------------
-  step 9/14 - 42s elapsed
+  step 9/15 - 42s elapsed
 ```
 
 Piped output falls back to plain `label: detail` lines.
@@ -73,6 +74,8 @@ Existing target files are backed up with a timestamp, then Stowed.
 | `dotfiles init`   | Bootstrap the Workflow, guided by the live dashboard                       |
 | `dotfiles doctor` | Report every Workflow piece present or missing                             |
 | `dotfiles stow`   | Re-link `home/` into `$HOME` (timestamped backup if a file already exists) |
+| `dotfiles clean`  | Delete the timestamped Stow backups from `$HOME` (lists them, asks first)  |
+| `dotfiles update` | Sync config: `git pull --ff-only`, re-Stow `home/`, refresh OpenCode MCP   |
 
 `doctor` never prints API Key values, reports Ghostty as an optional warning, and lists broken Stow links.
 
@@ -93,9 +96,19 @@ Empty skips. Otherwise confirm, then **merge** into `/etc/environment` (sudo, wo
 - Fail fast on required steps; Ghostty failure is a warning, not a crash.
 - After changing the login shell, init offers a reboot (default no) — `zsh` or log out/in also applies it.
 
+## Keeping machines in sync
+
+The maintainer edits config in this repo (anything under `home/`, the XDG MCP file), commits, and pushes. On every Bootstrapped machine:
+
+```bash
+dotfiles update
+```
+
+pulls the repo fast-forward only, re-Stows `home/` into `$HOME`, and refreshes the OpenCode MCP mirror. `update` never installs or upgrades tools (ADR 0014) — presence is `init`'s job and upgrades belong to each tool. A dirty or diverged repo fails fast before anything is Stowed.
+
 ## Out of scope
 
-nvim, docker, macOS / Windows, `dotfiles update` / `package` / `link`.
+nvim, docker, macOS / Windows, `package` / `link`, tool upgrades via `update` (config sync only — ADR 0014).
 
 ## Docs
 
