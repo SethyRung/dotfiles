@@ -41,7 +41,7 @@ The file that names Distro packages per package manager (apt, pacman, dnf, zyppe
 _Avoid_: Brewfile, bundle
 
 **Upstream Install**:
-Install from the project's own script or binary (curl, GitHub release), not the Distro. Oh My Zsh, herdr, bun, pi, OpenCode, and Zed are Upstream Installs.
+Install from the project's own script or binary (curl, GitHub release), not the Distro. Oh My Zsh, its zsh plugins, herdr, bun, pi, OpenCode, and Zed are Upstream Installs.
 _Avoid_: curl-pipe, bootstrap script (when you mean this class of install)
 
 **OpenCode**:

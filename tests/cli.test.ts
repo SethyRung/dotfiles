@@ -208,6 +208,7 @@ test("on an empty Host, doctor reports required Workflow pieces missing and exit
   for (const piece of [
     "zsh",
     "Oh My Zsh",
+    "OMZ plugins",
     "git",
     "stow",
     "npm",
@@ -232,6 +233,8 @@ test("Ghostty missing is a warning, not a required failure", async () => {
       homeDir: home,
       files: [
         `${home}/.oh-my-zsh`,
+        `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
+        `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
         `${home}/.agents/skills`,
         `${home}/.config/mcp/mcp.json`,
         `${home}/.local/bin/dotfiles`,
@@ -347,6 +350,51 @@ test("init requests the Oh My Zsh Upstream Install on the Host", async () => {
   expect(host.upstreamInstalls).toContain("oh-my-zsh");
 });
 
+test("init clones the Oh My Zsh plugins that are missing", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["bun"], {
+    homeDir: home,
+    packageManager: "apt",
+    files: [`${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.upstreamInstalls).toEqual([
+    "oh-my-zsh",
+    "zsh-syntax-highlighting",
+    "nvm",
+    "herdr",
+    "pi",
+    "opencode",
+    "zed",
+  ]);
+  expect(finalSteps(host).get("OMZ plugins")).toEqual({
+    label: "OMZ plugins",
+    detail: "2 plugins",
+    state: "done",
+  });
+});
+
+test("already-cloned Oh My Zsh plugins are not requested again", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["bun"], {
+    homeDir: home,
+    packageManager: "apt",
+    files: [
+      `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
+    ],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.upstreamInstalls).not.toContain("zsh-autosuggestions");
+  expect(host.upstreamInstalls).not.toContain("zsh-syntax-highlighting");
+  expect(finalSteps(host).get("OMZ plugins")).toMatchObject({
+    state: "skipped",
+    detail: "present",
+  });
+});
+
 test("a curated zshrc is Stowed without Android SDK paths or out-of-scope aliases", async () => {
   const host = createFakeHost(["bun"], {
     packageManager: "apt",
@@ -434,6 +482,8 @@ test("when Workflow is already present, frames say skipped with present details"
       packageManager: "apt",
       files: [
         `${home}/.oh-my-zsh`,
+        `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
+        `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
         `${home}/.agents/skills`,
         `${home}/.config/mcp/mcp.json`,
         `${home}/.local/bin/dotfiles`,
@@ -447,6 +497,7 @@ test("when Workflow is already present, frames say skipped with present details"
   const final = finalSteps(host);
   expect(final.get("Distro packages")).toMatchObject({ state: "skipped", detail: "present" });
   expect(final.get("Oh My Zsh")).toMatchObject({ state: "skipped", detail: "present" });
+  expect(final.get("OMZ plugins")).toMatchObject({ state: "skipped", detail: "present" });
   expect(final.get("nvm + Node LTS")).toMatchObject({ state: "skipped", detail: "npm present" });
   expect(final.get("herdr")).toMatchObject({ state: "skipped", detail: "present" });
   expect(final.get("pi + packages")).toMatchObject({ state: "skipped", detail: "present" });
@@ -495,6 +546,8 @@ test("no reboot question when the login shell is already zsh", async () => {
       packageManager: "apt",
       files: [
         `${home}/.oh-my-zsh`,
+        `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
+        `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
         `${home}/.agents/skills`,
         `${home}/.config/mcp/mcp.json`,
         `${home}/.local/bin/dotfiles`,
@@ -843,6 +896,8 @@ test("when Workflow already looks present, init asks continue? before doing work
       packageManager: "apt",
       files: [
         `${home}/.oh-my-zsh`,
+        `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
+        `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
         `${home}/.agents/skills`,
         `${home}/.config/mcp/mcp.json`,
         `${home}/.local/bin/dotfiles`,
@@ -867,6 +922,8 @@ test("declining continue leaves the Host unchanged", async () => {
       packageManager: "apt",
       files: [
         `${home}/.oh-my-zsh`,
+        `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
+        `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
         `${home}/.agents/skills`,
         `${home}/.config/mcp/mcp.json`,
         `${home}/.local/bin/dotfiles`,
@@ -898,6 +955,8 @@ test("continue does not re-request tools the Host already has", async () => {
       packageManager: "apt",
       files: [
         `${home}/.oh-my-zsh`,
+        `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
+        `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
         `${home}/.agents/skills`,
         `${home}/.config/mcp/mcp.json`,
         `${home}/.local/bin/dotfiles`,
@@ -924,6 +983,8 @@ test("continue still confirms before /etc/environment writes", async () => {
       packageManager: "apt",
       files: [
         `${home}/.oh-my-zsh`,
+        `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
+        `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
         `${home}/.agents/skills`,
         `${home}/.config/mcp/mcp.json`,
         `${home}/.local/bin/dotfiles`,
@@ -948,6 +1009,8 @@ test("continue still confirms before Stow conflicts", async () => {
       packageManager: "apt",
       files: [
         `${home}/.oh-my-zsh`,
+        `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
+        `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
         `${home}/.agents/skills`,
         `${home}/.config/mcp/mcp.json`,
         `${home}/.local/bin/dotfiles`,
@@ -1051,6 +1114,8 @@ test("doctor reports OpenCode and Zed present without treating them as optional"
       homeDir: home,
       files: [
         `${home}/.oh-my-zsh`,
+        `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
+        `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
         `${home}/.agents/skills`,
         `${home}/.config/mcp/mcp.json`,
         `${home}/.local/bin/dotfiles`,
@@ -1232,6 +1297,8 @@ test("a Host missing OpenCode is not treated as Workflow already present", async
     packageManager: "apt",
     files: [
       `${home}/.oh-my-zsh`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
       `${home}/.agents/skills`,
       `${home}/.config/mcp/mcp.json`,
       `${home}/.local/bin/dotfiles`,
@@ -1253,6 +1320,8 @@ test("continue does not re-request OpenCode if it is already installed", async (
       packageManager: "apt",
       files: [
         `${home}/.oh-my-zsh`,
+        `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
+        `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
         `${home}/.agents/skills`,
         `${home}/.config/mcp/mcp.json`,
         `${home}/.local/bin/dotfiles`,
@@ -1275,6 +1344,8 @@ test("continue still confirms before Stow conflicts for OpenCode config", async 
       packageManager: "apt",
       files: [
         `${home}/.oh-my-zsh`,
+        `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
+        `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
         `${home}/.agents/skills`,
         `${home}/.config/mcp/mcp.json`,
         `${home}/.local/bin/dotfiles`,

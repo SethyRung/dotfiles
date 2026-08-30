@@ -7,6 +7,8 @@
 **Status:** done
 
 - [x] Init requests the Oh My Zsh Upstream Install on the Host
+- [x] zsh-autosuggestions and zsh-syntax-highlighting are cloned into `~/.oh-my-zsh/custom/plugins/` when missing
+- [x] doctor reports OMZ plugins as a required Workflow piece
 - [x] A curated zshrc is Stowed without Android SDK paths or out-of-scope aliases
 - [x] Login shell is changed to zsh
 - [x] Reboot offer after the login-shell change: hint line (`zsh` or `reboot`) then `Reboot to apply it? [y/N]`, default no

@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { helpText } from "@/consts/help.ts";
+import { omzPlugins } from "@/consts/omz-plugins.ts";
 import { ghosttyPackageFor, packagesFor } from "@/consts/package-map.ts";
 import { piPackages } from "@/consts/pi-packages.ts";
 import { skillsList } from "@/consts/skills-list.ts";
@@ -32,18 +33,19 @@ export async function run(args: string[], host: Host): Promise<RunResult> {
 const STEPS = {
   DISTRO: 0,
   OMZ: 1,
-  NVM: 2,
-  HERDR: 3,
-  PI: 4,
-  OPENCODE: 5,
-  ZED: 6,
-  SKILLS: 7,
-  STOW: 8,
-  MCP: 9,
-  KEYS: 10,
-  GHOSTTY: 11,
-  SHELL: 12,
-  CLI: 13,
+  OMZ_PLUGINS: 2,
+  NVM: 3,
+  HERDR: 4,
+  PI: 5,
+  OPENCODE: 6,
+  ZED: 7,
+  SKILLS: 8,
+  STOW: 9,
+  MCP: 10,
+  KEYS: 11,
+  GHOSTTY: 12,
+  SHELL: 13,
+  CLI: 14,
 } as const;
 
 function initialSteps(): ProgressStep[] {
@@ -55,6 +57,7 @@ function initialSteps(): ProgressStep[] {
   return [
     pending("Distro packages", "zsh, git, stow"),
     pending("Oh My Zsh", "latest"),
+    pending("OMZ plugins", "autosuggestions, syntax-highlighting"),
     pending("nvm + Node LTS", "node LTS"),
     pending("herdr", "latest"),
     pending("pi + packages", "latest"),
@@ -108,6 +111,18 @@ async function init(host: Host): Promise<RunResult> {
       update(STEPS.OMZ, "done", "latest");
     } else {
       update(STEPS.OMZ, "skipped", "present");
+    }
+    const missingPlugins = omzPlugins.filter(
+      (plugin) => !host.fileExists(join(home, `.oh-my-zsh/custom/plugins/${plugin}`)),
+    );
+    if (missingPlugins.length > 0) {
+      update(STEPS.OMZ_PLUGINS, "running", missingPlugins.join(", "));
+      for (const plugin of missingPlugins) {
+        await host.runUpstreamInstall(plugin);
+      }
+      update(STEPS.OMZ_PLUGINS, "done", `${omzPlugins.length} plugins`);
+    } else {
+      update(STEPS.OMZ_PLUGINS, "skipped", "present");
     }
     if (!host.commandExists("npm")) {
       update(STEPS.NVM, "running", "node LTS");
@@ -257,6 +272,12 @@ async function doctor(host: Host): Promise<RunResult> {
 
   check("zsh", host.commandExists("zsh"));
   check("Oh My Zsh", host.fileExists(join(home, ".oh-my-zsh")));
+  check(
+    "OMZ plugins",
+    omzPlugins.every((plugin) =>
+      host.fileExists(join(home, `.oh-my-zsh/custom/plugins/${plugin}`)),
+    ),
+  );
   check("git", host.commandExists("git"));
   check("stow", host.commandExists("stow"));
   check("npm", host.commandExists("npm"));
@@ -292,6 +313,9 @@ function workflowLooksPresent(host: Host): boolean {
   return (
     host.commandExists("zsh") &&
     host.fileExists(join(home, ".oh-my-zsh")) &&
+    omzPlugins.every((plugin) =>
+      host.fileExists(join(home, `.oh-my-zsh/custom/plugins/${plugin}`)),
+    ) &&
     host.commandExists("git") &&
     host.commandExists("stow") &&
     host.commandExists("npm") &&

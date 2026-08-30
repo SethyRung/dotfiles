@@ -53,7 +53,7 @@ A `dotfiles` CLI in this Dotfiles repo. `dotfiles init` runs Bootstrap, `dotfile
 39. As a developer, I want existing target files backed up with a timestamp and then Stowed so that I can recover from Stow.
 40. As a developer, I want `dotfiles stow` to apply the same backup-then-Stow rule so that I can re-link configs without running full init.
 41. As a developer, I want Upstream Installs to always take latest so that v1 does not maintain version pins.
-42. As a developer, I want `dotfiles doctor` to report whether zsh, Oh My Zsh, git, stow, npm, bun, pi, herdr, OpenCode, Zed, Skills, XDG MCP, login shell, and the `dotfiles` PATH symlink are present so that I can see what Bootstrap missed.
+42. As a developer, I want `dotfiles doctor` to report whether zsh, Oh My Zsh, OMZ plugins, git, stow, npm, bun, pi, herdr, OpenCode, Zed, Skills, XDG MCP, login shell, and the `dotfiles` PATH symlink are present so that I can see what Bootstrap missed.
 43. As a developer, I want doctor to treat Ghostty as a warning when missing unless I opted in, so that optional software is not a hard failure.
 44. As a developer, I want doctor to report broken Stow links so that a half-linked `home/` is visible.
 45. As a developer, I want doctor to report whether expected API Key names exist in `/etc/environment` without printing values so that I can check secrets without leaking them.
@@ -69,6 +69,7 @@ A `dotfiles` CLI in this Dotfiles repo. `dotfiles init` runs Bootstrap, `dotfile
 55. As a developer, I want Zed `settings.json` and `keymap.json` Stowed so that the IDE matches this machine on a Fresh Install.
 56. As a developer, I want Zed extensions declared in `auto_install_extensions` in settings.json so that Zed installs them itself on first start and no extension snapshot is committed.
 57. As a developer watching init run, I want a live ASCII dashboard of each step so that I can see where Bootstrap is, what it skipped, and how long it took.
+58. As a developer, I want zsh-autosuggestions and zsh-syntax-highlighting cloned into Oh My Zsh's custom plugins when missing so that the curated zshrc loads without plugin warnings.
 
 ## Implementation Decisions
 
@@ -78,7 +79,7 @@ A `dotfiles` CLI in this Dotfiles repo. `dotfiles init` runs Bootstrap, `dotfile
 - `commandExists` means installed: found on PATH or in the Workflow bin dirs (`~/.bun/bin`, `~/.local/bin`, `~/.opencode/bin`, nvm's `node/*/bin`) that the curated zshrc puts on PATH, so a bash session that has not re-sourced its rc still skips re-installs.
 - Package Map is data: tool → package name per package-manager family (apt, pacman, dnf, zypper). Detect the family from the machine. Unknown family: fail before installs.
 - Distro packages in v1: zsh, git, stow. Ghostty is optional and Package Map-backed. Missing Ghostty mapping: warn, do not abort the rest of init. Nothing installed is requested again when it already exists; Ghostty's config is still Stowed.
-- Upstream Installs in v1: bun (`https://bun.com/install`), Oh My Zsh (official install script), herdr (`https://herdr.dev/install.sh`), OpenCode (`https://opencode.ai/install`), zed (`https://zed.dev/install.sh`), nvm (official install.sh, then `nvm install --lts` if npm is missing), pi (bun global coding-agent, latest), Skills (skills.sh from the repo's lock/list).
+- Upstream Installs in v1: bun (`https://bun.com/install`), Oh My Zsh (official install script), zsh-autosuggestions and zsh-syntax-highlighting (git clone into `~/.oh-my-zsh/custom/plugins/` when missing), herdr (`https://herdr.dev/install.sh`), OpenCode (`https://opencode.ai/install`), zed (`https://zed.dev/install.sh`), nvm (official install.sh, then `nvm install --lts` if npm is missing), pi (bun global coding-agent, latest), Skills (skills.sh from the repo's lock/list).
 - pi packages to install: the current list (pi-subagents, pi-mcp-adapter, ask-user-question, todo, pi-retry, pi-zentui, pi-herdr, ollama web search). Restore settings without default model/provider; restore APPEND_SYSTEM and prompts. Never restore auth, sessions, caches, model stores, or auto-generated extensions.
 - Stow delivers: curated zshrc, herdr config.toml only, XDG mcp.json, OpenCode config and TUI files, Zed settings.json and keymap.json, Ghostty config only if Ghostty was requested, pi files listed above that belong in the home tree. Single `home/` tree. Conflict: timestamped backup, then Stow.
 - Init interaction: if Workflow already looks present, one continue? prompt. Destructive prompts only for `/etc/environment` writes and Stow conflicts. Ghostty: `Install Ghostty? [y/N]`. API Keys: CSV prompt; empty skips.
@@ -86,7 +87,7 @@ A `dotfiles` CLI in this Dotfiles repo. `dotfiles init` runs Bootstrap, `dotfile
 - After successful init, symlink the bash stub to `~/.local/bin/dotfiles`. Curated zshrc puts `~/.local/bin` on PATH.
 - chsh to zsh as part of init (not optional). After the rest of init succeeds (only when the shell actually changed), show `Login shell is now zsh. Run `zsh`or`reboot` to fully apply the change.` then ask `Reboot to apply it? [y/N] ` (default no). Yes: reboot via sudo after all work is done. No: nothing further.
 - Fail fast on required step failure. Optional Ghostty failure is a warning.
-- Init reports progress through the Host as an ASCII dashboard: ANSI Shadow block banner and `Distro: <pm>` title once, one row per step with `[ok] [skip] [!!] [--]` cells and a spinning cell for the running step, `step n/14 - Ns elapsed` footer, `Bootstrap complete.` when done. Redrawn in place on a TTY; plain `label: detail` lines when piped; prompts and noisy commands (apt, sudo, chsh) print below the panel, which then reprints fresh. API Key values never appear.
+- Init reports progress through the Host as an ASCII dashboard: ANSI Shadow block banner and `Distro: <pm>` title once, one row per step with `[ok] [skip] [!!] [--]` cells and a spinning cell for the running step, `step n/15 - Ns elapsed` footer, `Bootstrap complete.` when done. Redrawn in place on a TTY; plain `label: detail` lines when piped; prompts and noisy commands (apt, sudo, chsh) print below the panel, which then reprints fresh. API Key values never appear.
 - Tests never hit real package managers, real network, or real `/etc/environment`.
 
 ## Testing Decisions

@@ -63,6 +63,13 @@ export const unixHost: Host = {
     if (!install) {
       throw new Error(`unknown Upstream Install: ${tool}`);
     }
+    if (install.via === "git-clone") {
+      if (!install.dest) {
+        throw new Error(`git-clone Upstream Install needs a dest: ${tool}`);
+      }
+      await Bun.$`git clone ${install.url} ${join(homedir(), install.dest)}`;
+      return;
+    }
     const env = { ...process.env, ...install.env };
     if (install.via === "sh-c") {
       const script = await Bun.$`curl -fsSL ${install.url}`.text();

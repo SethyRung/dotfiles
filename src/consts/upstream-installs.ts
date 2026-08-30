@@ -12,6 +12,16 @@ export const upstreamInstalls = {
     via: "sh-c",
     env: { CHSH: "no", RUNZSH: "no" },
   },
+  "zsh-autosuggestions": {
+    url: "https://github.com/zsh-users/zsh-autosuggestions",
+    via: "git-clone",
+    dest: ".oh-my-zsh/custom/plugins/zsh-autosuggestions",
+  },
+  "zsh-syntax-highlighting": {
+    url: "https://github.com/zsh-users/zsh-syntax-highlighting",
+    via: "git-clone",
+    dest: ".oh-my-zsh/custom/plugins/zsh-syntax-highlighting",
+  },
   herdr: {
     url: "https://herdr.dev/install.sh",
     shell: "sh",
