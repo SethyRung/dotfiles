@@ -161,6 +161,11 @@ export const unixHost: Host = {
       throw new Error("reboot failed");
     }
   },
+  async pullRepo() {
+    const root = join(import.meta.dir, "..");
+    const output = await Bun.$`git -C ${root} pull --ff-only`.text();
+    return output.trim();
+  },
   async linkDotfiles() {
     const destDir = join(homedir(), ".local/bin");
     mkdirSync(destDir, { recursive: true });

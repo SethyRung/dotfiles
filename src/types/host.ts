@@ -12,6 +12,7 @@ export type Host = {
   loginShell(): string | null;
   changeLoginShell(shell: string): Promise<void>;
   reboot(): Promise<void>;
+  pullRepo(): Promise<string>;
   linkDotfiles(): Promise<void>;
   environmentKeyNames(): Promise<string[]>;
   brokenStowLinks(): string[];

@@ -36,6 +36,10 @@ _Avoid_: verbose flag, debug logging, static log lines (when you mean the dashbo
 GNU Stow; how `dotfiles` delivers config files from `home/` into `$HOME`.
 _Avoid_: copy, symlink (when you mean this delivery)
 
+**Update**:
+Syncing config from this repo to an already-Bootstrapped machine: `git pull --ff-only`, then Stow, then the OpenCode MCP mirror refresh. Never installs or upgrades Workflow tools.
+_Avoid_: upgrade, refresh (when you mean this sync), tool update
+
 **Package Map**:
 The file that names Distro packages per package manager (apt, pacman, dnf, zypper).
 _Avoid_: Brewfile, bundle

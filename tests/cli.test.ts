@@ -24,6 +24,8 @@ function createFakeHost(
     rebootError?: boolean;
     promptAnswers?: string[];
     environmentFile?: string;
+    pullRepoOutput?: string;
+    pullRepoError?: string;
   } = {},
 ): Host & {
   upstreamInstalls: string[];
@@ -35,6 +37,7 @@ function createFakeHost(
   linked: string[];
   prompts: string[];
   reboots: number;
+  repoPulls: number;
   progressFrames: ProgressFrame[];
   fileContents: Record<string, string>;
 } {
@@ -63,6 +66,9 @@ function createFakeHost(
   const installError = extras.installError;
   const upstreamInstallError = extras.upstreamInstallError;
   const rebootError = extras.rebootError;
+  const pullRepoOutput = extras.pullRepoOutput ?? "Already up to date.";
+  const pullRepoError = extras.pullRepoError;
+  let repoPulls = 0;
   let reboots = 0;
   return {
     upstreamInstalls,
@@ -75,6 +81,9 @@ function createFakeHost(
     prompts,
     get reboots() {
       return reboots;
+    },
+    get repoPulls() {
+      return repoPulls;
     },
     progressFrames,
     fileContents,
@@ -117,6 +126,13 @@ function createFakeHost(
       if (rebootError) {
         throw new Error("reboot failed");
       }
+    },
+    async pullRepo() {
+      repoPulls += 1;
+      if (pullRepoError) {
+        throw new Error(pullRepoError);
+      }
+      return pullRepoOutput;
     },
     async linkDotfiles() {
       files.add(`${homeDir}/.local/bin/dotfiles`);
@@ -190,7 +206,7 @@ function frameStep(frame: ProgressFrame, label: string) {
   return frame.steps.find((step) => step.label === label)!;
 }
 
-test("dotfiles help lists init, doctor, stow, and clean", async () => {
+test("dotfiles help lists init, doctor, stow, clean, and update", async () => {
   const host = createFakeHost(["bun"]);
   const result = await run(["--help"], host);
   expect(result.exitCode).toBe(0);
@@ -198,6 +214,7 @@ test("dotfiles help lists init, doctor, stow, and clean", async () => {
   expect(result.stdout).toContain("doctor");
   expect(result.stdout).toContain("stow");
   expect(result.stdout).toContain("clean");
+  expect(result.stdout).toContain("update");
 });
 
 test("with bun missing, the stub requests the bun Upstream Install, then the CLI runs", async () => {
@@ -353,6 +370,43 @@ test("dotfiles clean declined keeps the backups", async () => {
   expect(host.removedFiles).toEqual([]);
   expect(result.stdout).toContain("Kept 1 Stow backup file(s):");
   expect(result.stdout).toContain(`${home}/.zshrc.2026-01-01_10:30:20`);
+});
+
+test("dotfiles update pulls the repo, re-Stows, and refreshes the OpenCode MCP mirror", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["bun"], {
+    homeDir: home,
+    homeTree: [".zshrc", ".config/mcp/mcp.json"],
+    fileContents: {
+      [`${home}/.config/mcp/mcp.json`]: JSON.stringify({
+        mcpServers: { bun: { command: "bunx", args: ["https://bun.com/mcp"] } },
+      }),
+    },
+    pullRepoOutput: "Fast-forward; new config.",
+  });
+  const result = await run(["update"], host);
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("Fast-forward; new config.");
+  expect(result.stdout).toContain("Config synced");
+  expect(host.repoPulls).toBe(1);
+  expect(host.linked).toEqual([".zshrc", ".config/mcp/mcp.json"]);
+  expect(host.fileContents[`${home}/.config/opencode/opencode.json`]).toContain('"remote"');
+  expect(host.upstreamInstalls).toEqual([]);
+  expect(host.packagesRequested).toEqual([]);
+});
+
+test("a failed repo pull exits non-zero and Stows nothing", async () => {
+  const host = createFakeHost(["bun"], {
+    homeTree: [".zshrc"],
+    pullRepoError: "divergent branches",
+  });
+  const result = await run(["update"], host);
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr).toContain("Repo pull failed");
+  expect(result.stderr).toContain("divergent branches");
+  expect(result.stdout).toBe("");
+  expect(host.repoPulls).toBe(1);
+  expect(host.linked).toEqual([]);
 });
 
 test("on a Host with a known package manager, init requests zsh, git, and stow from the Package Map", async () => {

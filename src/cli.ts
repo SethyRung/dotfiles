@@ -32,6 +32,9 @@ export async function run(args: string[], host: Host): Promise<RunResult> {
   if (args[0] === "clean") {
     return await clean(host);
   }
+  if (args[0] === "update") {
+    return await update(host);
+  }
   return { exitCode: 0, stdout: helpText, stderr: "" };
 }
 
@@ -336,6 +339,30 @@ async function clean(host: Host): Promise<RunResult> {
   return {
     exitCode: 0,
     stdout: `Deleted ${backups.length} Stow backup file(s):\n${backups.join("\n")}\n`,
+    stderr: "",
+  };
+}
+
+async function update(host: Host): Promise<RunResult> {
+  let pull;
+  try {
+    pull = await host.pullRepo();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "git pull --ff-only failed";
+    return {
+      exitCode: 1,
+      stdout: "",
+      stderr: `Repo pull failed: ${message}\ndotfiles update needs a clean repo that fast-forwards from origin.\n`,
+    };
+  }
+  const stowed = await stow(host);
+  if (stowed.exitCode !== 0) {
+    return stowed;
+  }
+  await mirrorOpenCodeMcp(host);
+  return {
+    exitCode: 0,
+    stdout: `${pull}\nConfig synced: home/ re-Stowed into $HOME and OpenCode MCP refreshed.\n`,
     stderr: "",
   };
 }
