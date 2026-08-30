@@ -4,6 +4,8 @@ import { omzPlugins } from "@/consts/omz-plugins.ts";
 import { ghosttyPackageFor, packagesFor } from "@/consts/package-map.ts";
 import { piPackages } from "@/consts/pi-packages.ts";
 import { skillsList } from "@/consts/skills-list.ts";
+import { requiredWorkflowTools, workflowTools } from "@/consts/workflow-tools.ts";
+import type { WorkflowTool } from "@/consts/workflow-tools.ts";
 import type { Host } from "@/types/host.ts";
 import type { ProgressState, ProgressStep } from "@/types/progress.ts";
 import type { RunResult, StowOptions } from "@/types/result.ts";
@@ -15,8 +17,8 @@ import { isGhosttyConfig, isStowJunk } from "@/utils/stow.ts";
 export type { RunResult };
 
 export async function run(args: string[], host: Host): Promise<RunResult> {
-  if (!host.commandExists("bun")) {
-    await host.runUpstreamInstall("bun");
+  if (!host.commandExists(workflowTools.bun.command)) {
+    await host.runUpstreamInstall(workflowTools.bun.upstream);
   }
   if (args[0] === "init") {
     return await init(host);
@@ -59,15 +61,15 @@ function initialSteps(): ProgressStep[] {
     pending("Oh My Zsh", "latest"),
     pending("OMZ plugins", "autosuggestions, syntax-highlighting"),
     pending("nvm + Node LTS", "node LTS"),
-    pending("herdr", "latest"),
+    pending(workflowTools.herdr.label, "latest"),
     pending("pi + packages", "latest"),
-    pending("OpenCode", "latest"),
-    pending("Zed", "latest"),
+    pending(workflowTools.opencode.label, "latest"),
+    pending(workflowTools.zed.label, "latest"),
     pending("Skills", `${skillsList.length} skills`),
     pending("Stow", "home/ tree"),
     pending("OpenCode MCP", "mcp key"),
     pending("API Keys", "will prompt"),
-    pending("Ghostty", "will prompt"),
+    pending(workflowTools.ghostty.label, "will prompt"),
     pending("login shell", "zsh"),
     pending("dotfiles CLI", "~/.local/bin"),
   ];
@@ -124,38 +126,38 @@ async function init(host: Host): Promise<RunResult> {
     } else {
       update(STEPS.OMZ_PLUGINS, "skipped", "present");
     }
-    if (!host.commandExists("npm")) {
+    if (!host.commandExists(workflowTools.npm.command)) {
       update(STEPS.NVM, "running", "node LTS");
-      await host.runUpstreamInstall("nvm");
+      await host.runUpstreamInstall(workflowTools.npm.upstream);
       update(STEPS.NVM, "done", "node LTS");
     } else {
       update(STEPS.NVM, "skipped", "npm present");
     }
-    if (!host.commandExists("herdr")) {
+    if (!host.commandExists(workflowTools.herdr.command)) {
       update(STEPS.HERDR, "running", "latest");
-      await host.runUpstreamInstall("herdr");
+      await host.runUpstreamInstall(workflowTools.herdr.upstream);
       update(STEPS.HERDR, "done", "latest");
     } else {
       update(STEPS.HERDR, "skipped", "present");
     }
-    if (!host.commandExists("pi")) {
+    if (!host.commandExists(workflowTools.pi.command)) {
       update(STEPS.PI, "running", `latest + ${piPackages.length} packages`);
-      await host.runUpstreamInstall("pi");
+      await host.runUpstreamInstall(workflowTools.pi.upstream);
       await host.installPiPackages(piPackages);
       update(STEPS.PI, "done", `${piPackages.length} packages`);
     } else {
       update(STEPS.PI, "skipped", "present");
     }
-    if (!host.commandExists("opencode")) {
+    if (!host.commandExists(workflowTools.opencode.command)) {
       update(STEPS.OPENCODE, "running", "latest");
-      await host.runUpstreamInstall("opencode");
+      await host.runUpstreamInstall(workflowTools.opencode.upstream);
       update(STEPS.OPENCODE, "done", "latest");
     } else {
       update(STEPS.OPENCODE, "skipped", "present");
     }
-    if (!host.commandExists("zed")) {
+    if (!host.commandExists(workflowTools.zed.command)) {
       update(STEPS.ZED, "running", "latest");
-      await host.runUpstreamInstall("zed");
+      await host.runUpstreamInstall(workflowTools.zed.upstream);
       update(STEPS.ZED, "done", "latest");
     } else {
       update(STEPS.ZED, "skipped", "present");
@@ -191,7 +193,7 @@ async function init(host: Host): Promise<RunResult> {
       update(STEPS.KEYS, "skipped", "empty");
     }
     let stderr = "";
-    const ghosttyMissing = !host.commandExists("ghostty");
+    const ghosttyMissing = !host.commandExists(workflowTools.ghostty.command);
     const wantGhostty = ghosttyMissing && isYes(await host.prompt("Install Ghostty? [y/N] "));
     if (wantGhostty) {
       const ghostty = ghosttyPackageFor(pm);
@@ -211,13 +213,13 @@ async function init(host: Host): Promise<RunResult> {
     } else {
       update(STEPS.GHOSTTY, "skipped", ghosttyMissing ? "declined" : "present");
     }
-    if (host.commandExists("ghostty")) {
+    if (host.commandExists(workflowTools.ghostty.command)) {
       await stow(host, { onlyGhostty: true });
     }
     let shellChanged = false;
     if (!isZsh(host.loginShell())) {
       update(STEPS.SHELL, "running", "zsh");
-      await host.changeLoginShell("zsh");
+      await host.changeLoginShell(workflowTools.zsh.command);
       shellChanged = true;
       update(STEPS.SHELL, "done", "zsh");
     } else {
@@ -268,8 +270,11 @@ async function doctor(host: Host): Promise<RunResult> {
       failed = true;
     }
   };
+  const checkTool = (tool: WorkflowTool) => {
+    check(tool.label, host.commandExists(tool.command));
+  };
 
-  check("zsh", host.commandExists("zsh"));
+  checkTool(workflowTools.zsh);
   check("Oh My Zsh", host.fileExists(join(home, ".oh-my-zsh")));
   check(
     "OMZ plugins",
@@ -277,20 +282,20 @@ async function doctor(host: Host): Promise<RunResult> {
       host.fileExists(join(home, `.oh-my-zsh/custom/plugins/${plugin}`)),
     ),
   );
-  check("git", host.commandExists("git"));
-  check("stow", host.commandExists("stow"));
-  check("npm", host.commandExists("npm"));
-  check("bun", host.commandExists("bun"));
-  check("pi", host.commandExists("pi"));
-  check("herdr", host.commandExists("herdr"));
-  check("OpenCode", host.commandExists("opencode"));
-  check("Zed", host.commandExists("zed"));
+  checkTool(workflowTools.git);
+  checkTool(workflowTools.stow);
+  checkTool(workflowTools.npm);
+  checkTool(workflowTools.bun);
+  checkTool(workflowTools.pi);
+  checkTool(workflowTools.herdr);
+  checkTool(workflowTools.opencode);
+  checkTool(workflowTools.zed);
   check("Skills", host.fileExists(join(home, ".agents/skills")));
   check("XDG MCP", host.fileExists(join(home, ".config/mcp/mcp.json")));
   check("login shell", isZsh(host.loginShell()));
   check("dotfiles PATH symlink", host.fileExists(join(home, ".local/bin/dotfiles")));
-  if (!host.commandExists("ghostty")) {
-    lines.push("Ghostty: missing (optional)");
+  if (!host.commandExists(workflowTools.ghostty.command)) {
+    lines.push(`${workflowTools.ghostty.label}: missing (optional)`);
   }
   for (const name of await host.environmentKeyNames()) {
     lines.push(`${name}: present`);
@@ -310,19 +315,11 @@ async function doctor(host: Host): Promise<RunResult> {
 function workflowLooksPresent(host: Host): boolean {
   const home = host.homeDir();
   return (
-    host.commandExists("zsh") &&
+    requiredWorkflowTools.every((tool) => host.commandExists(tool.command)) &&
     host.fileExists(join(home, ".oh-my-zsh")) &&
     omzPlugins.every((plugin) =>
       host.fileExists(join(home, `.oh-my-zsh/custom/plugins/${plugin}`)),
     ) &&
-    host.commandExists("git") &&
-    host.commandExists("stow") &&
-    host.commandExists("npm") &&
-    host.commandExists("bun") &&
-    host.commandExists("pi") &&
-    host.commandExists("herdr") &&
-    host.commandExists("opencode") &&
-    host.commandExists("zed") &&
     host.fileExists(join(home, ".agents/skills")) &&
     host.fileExists(join(home, ".config/mcp/mcp.json")) &&
     isZsh(host.loginShell()) &&
