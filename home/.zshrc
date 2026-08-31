@@ -24,3 +24,6 @@ export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 export PATH="${HERDR_INSTALL_DIR:-$HOME/.local/bin}:$PATH"
 export PATH="$HOME/.opencode/bin:$PATH"
+
+# Cache SSH key passphrases in systemd's ssh-agent for the whole login.
+export SSH_AUTH_SOCK="${XDG_RUNTIME_DIR}/ssh-agent.socket"
