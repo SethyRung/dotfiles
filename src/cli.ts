@@ -36,7 +36,11 @@ export async function run(args: string[], host: Host): Promise<RunResult> {
   if (args[0] === "sync") {
     return await sync(host);
   }
-  return { exitCode: 0, stdout: helpText, stderr: "" };
+  const command = args[0];
+  if (command === undefined || command === "-h" || command === "--help") {
+    return { exitCode: 0, stdout: helpText, stderr: "" };
+  }
+  return { exitCode: 1, stdout: "", stderr: `unknown command: ${command}\n\n${helpText}` };
 }
 
 const STEPS = {

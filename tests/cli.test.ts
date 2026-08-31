@@ -244,6 +244,25 @@ test("dotfiles help lists init, doctor, stow, clean, and sync", async () => {
   expect(result.stdout).not.toContain("repair");
 });
 
+test("no arguments and --help print help and exit zero", async () => {
+  const host = createFakeHost(["bun"]);
+  const noArgs = await run([], host);
+  expect(noArgs.exitCode).toBe(0);
+  expect(noArgs.stdout).toContain("init");
+  const helpFlag = await run(["-h"], host);
+  expect(helpFlag.exitCode).toBe(0);
+  expect(helpFlag.stdout).toContain("init");
+});
+
+test("unknown command exits non-zero with the error and help on stderr", async () => {
+  const host = createFakeHost(["bun"]);
+  const result = await run(["bogus"], host);
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr).toContain("unknown command: bogus");
+  expect(result.stderr).toContain("init");
+  expect(result.stdout).toBe("");
+});
+
 test("with bun missing, the stub requests the bun Upstream Install, then the CLI runs", async () => {
   const host = createFakeHost();
   const result = await run(["--help"], host);
