@@ -20,23 +20,23 @@ export async function run(args: string[], host: Host): Promise<RunResult> {
   if (!host.commandExists(workflowTools.bun.command)) {
     await host.runUpstreamInstall(workflowTools.bun.upstream);
   }
-  if (args[0] === "init") {
+  const command = args[0];
+  if (command === "init") {
     return await init(host);
   }
-  if (args[0] === "doctor") {
+  if (command === "doctor") {
     return await doctor(host);
   }
-  if (args[0] === "stow") {
+  if (command === "stow") {
     await host.linkDotfiles();
     return await stow(host);
   }
-  if (args[0] === "clean") {
+  if (command === "clean") {
     return await clean(host);
   }
-  if (args[0] === "sync") {
+  if (command === "sync") {
     return await sync(host);
   }
-  const command = args[0];
   if (command === undefined || command === "-h" || command === "--help") {
     return { exitCode: 0, stdout: helpText, stderr: "" };
   }

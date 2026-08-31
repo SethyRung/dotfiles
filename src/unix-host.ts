@@ -31,12 +31,18 @@ function drawProgress(frame: ProgressFrame) {
     spinnerPhase,
     Math.floor((Date.now() - progressStartedAt) / 1000),
   );
-  if (progressLines > 0 && !progressFresh) {
-    process.stdout.write(`\x1b[${progressLines}A\r`);
+  const body = `${lines.map((line) => `${line}\x1b[K`).join("\n")}\n`;
+  if (progressLines === 0 || progressFresh) {
+    process.stdout.write("\x1b[2J\x1b[H");
+    process.stdout.write(renderBanner(frame.title));
+    process.stdout.write(body);
+    progressLines = lines.length;
+    progressFresh = false;
+    return;
   }
-  process.stdout.write(`${lines.map((line) => `${line}\x1b[K`).join("\n")}\n`);
+  process.stdout.write(`\x1b[${progressLines}A\r`);
+  process.stdout.write(body);
   progressLines = lines.length;
-  progressFresh = false;
 }
 
 function markNoisy() {
@@ -307,7 +313,6 @@ export const unixHost: Host = {
     lastFrame = { title: frame.title, steps: frame.steps.map((step) => ({ ...step })) };
     if (progressStartedAt === 0) {
       progressStartedAt = Date.now();
-      process.stdout.write(renderBanner(frame.title));
     }
     if (!process.stdout.isTTY) {
       lastFrame.steps.forEach((step, i) => {
