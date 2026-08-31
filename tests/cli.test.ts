@@ -639,7 +639,7 @@ test("init reports live progress frames for each step", async () => {
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
   const frames = host.progressFrames;
-  expect(frames[0].title).toBe("Distro: apt");
+  expect(frames[0].title).toBe("Distro packages: apt");
   expect(frames[0].steps.every((step) => step.state === "pending")).toBe(true);
   const distroRunning = frames.find(
     (frame) => frameStep(frame, "Distro packages").state === "running",

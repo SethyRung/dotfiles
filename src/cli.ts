@@ -108,9 +108,9 @@ async function init(host: Host): Promise<RunResult> {
     const steps = initialSteps();
     const update = (i: number, state: ProgressState, detail: string) => {
       steps[i] = { ...steps[i], state, detail };
-      host.progress({ title: `Distro: ${pm}`, steps: steps.map((step) => ({ ...step })) });
+      host.progress({ title: `Distro packages: ${pm}`, steps: steps.map((step) => ({ ...step })) });
     };
-    host.progress({ title: `Distro: ${pm}`, steps: steps.map((step) => ({ ...step })) });
+    host.progress({ title: `Distro packages: ${pm}`, steps: steps.map((step) => ({ ...step })) });
     const pkgs = packagesFor(pm).filter((name) => !host.commandExists(name));
     if (pkgs.length > 0) {
       update(STEPS.DISTRO, "running", pkgs.join(", "));
