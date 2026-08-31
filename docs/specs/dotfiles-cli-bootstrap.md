@@ -1,6 +1,6 @@
 # `dotfiles` CLI Bootstrap for a Fresh Install Workflow
 
-Status: drafted locally — this repo has no issue tracker yet. After `/setup-matt-pocock-skills`, publish this spec and apply `ready-for-agent`.
+Status: done
 
 ## Problem Statement
 
@@ -125,5 +125,4 @@ A `dotfiles` CLI in this Dotfiles repo. `dotfiles init` runs Bootstrap, `dotfile
 ## Further Notes
 
 - Inspiration: https://github.com/dmmulroy/.dotfiles — same CLI+Stow idea, Linux Workflow, different command name and package story.
-- Paper trail already in-repo: `CONTEXT.md`, `docs/adr/0001`–`0009`.
-- This spec is not yet on an issue tracker. Run `/setup-matt-pocock-skills` so `to-spec` can publish it with `ready-for-agent`.
+- Paper trail already in-repo: `CONTEXT.md`, `docs/adr/0001`–`0009`. Tickets lived in `.scratch/dotfiles-cli-bootstrap/issues/` and are all done.
