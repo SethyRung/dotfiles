@@ -26,5 +26,6 @@
   "markdown": {
     "mermaid": "streaming"
   },
-  "editorPaddingX": 1
+  "editorPaddingX": 1,
+  "lastChangelogVersion": "0.84.4"
 }
