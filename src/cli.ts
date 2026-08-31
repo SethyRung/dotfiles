@@ -82,6 +82,11 @@ function initialSteps(): ProgressStep[] {
   ];
 }
 
+function skillDir(home: string, spec: string): string {
+  const name = spec.split("@")[1] ?? spec;
+  return join(home, ".agents/skills", name);
+}
+
 async function init(host: Host): Promise<RunResult> {
   const pm = host.packageManager();
   if (!pm) {
@@ -169,9 +174,10 @@ async function init(host: Host): Promise<RunResult> {
     } else {
       update(STEPS.ZED, "skipped", "present");
     }
-    if (!host.fileExists(join(home, ".agents/skills"))) {
-      update(STEPS.SKILLS, "running", `${skillsList.length} skills`);
-      await host.installSkills(skillsList);
+    const missingSkillSpecs = skillsList.filter((spec) => !host.fileExists(skillDir(home, spec)));
+    if (missingSkillSpecs.length > 0) {
+      update(STEPS.SKILLS, "running", `${missingSkillSpecs.length} of ${skillsList.length}`);
+      await host.installSkills(missingSkillSpecs);
       update(STEPS.SKILLS, "done", `${skillsList.length} skills`);
     } else {
       update(STEPS.SKILLS, "skipped", "present");
@@ -293,7 +299,10 @@ async function doctor(host: Host): Promise<RunResult> {
   checkTool(workflowTools.herdr);
   checkTool(workflowTools.opencode);
   checkTool(workflowTools.zed);
-  check("Skills", host.fileExists(join(home, ".agents/skills")));
+  check(
+    "Skills",
+    skillsList.every((spec) => host.fileExists(skillDir(home, spec))),
+  );
   check("XDG MCP", host.fileExists(join(home, ".config/mcp/mcp.json")));
   check("login shell", isZsh(host.loginShell()));
   check("dotfiles PATH symlink", host.fileExists(join(home, ".local/bin/dotfiles")));
@@ -372,7 +381,7 @@ function workflowLooksPresent(host: Host): boolean {
     omzPlugins.every((plugin) =>
       host.fileExists(join(home, `.oh-my-zsh/custom/plugins/${plugin}`)),
     ) &&
-    host.fileExists(join(home, ".agents/skills")) &&
+    skillsList.every((spec) => host.fileExists(skillDir(home, spec))) &&
     host.fileExists(join(home, ".config/mcp/mcp.json")) &&
     isZsh(host.loginShell()) &&
     host.fileExists(join(home, ".local/bin/dotfiles"))

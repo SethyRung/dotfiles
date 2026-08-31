@@ -1,9 +1,14 @@
 import { expect, test } from "bun:test";
 import { join } from "node:path";
 import { run } from "@/cli.ts";
+import { skillsList } from "@/consts/skills-list.ts";
 import type { Host, PackageManager } from "@/types/host.ts";
 import type { ProgressFrame } from "@/types/progress.ts";
 import { backupStamp, toDayJS, type Dayjs } from "@/utils/time.ts";
+
+function skillDirs(home: string): string[] {
+  return skillsList.map((spec) => `${home}/.agents/skills/${spec.split("@")[1] ?? spec}`);
+}
 
 function createFakeHost(
   commands: string[] = [],
@@ -190,6 +195,10 @@ function createFakeHost(
     },
     async installSkills(specs) {
       skillsRequested.push(...specs);
+      for (const spec of specs) {
+        const name = spec.split("@")[1] ?? spec;
+        files.add(`${homeDir}/.agents/skills/${name}`);
+      }
     },
     async prompt(message) {
       prompts.push(message);
@@ -283,7 +292,7 @@ test("Ghostty missing is a warning, not a required failure", async () => {
         `${home}/.oh-my-zsh`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
-        `${home}/.agents/skills`,
+        ...skillDirs(home),
         `${home}/.config/mcp/mcp.json`,
         `${home}/.local/bin/dotfiles`,
       ],
@@ -677,7 +686,7 @@ test("when Workflow is already present, frames say skipped with present details"
         `${home}/.oh-my-zsh`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
-        `${home}/.agents/skills`,
+        ...skillDirs(home),
         `${home}/.config/mcp/mcp.json`,
         `${home}/.local/bin/dotfiles`,
       ],
@@ -741,7 +750,7 @@ test("no reboot question when the login shell is already zsh", async () => {
         `${home}/.oh-my-zsh`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
-        `${home}/.agents/skills`,
+        ...skillDirs(home),
         `${home}/.config/mcp/mcp.json`,
         `${home}/.local/bin/dotfiles`,
       ],
@@ -815,7 +824,7 @@ test("herdr config.toml is Stowed into the fake $HOME", async () => {
   expect(host.linked).toEqual([".config/herdr/config.toml"]);
   const toml = await Bun.file(join(import.meta.dir, "../home/.config/herdr/config.toml")).text();
   expect(toml).toContain('prefix = "ctrl+space"');
-  expect(toml).toContain('name = "vesper"');
+  expect(toml).toContain("onboarding = false");
   expect(toml).toContain("[ui]");
 });
 
@@ -937,6 +946,42 @@ test("Skills are requested via skills.sh, not by snapshotting skill files as the
     "mattpocock/skills@wait-what",
   ]);
   expect(host.linked.some((rel) => rel.startsWith(".agents/skills/"))).toBe(false);
+});
+
+test("Skills install even when ~/.agents/skills already exists with other skills", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["bun"], {
+    homeDir: home,
+    packageManager: "apt",
+    files: [`${home}/.agents/skills/diagnose-crash`, `${home}/.agents/skills/omarchy`],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.skillsRequested).toEqual(skillsList);
+  expect(finalSteps(host).get("Skills")).toMatchObject({ state: "done" });
+});
+
+test("init requests only the Skills that are missing", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["bun"], {
+    homeDir: home,
+    packageManager: "apt",
+    files: skillDirs(home).slice(0, 1),
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.skillsRequested).toEqual(skillsList.slice(1));
+});
+
+test("doctor reports Skills missing when ~/.agents/skills exists without the declared skills", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["bun"], {
+    homeDir: home,
+    files: [`${home}/.agents/skills/diagnose-crash`],
+  });
+  const result = await run(["doctor"], host);
+  expect(result.exitCode).not.toBe(0);
+  expect(result.stdout).toContain("Skills: missing");
 });
 
 test("XDG MCP config is Stowed", async () => {
@@ -1087,7 +1132,7 @@ test("on a re-run, init still offers Ghostty when it is missing", async () => {
         `${home}/.oh-my-zsh`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
-        `${home}/.agents/skills`,
+        ...skillDirs(home),
         `${home}/.config/mcp/mcp.json`,
         `${home}/.local/bin/dotfiles`,
       ],
@@ -1138,7 +1183,7 @@ test("when Workflow already looks present, init asks continue? before doing work
         `${home}/.oh-my-zsh`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
-        `${home}/.agents/skills`,
+        ...skillDirs(home),
         `${home}/.config/mcp/mcp.json`,
         `${home}/.local/bin/dotfiles`,
       ],
@@ -1164,7 +1209,7 @@ test("declining continue leaves the Host unchanged", async () => {
         `${home}/.oh-my-zsh`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
-        `${home}/.agents/skills`,
+        ...skillDirs(home),
         `${home}/.config/mcp/mcp.json`,
         `${home}/.local/bin/dotfiles`,
       ],
@@ -1197,7 +1242,7 @@ test("continue does not re-request tools the Host already has", async () => {
         `${home}/.oh-my-zsh`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
-        `${home}/.agents/skills`,
+        ...skillDirs(home),
         `${home}/.config/mcp/mcp.json`,
         `${home}/.local/bin/dotfiles`,
       ],
@@ -1225,7 +1270,7 @@ test("continue still confirms before /etc/environment writes", async () => {
         `${home}/.oh-my-zsh`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
-        `${home}/.agents/skills`,
+        ...skillDirs(home),
         `${home}/.config/mcp/mcp.json`,
         `${home}/.local/bin/dotfiles`,
       ],
@@ -1251,7 +1296,7 @@ test("continue still confirms before Stow conflicts", async () => {
         `${home}/.oh-my-zsh`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
-        `${home}/.agents/skills`,
+        ...skillDirs(home),
         `${home}/.config/mcp/mcp.json`,
         `${home}/.local/bin/dotfiles`,
         `${home}/.zshrc`,
@@ -1356,7 +1401,7 @@ test("doctor reports OpenCode and Zed present without treating them as optional"
         `${home}/.oh-my-zsh`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
-        `${home}/.agents/skills`,
+        ...skillDirs(home),
         `${home}/.config/mcp/mcp.json`,
         `${home}/.local/bin/dotfiles`,
       ],
@@ -1562,7 +1607,7 @@ test("continue does not re-request OpenCode if it is already installed", async (
         `${home}/.oh-my-zsh`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
-        `${home}/.agents/skills`,
+        ...skillDirs(home),
         `${home}/.config/mcp/mcp.json`,
         `${home}/.local/bin/dotfiles`,
       ],
@@ -1586,7 +1631,7 @@ test("continue still confirms before Stow conflicts for OpenCode config", async 
         `${home}/.oh-my-zsh`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
-        `${home}/.agents/skills`,
+        ...skillDirs(home),
         `${home}/.config/mcp/mcp.json`,
         `${home}/.local/bin/dotfiles`,
         `${home}/.config/opencode/opencode.json`,
