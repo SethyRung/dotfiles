@@ -29,7 +29,7 @@ bun run lint && bun run fmt:check && bun run typecheck && bun test
 - Linux Package Map + Upstream Installs, not Homebrew. Distro packages: zsh, git, stow. Unknown Distro fails before any install. Ghostty is optional (prompt default no; no zypper mapping — warn, don't abort).
 - `commandExists` also looks in `~/.bun/bin`, `~/.local/bin`, `~/.opencode/bin`, and nvm's npm, so a bash session without the curated PATH still skips reinstalls.
 - `host.stow()` is direct `home/` → `$HOME` symlinks, not a GNU `stow` spawn. Existing repo/stale symlinks are replaced with no backup; regular files get a `YYYY-MM-DD_HH:mm:ss` stamp then link.
-- Skills: `bunx skills add <spec> -g -y` from `src/consts/skills-list.ts`, not a file snapshot. MCP source of truth is `home/.config/mcp/mcp.json`; OpenCode `mcp` key is a generated mirror — do not hand-maintain a second list.
+- Skills: `npx skills add https://github.com/<repo> --skill <name> --global --agent universal -y` from `src/consts/skills-list.ts` (`owner/repo@skill`), not a file snapshot. MCP source of truth is `home/.config/mcp/mcp.json`; OpenCode `mcp` key is a generated mirror — do not hand-maintain a second list.
 - Never commit API Keys or `auth.json`. Merge keys into `/etc/environment`; do not replace the file; do not log values.
 - git package only — no gitconfig. Do not restore pi default model/provider or `extensions/`. Do not add nvim/tmux/Android or snapshot OpenCode-local skills.
 - `dotfiles sync` is config sync only (`git pull --ff-only`, Stow, MCP mirror) — never tool upgrades.

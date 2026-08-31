@@ -289,7 +289,14 @@ export const unixHost: Host = {
   },
   async installSkills(specs) {
     for (const spec of specs) {
-      await Bun.$`bunx skills add ${spec} -g -y`;
+      const at = spec.lastIndexOf("@");
+      if (at <= 0 || at === spec.length - 1) {
+        throw new Error(`invalid skill spec: ${spec}`);
+      }
+      const repo = spec.slice(0, at);
+      const skill = spec.slice(at + 1);
+      const url = repo.startsWith("https://") ? repo : `https://github.com/${repo}`;
+      await Bun.$`npx skills add ${url} --skill ${skill} --global --agent universal -y`;
     }
   },
   async prompt(message) {
