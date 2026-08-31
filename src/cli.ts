@@ -5,7 +5,6 @@ import { ghosttyPackageFor, packagesFor } from "@/consts/package-map.ts";
 import { piPackages } from "@/consts/pi-packages.ts";
 import { skillsList } from "@/consts/skills-list.ts";
 import { requiredWorkflowTools, workflowTools } from "@/consts/workflow-tools.ts";
-import type { WorkflowTool } from "@/consts/workflow-tools.ts";
 import type { Host } from "@/types/host.ts";
 import type { ProgressState, ProgressStep } from "@/types/progress.ts";
 import type { RunResult, StowOptions } from "@/types/result.ts";
@@ -270,59 +269,91 @@ async function init(host: Host): Promise<RunResult> {
   }
 }
 
+function doctorCell(ok: boolean): string {
+  return ok ? "[ok]  " : "[!!]  ";
+}
+
+function doctorRow(label: string, ok: boolean): string {
+  return `  ${doctorCell(ok)}${label}`;
+}
+
 async function doctor(host: Host): Promise<RunResult> {
   const home = host.homeDir();
-  const lines: string[] = [];
-  let failed = false;
-
-  const check = (label: string, ok: boolean) => {
-    if (ok) {
-      lines.push(`${label}: ok`);
-    } else {
-      lines.push(`${label}: missing`);
-      failed = true;
-    }
-  };
-  const checkTool = (tool: WorkflowTool) => {
-    check(tool.label, host.commandExists(tool.command));
-  };
-
-  checkTool(workflowTools.zsh);
-  check("Oh My Zsh", host.fileExists(join(home, ".oh-my-zsh")));
-  check(
-    "OMZ plugins",
-    omzPlugins.every((plugin) =>
-      host.fileExists(join(home, `.oh-my-zsh/custom/plugins/${plugin}`)),
-    ),
+  const zsh = host.commandExists(workflowTools.zsh.command);
+  const omz = host.fileExists(join(home, ".oh-my-zsh"));
+  const plugins = omzPlugins.every((plugin) =>
+    host.fileExists(join(home, `.oh-my-zsh/custom/plugins/${plugin}`)),
   );
-  checkTool(workflowTools.git);
-  checkTool(workflowTools.stow);
-  checkTool(workflowTools.npm);
-  checkTool(workflowTools.bun);
-  checkTool(workflowTools.pi);
-  checkTool(workflowTools.herdr);
-  checkTool(workflowTools.opencode);
-  checkTool(workflowTools.zed);
-  check(
-    "Skills",
-    skillsList.every((spec) => host.fileExists(skillDir(home, spec))),
+  const git = host.commandExists(workflowTools.git.command);
+  const stowOk = host.commandExists(workflowTools.stow.command);
+  const npm = host.commandExists(workflowTools.npm.command);
+  const bun = host.commandExists(workflowTools.bun.command);
+  const pi = host.commandExists(workflowTools.pi.command);
+  const herdr = host.commandExists(workflowTools.herdr.command);
+  const opencode = host.commandExists(workflowTools.opencode.command);
+  const zed = host.commandExists(workflowTools.zed.command);
+  const skills = skillsList.every((spec) => host.fileExists(skillDir(home, spec)));
+  const mcp = host.fileExists(join(home, ".config/mcp/mcp.json"));
+  const shell = isZsh(host.loginShell());
+  const pathOk = host.fileExists(join(home, ".local/bin/dotfiles"));
+  const ghostty = host.commandExists(workflowTools.ghostty.command);
+  const keys = await host.environmentKeyNames();
+  const broken = host.brokenStowLinks();
+  const required = [
+    zsh,
+    omz,
+    plugins,
+    git,
+    stowOk,
+    npm,
+    bun,
+    pi,
+    herdr,
+    opencode,
+    zed,
+    skills,
+    mcp,
+    shell,
+    pathOk,
+  ];
+  const requiredOk = required.filter(Boolean).length;
+  const lines = [
+    "DOTFILES  doctor",
+    "",
+    "Workflow",
+    doctorRow("zsh", zsh),
+    doctorRow("Oh My Zsh", omz),
+    doctorRow("OMZ plugins", plugins),
+    doctorRow("git", git),
+    doctorRow("stow", stowOk),
+    doctorRow("npm", npm),
+    doctorRow("bun", bun),
+    doctorRow("pi", pi),
+    doctorRow("herdr", herdr),
+    doctorRow("OpenCode", opencode),
+    doctorRow("Zed", zed),
+    doctorRow("Skills", skills),
+    doctorRow("XDG MCP", mcp),
+    doctorRow("login shell", shell),
+    doctorRow("PATH symlink", pathOk),
+    "",
+    "Optional",
+    ghostty ? "  [ok]  Ghostty" : "  [skip] Ghostty",
+  ];
+  if (keys.length > 0) {
+    lines.push("", "API Keys", ...keys.map((name) => `  [ok]  ${name}`));
+  }
+  if (broken.length > 0) {
+    lines.push("", "Stow", ...broken.map((link) => `  [!!]  ${link}`));
+  }
+  lines.push(
+    "",
+    requiredOk === required.length
+      ? `${required.length} required ok`
+      : `${requiredOk}/${required.length} required ok`,
   );
-  check("XDG MCP", host.fileExists(join(home, ".config/mcp/mcp.json")));
-  check("login shell", isZsh(host.loginShell()));
-  check("dotfiles PATH symlink", host.fileExists(join(home, ".local/bin/dotfiles")));
-  if (!host.commandExists(workflowTools.ghostty.command)) {
-    lines.push(`${workflowTools.ghostty.label}: missing (optional)`);
-  }
-  for (const name of await host.environmentKeyNames()) {
-    lines.push(`${name}: present`);
-  }
-  for (const link of host.brokenStowLinks()) {
-    lines.push(`broken Stow: ${link}`);
-    failed = true;
-  }
-
   return {
-    exitCode: failed ? 1 : 0,
+    exitCode: requiredOk === required.length && broken.length === 0 ? 0 : 1,
     stdout: `${lines.join("\n")}\n`,
     stderr: "",
   };

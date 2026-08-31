@@ -295,10 +295,12 @@ test("on an empty Host, doctor reports required Workflow pieces missing and exit
     "Skills",
     "XDG MCP",
     "login shell",
-    "dotfiles PATH symlink",
+    "PATH symlink",
   ]) {
-    expect(result.stdout).toContain(`${piece}: missing`);
+    expect(result.stdout).toContain(`[!!]  ${piece}`);
   }
+  expect(result.stdout).toContain("Workflow");
+  expect(result.stdout).toContain("1/15 required ok");
 });
 
 test("Ghostty missing is a warning, not a required failure", async () => {
@@ -320,7 +322,10 @@ test("Ghostty missing is a warning, not a required failure", async () => {
   );
   const result = await run(["doctor"], host);
   expect(result.exitCode).toBe(0);
-  expect(result.stdout).toContain("Ghostty: missing (optional)");
+  expect(result.stdout).toContain("[skip] Ghostty");
+  expect(result.stdout).not.toContain("[!!]  Ghostty");
+  expect(result.stdout).toContain("Optional");
+  expect(result.stdout).toContain("15 required ok");
 });
 
 test("doctor never prints API Key values", async () => {
@@ -328,7 +333,8 @@ test("doctor never prints API Key values", async () => {
     environmentKeys: { OPENROUTER_API_KEY: "sk-secret-do-not-leak" },
   });
   const result = await run(["doctor"], host);
-  expect(result.stdout).toContain("OPENROUTER_API_KEY");
+  expect(result.stdout).toContain("API Keys");
+  expect(result.stdout).toContain("[ok]  OPENROUTER_API_KEY");
   expect(result.stdout).not.toContain("sk-secret-do-not-leak");
   expect(result.stderr).not.toContain("sk-secret-do-not-leak");
 });
@@ -338,7 +344,8 @@ test("doctor reports broken Stow links", async () => {
     brokenStowLinks: ["/fake-home/.zshrc"],
   });
   const result = await run(["doctor"], host);
-  expect(result.stdout).toContain("/fake-home/.zshrc");
+  expect(result.stdout).toContain("Stow");
+  expect(result.stdout).toContain("[!!]  /fake-home/.zshrc");
 });
 
 test("dotfiles stow on a clean fake $HOME links the home/ tree and PATH stub", async () => {
@@ -1000,7 +1007,7 @@ test("doctor reports Skills missing when ~/.agents/skills exists without the dec
   });
   const result = await run(["doctor"], host);
   expect(result.exitCode).not.toBe(0);
-  expect(result.stdout).toContain("Skills: missing");
+  expect(result.stdout).toContain("[!!]  Skills");
 });
 
 test("XDG MCP config is Stowed", async () => {
@@ -1405,8 +1412,8 @@ test("doctor reports OpenCode missing as a required failure", async () => {
   const host = createFakeHost();
   const result = await run(["doctor"], host);
   expect(result.exitCode).not.toBe(0);
-  expect(result.stdout).toContain("OpenCode: missing");
-  expect(result.stdout).not.toContain("OpenCode: missing (optional)");
+  expect(result.stdout).toContain("[!!]  OpenCode");
+  expect(result.stdout).not.toMatch(/OpenCode.*optional/);
 });
 
 test("doctor reports OpenCode and Zed present without treating them as optional", async () => {
@@ -1428,10 +1435,10 @@ test("doctor reports OpenCode and Zed present without treating them as optional"
   );
   const result = await run(["doctor"], host);
   expect(result.exitCode).toBe(0);
-  expect(result.stdout).toContain("OpenCode: ok");
-  expect(result.stdout).not.toContain("OpenCode: missing (optional)");
-  expect(result.stdout).toContain("Zed: ok");
-  expect(result.stdout).not.toContain("Zed: missing (optional)");
+  expect(result.stdout).toContain("[ok]  OpenCode");
+  expect(result.stdout).not.toMatch(/OpenCode.*optional/);
+  expect(result.stdout).toContain("[ok]  Zed");
+  expect(result.stdout).not.toMatch(/Zed.*optional/);
 });
 
 test("OpenCode global config and TUI config are Stowed", async () => {
