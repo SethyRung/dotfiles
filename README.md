@@ -92,7 +92,7 @@ A live ASCII dashboard redraws as each step runs:
 | Category            | Contents                                                                                                                                                                           |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Distro packages     | zsh, git, stow via the Package Map — no git config                                                                                                                                 |
-| Upstream installs   | Oh My Zsh, herdr, pi + its packages, OpenCode, Zed, nvm + Node LTS when npm is missing, Skills via skills.sh (always latest, never version-pinned)                                |
+| Upstream installs   | Oh My Zsh, herdr, pi + its packages, OpenCode, Zed, nvm + Node LTS when npm is missing, Skills via skills.sh (always latest, never version-pinned)                                 |
 | Stowed from `home/` | zshrc, herdr config.toml, XDG mcp.json, OpenCode config + TUI files, Zed settings.json + keymap.json (Zed extensions are declared in `auto_install_extensions`, never snapshotted) |
 | Machine state       | login shell becomes zsh, dotfiles symlinked into `~/.local/bin`, API Keys merged into `/etc/environment`                                                                           |
 
