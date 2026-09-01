@@ -1,5 +1,7 @@
 {
   "tui.input.newLine": ["alt+enter"],
+  "tui.input.copy": ["ctrl+shift+c"],
   "app.message.followUp": ["ctrl+enter"],
-  "app.message.dequeue": ["ctrl+up"]
+  "app.message.dequeue": ["ctrl+up"],
+  "app.clipboard.pasteImage": ["ctrl+shift+v"]
 }
