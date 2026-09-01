@@ -13,3 +13,7 @@ delivery = "herdr"
 
 [experimental]
 pane_history = true
+
+[theme]
+name = "vesper"
+auto_switch = false
