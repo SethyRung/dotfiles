@@ -803,7 +803,7 @@ test("curated zshrc activates mise after Oh My Zsh, with ~/.local/bin already on
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
   const zshrc = await readZshrc();
-  const activateAt = zshrc.indexOf('eval "$(mise activate zsh)"');
+  const activateAt = zshrc.indexOf('eval "$($HOME/.local/bin/mise activate zsh)"');
   expect(activateAt).toBeGreaterThanOrEqual(0);
   expect(zshrc.indexOf('source "$ZSH/oh-my-zsh.sh"')).toBeLessThan(activateAt);
   expect(zshrc.indexOf('export PATH="$HOME/.local/bin:$PATH"')).toBeLessThan(activateAt);
