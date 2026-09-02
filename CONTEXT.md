@@ -17,7 +17,7 @@ The Linux distribution Bootstrap runs on. Not Ubuntu-only; Bootstrap detects the
 _Avoid_: OS, flavor, platform
 
 **Workflow**:
-The development environment Bootstrap restores: zsh + Oh My Zsh, herdr, pi plus its current packages, OpenCode, Zed, global Skills (via skills.sh), XDG MCP, API Keys, optional Ghostty, and git installed with no git config.
+The development environment Bootstrap restores: zsh + Oh My Zsh, Mise Tools (bun, Node, herdr, pi, OpenCode), pi's current packages, Zed, global Skills (via skills.sh), XDG MCP, API Keys, optional Ghostty, and git installed with no git config.
 _Avoid_: using "dotfiles" for the running environment
 
 **Dotfiles**:
@@ -45,11 +45,19 @@ The file that names Distro packages per package manager (apt, pacman, dnf, zyppe
 _Avoid_: Brewfile, bundle
 
 **Upstream Install**:
-Install from the project's own script or binary (curl, GitHub release), not the Distro. Oh My Zsh, its zsh plugins, herdr, bun, pi, OpenCode, and Zed are Upstream Installs.
-_Avoid_: curl-pipe, bootstrap script (when you mean this class of install)
+Install from the project's own script or binary (curl, GitHub release), not the Distro and not mise. mise itself, Oh My Zsh, OMZ plugins, and Zed are Upstream Installs.
+_Avoid_: curl-pipe, bootstrap script (when you mean this class of install), Mise Tool
+
+**Mise Tool**:
+A Workflow binary mise installs and versions as a global tool: bun, Node, herdr, pi, OpenCode. Not a Distro package and not an Upstream Install.
+_Avoid_: runtime, asdf tool, plugin, nvm
+
+**OMZ plugin**:
+A zsh plugin git-cloned into Oh My Zsh's custom plugins directory (zsh-autosuggestions, zsh-syntax-highlighting). Not a Mise Tool.
+_Avoid_: plugin (unqualified), mise plugin
 
 **OpenCode**:
-A coding agent in the Workflow, restored by Bootstrap like pi: Upstream Install plus Stowed config.
+A coding agent in the Workflow, restored by Bootstrap like pi: Mise Tool plus Stowed config.
 _Avoid_: opencode dotfiles, SST OpenCode
 
 **Zed**:

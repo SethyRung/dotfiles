@@ -1,0 +1,3 @@
+# CLI Workflow binaries are Mise Tools, not Upstream Installs
+
+bun, Node, herdr, pi, and OpenCode are global Mise Tools (`latest`, Node `lts`) declared in a Stowed `~/.config/mise/config.toml` with `auto_update = true` (mise’s own binary, not the tools). Official curl-pipe for those five, and nvm (ADR 0013), were rejected: one version manager, one file in git, `mise install` is the idempotent skip. mise itself stays an Upstream Install (`mise.run`) so self-update works; Distro Package Map and leftover Upstream (Zed, Oh My Zsh, OMZ plugins) stay. `dotfiles sync` still never upgrades tools (ADR 0015).
