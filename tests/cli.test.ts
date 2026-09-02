@@ -254,6 +254,10 @@ function frameStep(frame: ProgressFrame, label: string) {
   return frame.steps.find((step) => step.label === label)!;
 }
 
+async function readZshrc(): Promise<string> {
+  return await Bun.file(join(import.meta.dir, "../home/.zshrc")).text();
+}
+
 test("dotfiles help lists init, doctor, stow, clean, and sync", async () => {
   const host = createFakeHost(["bun"]);
   const result = await run(["--help"], host);
@@ -778,21 +782,62 @@ test("a curated zshrc is Stowed without Android SDK paths or out-of-scope aliase
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
   expect(host.linked).toEqual([".zshrc"]);
-  const zshrc = await Bun.file(join(import.meta.dir, "../home/.zshrc")).text();
+  const zshrc = await readZshrc();
   expect(zshrc).toContain('ZSH_THEME="bira"');
   expect(zshrc).toContain("git");
   expect(zshrc).toContain("docker");
   expect(zshrc).toContain("zsh-autosuggestions");
   expect(zshrc).toContain("zsh-syntax-highlighting");
-  expect(zshrc).toContain("nvm");
-  expect(zshrc).toContain("$HOME/.bun");
-  expect(zshrc).toContain("HERDR_INSTALL_DIR");
-  expect(zshrc).toContain("$HOME/.local/bin");
   expect(zshrc).not.toMatch(/ANDROID/i);
   expect(zshrc).not.toContain("alias op=");
   expect(zshrc).not.toContain("alias csp=");
   expect(zshrc).not.toContain("alias cpsp=");
   expect(zshrc).not.toContain("alias zshconfig=");
+});
+
+test("curated zshrc activates mise after Oh My Zsh, with ~/.local/bin already on PATH", async () => {
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    homeTree: [".zshrc"],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  const zshrc = await readZshrc();
+  const activateAt = zshrc.indexOf('eval "$(mise activate zsh)"');
+  expect(activateAt).toBeGreaterThanOrEqual(0);
+  expect(zshrc.indexOf('source "$ZSH/oh-my-zsh.sh"')).toBeLessThan(activateAt);
+  expect(zshrc.indexOf('export PATH="$HOME/.local/bin:$PATH"')).toBeLessThan(activateAt);
+  expect(zshrc).not.toContain("/home/");
+});
+
+test("curated OMZ plugins drop nvm but keep npm and node", async () => {
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    homeTree: [".zshrc"],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  const zshrc = await readZshrc();
+  const plugins = zshrc.slice(zshrc.indexOf("plugins=("), zshrc.indexOf(")"));
+  expect(plugins).toContain("npm");
+  expect(plugins).toContain("node");
+  expect(plugins).not.toContain("nvm");
+  expect(zshrc).not.toContain("nvm");
+});
+
+test("init leaves leftover ~/.bun and ~/.nvm directories on disk", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["bun"], {
+    homeDir: home,
+    packageManager: "apt",
+    files: [`${home}/.bun`, `${home}/.nvm`],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.fileExists(`${home}/.bun`)).toBe(true);
+  expect(host.fileExists(`${home}/.nvm`)).toBe(true);
+  expect(host.backups).toEqual([]);
+  expect(host.removedFiles).toEqual([]);
 });
 
 test("login shell is changed to zsh", async () => {
@@ -1606,7 +1651,7 @@ test("OpenCode-local skills, auth, sessions, and node_modules are not Stowed", a
   expect(host.linked).toEqual([".config/opencode/opencode.json"]);
 });
 
-test("curated zshrc puts OpenCode bin directory on PATH", async () => {
+test("curated zshrc hands tool PATH to mise, keeping only ~/.local/bin", async () => {
   const host = createFakeHost(["bun"], {
     packageManager: "apt",
     homeTree: [".zshrc"],
@@ -1614,8 +1659,12 @@ test("curated zshrc puts OpenCode bin directory on PATH", async () => {
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
   expect(host.linked).toContain(".zshrc");
-  const zshrc = await Bun.file(join(import.meta.dir, "../home/.zshrc")).text();
-  expect(zshrc).toContain("$HOME/.opencode/bin");
+  const zshrc = await readZshrc();
+  expect(zshrc).toContain('export PATH="$HOME/.local/bin:$PATH"');
+  expect(zshrc).not.toContain("BUN_INSTALL");
+  expect(zshrc).not.toContain("$HOME/.bun");
+  expect(zshrc).not.toContain("HERDR_INSTALL_DIR");
+  expect(zshrc).not.toContain("$HOME/.opencode/bin");
 });
 
 test("after init, OpenCode mcp key contains the XDG MCP servers", async () => {

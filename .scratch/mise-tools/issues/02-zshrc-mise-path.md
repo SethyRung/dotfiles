@@ -4,11 +4,11 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Curated zshrc activates mise without a hardcoded home path
-- [ ] OMZ plugin list does not include nvm
-- [ ] zshrc does not prepend bun.com, herdr install-dir, or OpenCode bin PATH
-- [ ] zshrc still puts `~/.local/bin` on PATH
-- [ ] Init does not delete leftover `~/.bun` or `~/.nvm`
-- [ ] Behaviour is observed only through the CLI against a fake Host
+- [x] Curated zshrc activates mise without a hardcoded home path
+- [x] OMZ plugin list does not include nvm
+- [x] zshrc does not prepend bun.com, herdr install-dir, or OpenCode bin PATH
+- [x] zshrc still puts `~/.local/bin` on PATH
+- [x] Init does not delete leftover `~/.bun` or `~/.nvm`
+- [x] Behaviour is observed only through the CLI against a fake Host

@@ -6,7 +6,6 @@ plugins=(
   docker
   docker-compose
   npm
-  nvm
   node
   jsontools
   sudo
@@ -20,10 +19,9 @@ plugins=(
 
 source "$ZSH/oh-my-zsh.sh"
 
-export BUN_INSTALL="$HOME/.bun"
-export PATH="$BUN_INSTALL/bin:$PATH"
-export PATH="${HERDR_INSTALL_DIR:-$HOME/.local/bin}:$PATH"
-export PATH="$HOME/.opencode/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
+
+eval "$($HOME/.local/bin/mise activate zsh)"
 
 # Cache SSH key passphrases in systemd's ssh-agent for the whole login.
 export SSH_AUTH_SOCK="${XDG_RUNTIME_DIR}/ssh-agent.socket"
