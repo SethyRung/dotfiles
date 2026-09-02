@@ -26,6 +26,7 @@ function createFakeHost(
     packageManager?: PackageManager | null;
     installError?: string;
     upstreamInstallError?: string;
+    installMiseToolsError?: boolean;
     rebootError?: boolean;
     promptAnswers?: string[];
     environmentFile?: string;
@@ -48,6 +49,8 @@ function createFakeHost(
   progressFrames: ProgressFrame[];
   fileContents: Record<string, string>;
   dotfilesLinks: number;
+  miseToolsCalls: number;
+  actions: string[];
 } {
   const present = new Set(commands);
   const files = new Set(extras.files ?? []);
@@ -73,6 +76,7 @@ function createFakeHost(
   const packageManager = extras.packageManager ?? null;
   const installError = extras.installError;
   const upstreamInstallError = extras.upstreamInstallError;
+  const installMiseToolsError = extras.installMiseToolsError;
   const rebootError = extras.rebootError;
   const pullRepoOutput = extras.pullRepoOutput ?? "Already up to date.";
   const pullRepoError = extras.pullRepoError;
@@ -81,6 +85,8 @@ function createFakeHost(
   let repoPulls = 0;
   let reboots = 0;
   let dotfilesLinks = 0;
+  let miseToolsCalls = 0;
+  const actions: string[] = [];
   return {
     upstreamInstalls,
     packagesRequested,
@@ -99,12 +105,17 @@ function createFakeHost(
     get dotfilesLinks() {
       return dotfilesLinks;
     },
+    get miseToolsCalls() {
+      return miseToolsCalls;
+    },
     progressFrames,
     fileContents,
+    actions,
     commandExists(command) {
       return present.has(command);
     },
     async runUpstreamInstall(tool) {
+      actions.push(`upstream:${tool}`);
       upstreamInstalls.push(tool);
       if (upstreamInstallError === tool) {
         throw new Error(`${tool} Upstream Install failed`);
@@ -115,6 +126,7 @@ function createFakeHost(
       return packageManager;
     },
     async installPackages(packages) {
+      actions.push(`packages:${packages.join(",")}`);
       if (installError) {
         throw new Error(installError);
       }
@@ -149,6 +161,7 @@ function createFakeHost(
       return pullRepoOutput;
     },
     async linkDotfiles() {
+      actions.push("link-dotfiles");
       dotfilesLinks += 1;
       files.add(`${homeDir}/.local/bin/dotfiles`);
     },
@@ -181,6 +194,7 @@ function createFakeHost(
       return repoLinks.has(path) || staleLinks.has(path);
     },
     async stow(relPaths) {
+      actions.push(`stow:${relPaths.join(",")}`);
       for (const rel of relPaths) {
         linked.push(rel);
         const dest = `${homeDir}/${rel}`;
@@ -190,10 +204,19 @@ function createFakeHost(
         }
       }
     },
+    async installMiseTools() {
+      actions.push("mise-tools");
+      miseToolsCalls += 1;
+      if (installMiseToolsError) {
+        throw new Error("mise install failed");
+      }
+    },
     async installPiPackages(packages) {
+      actions.push("pi-packages");
       piPackagesRequested.push(...packages);
     },
     async installSkills(specs) {
+      actions.push("skills");
       skillsRequested.push(...specs);
       for (const spec of specs) {
         const name = spec.split("@")[1] ?? spec;
@@ -263,17 +286,11 @@ test("unknown command exits non-zero with the error and help on stderr", async (
   expect(result.stdout).toBe("");
 });
 
-test("with bun missing, the stub requests the bun Upstream Install, then the CLI runs", async () => {
+test("run does not curl-install bun when it is missing; the bash stub owns the chicken-egg", async () => {
   const host = createFakeHost();
   const result = await run(["--help"], host);
-  expect(host.upstreamInstalls).toEqual(["bun"]);
   expect(result.exitCode).toBe(0);
   expect(result.stdout).toContain("init");
-});
-
-test("with bun present, the stub does not request bun again", async () => {
-  const host = createFakeHost(["bun"]);
-  await run(["--help"], host);
   expect(host.upstreamInstalls).toEqual([]);
 });
 
@@ -288,6 +305,7 @@ test("on an empty Host, doctor reports required Workflow pieces missing and exit
     "git",
     "stow",
     "npm",
+    "bun",
     "pi",
     "herdr",
     "OpenCode",
@@ -300,7 +318,7 @@ test("on an empty Host, doctor reports required Workflow pieces missing and exit
     expect(result.stdout).toContain(`[!!]  ${piece}`);
   }
   expect(result.stdout).toContain("Workflow");
-  expect(result.stdout).toContain("1/15 required ok");
+  expect(result.stdout).toContain("0/15 required ok");
 });
 
 test("Ghostty missing is a warning, not a required failure", async () => {
@@ -480,6 +498,7 @@ test("dotfiles sync pulls the repo, re-Stows, and refreshes the OpenCode MCP mir
   expect(host.fileContents[`${home}/.config/opencode/opencode.json`]).toContain('"remote"');
   expect(host.upstreamInstalls).toEqual([]);
   expect(host.packagesRequested).toEqual([]);
+  expect(host.miseToolsCalls).toBe(0);
 });
 
 test("a failed repo pull exits non-zero and Stows nothing", async () => {
@@ -587,15 +606,7 @@ test("init clones the Oh My Zsh plugins that are missing", async () => {
   });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
-  expect(host.upstreamInstalls).toEqual([
-    "oh-my-zsh",
-    "zsh-syntax-highlighting",
-    "nvm",
-    "herdr",
-    "pi",
-    "opencode",
-    "zed",
-  ]);
+  expect(host.upstreamInstalls).toEqual(["oh-my-zsh", "zsh-syntax-highlighting", "mise", "zed"]);
   expect(finalSteps(host).get("OMZ plugins")).toEqual({
     label: "OMZ plugins",
     detail: "2 plugins",
@@ -621,6 +632,142 @@ test("already-cloned Oh My Zsh plugins are not requested again", async () => {
     state: "skipped",
     detail: "present",
   });
+});
+
+test("init Upstream-Installs mise from mise.run when it is missing", async () => {
+  const host = createFakeHost(["bun"], { packageManager: "apt" });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.upstreamInstalls).toContain("mise");
+});
+
+test("init skips the mise Upstream Install when mise is already present", async () => {
+  const host = createFakeHost(["bun", "mise"], { packageManager: "apt" });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.upstreamInstalls).not.toContain("mise");
+});
+
+test("init Stows the Workflow mise config before requesting Mise Tools", async () => {
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    homeTree: [".zshrc", ".config/mise/config.toml"],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.linked).toContain(".config/mise/config.toml");
+  const stowAt = host.actions.findIndex(
+    (action) => action.startsWith("stow:") && action.includes(".config/mise/config.toml"),
+  );
+  const miseToolsAt = host.actions.indexOf("mise-tools");
+  expect(stowAt).toBeGreaterThanOrEqual(0);
+  expect(miseToolsAt).toBeGreaterThan(stowAt);
+});
+
+test("the committed mise config declares only the five Workflow Mise Tools with auto_update", async () => {
+  const toml = await Bun.file(join(import.meta.dir, "../home/.config/mise/config.toml")).text();
+  expect(toml).toContain('bun = "latest"');
+  expect(toml).toContain('herdr = "latest"');
+  expect(toml).toContain('node = "lts"');
+  expect(toml).toContain('opencode = "latest"');
+  expect(toml).toContain('pi = "latest"');
+  expect(toml).toContain("auto_update = true");
+  expect(toml).not.toContain("codex");
+  expect(toml).not.toContain("grok");
+  expect(toml).not.toContain("gh =");
+});
+
+test("init always requests installMiseTools even when the Mise Tool commands already exist", async () => {
+  const host = createFakeHost(["bun", "npm", "node", "herdr", "pi", "opencode"], {
+    packageManager: "apt",
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.miseToolsCalls).toBe(1);
+});
+
+test("init never requests nvm, bun, herdr, pi, or OpenCode as Upstream Installs", async () => {
+  const host = createFakeHost(["bun"], { packageManager: "apt" });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  for (const tool of ["nvm", "bun", "herdr", "pi", "opencode"]) {
+    expect(host.upstreamInstalls).not.toContain(tool);
+  }
+});
+
+test("pi packages are requested when pi was missing before installMiseTools", async () => {
+  const host = createFakeHost(["bun"], { packageManager: "apt" });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.upstreamInstalls).not.toContain("pi");
+  expect(host.piPackagesRequested).toEqual([
+    "npm:pi-subagents",
+    "npm:pi-mcp-adapter",
+    "npm:@juicesharp/rpiv-ask-user-question",
+    "npm:@juicesharp/rpiv-todo",
+    "npm:@narumitw/pi-retry",
+    "npm:pi-zentui",
+    "npm:@ogulcancelik/pi-herdr",
+    "npm:@ollama/pi-web-search",
+  ]);
+});
+
+test("pi packages are skipped when pi was already present before installMiseTools", async () => {
+  const host = createFakeHost(["bun", "pi"], { packageManager: "apt" });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.miseToolsCalls).toBe(1);
+  expect(host.piPackagesRequested).toEqual([]);
+});
+
+test("the Progress Log replaces the nvm, herdr, and OpenCode rows with mise, Mise Tools, and pi packages", async () => {
+  const host = createFakeHost(["bun"], { packageManager: "apt" });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  const final = finalSteps(host);
+  const labels = [...final.keys()];
+  expect(labels).not.toContain("nvm + Node LTS");
+  expect(labels).not.toContain("herdr");
+  expect(labels).not.toContain("OpenCode");
+  expect(labels).toContain("mise");
+  expect(labels).toContain("Stow");
+  expect(labels).toContain("Mise Tools");
+  expect(labels).toContain("pi packages");
+  expect(final.get("mise")).toEqual({ label: "mise", detail: "latest", state: "done" });
+  expect(final.get("Mise Tools")).toEqual({
+    label: "Mise Tools",
+    detail: "bun, herdr, node, opencode, pi",
+    state: "done",
+  });
+  expect(final.get("pi packages")).toEqual({
+    label: "pi packages",
+    detail: "8 packages",
+    state: "done",
+  });
+});
+
+test("a failed mise Upstream Install fails the command before Stow or Mise Tools", async () => {
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    upstreamInstallError: "mise",
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).not.toBe(0);
+  expect(host.upstreamInstalls).toContain("mise");
+  expect(host.miseToolsCalls).toBe(0);
+  expect(host.linked).toEqual([]);
+});
+
+test("a failed installMiseTools fails the command before later steps", async () => {
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    installMiseToolsError: true,
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).not.toBe(0);
+  expect(host.miseToolsCalls).toBe(1);
+  expect(host.upstreamInstalls).not.toContain("zed");
+  expect(host.piPackagesRequested).toEqual([]);
 });
 
 test("a curated zshrc is Stowed without Android SDK paths or out-of-scope aliases", async () => {
@@ -671,9 +818,15 @@ test("init reports live progress frames for each step", async () => {
     (frame) => frameStep(frame, "Distro packages").state === "running",
   );
   expect(distroRunning?.steps[0].detail).toBe("zsh, git, stow");
+  const miseToolsRunning = frames.find(
+    (frame) => frameStep(frame, "Mise Tools").state === "running",
+  );
+  expect(miseToolsRunning).toBeDefined();
+  expect(frameStep(miseToolsRunning!, "Stow")).toMatchObject({ state: "done", detail: "linked" });
+  expect(frameStep(miseToolsRunning!, "pi packages")).toMatchObject({ state: "pending" });
   const zedRunning = frames.find((frame) => frameStep(frame, "Zed").state === "running");
   expect(zedRunning).toBeDefined();
-  expect(frameStep(zedRunning!, "Stow").state).toBe("pending");
+  expect(frameStep(zedRunning!, "Mise Tools")).toMatchObject({ state: "done" });
   for (const step of frames.at(-1)!.steps) {
     expect(["done", "skipped"]).toContain(step.state);
   }
@@ -683,8 +836,8 @@ test("init reports live progress frames for each step", async () => {
     detail: "zsh, git, stow",
     state: "done",
   });
-  expect(final.get("pi + packages")).toEqual({
-    label: "pi + packages",
+  expect(final.get("pi packages")).toEqual({
+    label: "pi packages",
     detail: "8 packages",
     state: "done",
   });
@@ -704,7 +857,7 @@ test("init reports live progress frames for each step", async () => {
 test("when Workflow is already present, frames say skipped with present details", async () => {
   const home = "/fake-home";
   const host = createFakeHost(
-    ["zsh", "git", "stow", "npm", "bun", "pi", "herdr", "opencode", "zed"],
+    ["zsh", "git", "stow", "mise", "npm", "bun", "pi", "herdr", "opencode", "zed"],
     {
       homeDir: home,
       packageManager: "apt",
@@ -726,10 +879,12 @@ test("when Workflow is already present, frames say skipped with present details"
   expect(final.get("Distro packages")).toMatchObject({ state: "skipped", detail: "present" });
   expect(final.get("Oh My Zsh")).toMatchObject({ state: "skipped", detail: "present" });
   expect(final.get("OMZ plugins")).toMatchObject({ state: "skipped", detail: "present" });
-  expect(final.get("nvm + Node LTS")).toMatchObject({ state: "skipped", detail: "npm present" });
-  expect(final.get("herdr")).toMatchObject({ state: "skipped", detail: "present" });
-  expect(final.get("pi + packages")).toMatchObject({ state: "skipped", detail: "present" });
-  expect(final.get("OpenCode")).toMatchObject({ state: "skipped", detail: "present" });
+  expect(final.get("mise")).toMatchObject({ state: "skipped", detail: "present" });
+  expect(final.get("Mise Tools")).toMatchObject({
+    state: "done",
+    detail: "bun, herdr, node, opencode, pi",
+  });
+  expect(final.get("pi packages")).toMatchObject({ state: "skipped", detail: "present" });
   expect(final.get("Zed")).toMatchObject({ state: "skipped", detail: "present" });
   expect(final.get("Skills")).toMatchObject({ state: "skipped", detail: "present" });
   expect(final.get("Stow")).toMatchObject({ state: "done", detail: "linked" });
@@ -833,13 +988,6 @@ test("init succeeds even when the current session PATH does not yet include ~/.l
   expect(host.commandExists("dotfiles")).toBe(false);
 });
 
-test("init requests the herdr Upstream Install on the Host", async () => {
-  const host = createFakeHost(["bun"], { packageManager: "apt" });
-  const result = await run(["init"], host);
-  expect(result.exitCode).toBe(0);
-  expect(host.upstreamInstalls).toContain("herdr");
-});
-
 test("herdr config.toml is Stowed into the fake $HOME", async () => {
   const host = createFakeHost(["bun"], {
     packageManager: "apt",
@@ -866,37 +1014,6 @@ test("init does not Stow herdr logs and sockets", async () => {
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
   expect(host.linked).toEqual([".config/herdr/config.toml"]);
-});
-
-test("init requests nvm when npm is missing", async () => {
-  const host = createFakeHost(["bun"], { packageManager: "apt" });
-  const result = await run(["init"], host);
-  expect(result.exitCode).toBe(0);
-  expect(host.upstreamInstalls).toContain("nvm");
-});
-
-test("init does not request nvm when npm is already present", async () => {
-  const host = createFakeHost(["bun", "npm"], { packageManager: "apt" });
-  const result = await run(["init"], host);
-  expect(result.exitCode).toBe(0);
-  expect(host.upstreamInstalls).not.toContain("nvm");
-});
-
-test("init requests latest pi and the agreed pi packages on the Host", async () => {
-  const host = createFakeHost(["bun"], { packageManager: "apt" });
-  const result = await run(["init"], host);
-  expect(result.exitCode).toBe(0);
-  expect(host.upstreamInstalls).toContain("pi");
-  expect(host.piPackagesRequested).toEqual([
-    "npm:pi-subagents",
-    "npm:pi-mcp-adapter",
-    "npm:@juicesharp/rpiv-ask-user-question",
-    "npm:@juicesharp/rpiv-todo",
-    "npm:@narumitw/pi-retry",
-    "npm:pi-zentui",
-    "npm:@ogulcancelik/pi-herdr",
-    "npm:@ollama/pi-web-search",
-  ]);
 });
 
 test("restored pi settings do not include default model or provider", async () => {
@@ -1124,7 +1241,9 @@ test("yes on a Distro with a mapping installs Ghostty and Stows its config", asy
   expect(host.progressFrames.some((frame) => frameStep(frame, "Ghostty").state === "running")).toBe(
     true,
   );
-  const cfg = await Bun.file(join(import.meta.dir, "../home/.config/ghostty/config")).text();
+  const cfg = await Bun.file(
+    join(import.meta.dir, "../home/.config/ghostty/config.ghostty"),
+  ).text();
   expect(cfg).toContain("font-size=10");
 });
 
@@ -1259,7 +1378,7 @@ test("declining continue leaves the Host unchanged", async () => {
 test("continue does not re-request tools the Host already has", async () => {
   const home = "/fake-home";
   const host = createFakeHost(
-    ["zsh", "git", "stow", "npm", "bun", "pi", "herdr", "opencode", "zed"],
+    ["zsh", "git", "stow", "mise", "npm", "bun", "pi", "herdr", "opencode", "zed"],
     {
       homeDir: home,
       packageManager: "apt",
@@ -1336,30 +1455,6 @@ test("continue still confirms before Stow conflicts", async () => {
   expect(host.prompts.some((p) => p.toLowerCase().includes("stow"))).toBe(true);
   expect(host.backups).toEqual([]);
   expect(host.linked).not.toContain(".zshrc");
-});
-
-test("init requests the OpenCode Upstream Install on the Host", async () => {
-  const host = createFakeHost(["bun"], { packageManager: "apt" });
-  const result = await run(["init"], host);
-  expect(result.exitCode).toBe(0);
-  expect(host.upstreamInstalls).toContain("opencode");
-});
-
-test("if OpenCode is already present, init does not request it again", async () => {
-  const host = createFakeHost(["bun", "opencode"], { packageManager: "apt" });
-  const result = await run(["init"], host);
-  expect(result.exitCode).toBe(0);
-  expect(host.upstreamInstalls).not.toContain("opencode");
-});
-
-test("a failed OpenCode Upstream Install fails the command", async () => {
-  const host = createFakeHost(["bun"], {
-    packageManager: "apt",
-    upstreamInstallError: "opencode",
-  });
-  const result = await run(["init"], host);
-  expect(result.exitCode).not.toBe(0);
-  expect(host.upstreamInstalls).toContain("opencode");
 });
 
 test("init requests the Zed Upstream Install on the Host", async () => {
@@ -1618,31 +1713,10 @@ test("a Host missing OpenCode is not treated as Workflow already present", async
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
   expect(host.prompts[0]?.toLowerCase()).not.toContain("continue?");
-  expect(host.upstreamInstalls).toContain("opencode");
-});
-
-test("continue does not re-request OpenCode if it is already installed", async () => {
-  const home = "/fake-home";
-  const host = createFakeHost(
-    ["zsh", "git", "stow", "npm", "bun", "pi", "herdr", "opencode", "zed"],
-    {
-      homeDir: home,
-      packageManager: "apt",
-      files: [
-        `${home}/.oh-my-zsh`,
-        `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
-        `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
-        ...skillDirs(home),
-        `${home}/.config/mcp/mcp.json`,
-        `${home}/.local/bin/dotfiles`,
-      ],
-      loginShell: "/bin/zsh",
-      promptAnswers: ["y"],
-    },
-  );
-  const result = await run(["init"], host);
-  expect(result.exitCode).toBe(0);
+  expect(host.upstreamInstalls).toContain("mise");
+  expect(host.upstreamInstalls).toContain("zed");
   expect(host.upstreamInstalls).not.toContain("opencode");
+  expect(host.miseToolsCalls).toBe(1);
 });
 
 test("continue still confirms before Stow conflicts for OpenCode config", async () => {

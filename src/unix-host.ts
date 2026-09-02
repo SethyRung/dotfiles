@@ -92,17 +92,11 @@ export const unixHost: Host = {
     } else {
       await Bun.$`curl -fsSL ${install.url} | ${install.shell}`.env(env);
     }
-    if (install.then) {
-      await Bun.$`${install.shell} -c ${install.then}`.env(env);
-      const nodePath = (
-        await Bun.$`${install.shell} -c ${'. "$HOME/.nvm/nvm.sh" && command -v node'}`
-          .env(env)
-          .text()
-      ).trim();
-      if (nodePath) {
-        process.env.PATH = `${dirname(nodePath)}:${process.env.PATH ?? ""}`;
-      }
-    }
+  },
+  async installMiseTools() {
+    const mise = Bun.which("mise") ?? join(homedir(), ".local/bin/mise");
+    await Bun.$`${mise} install`;
+    process.env.PATH = `${join(homedir(), ".local/share/mise/shims")}:${process.env.PATH ?? ""}`;
   },
   packageManager() {
     if (Bun.which("apt-get") ?? Bun.which("apt")) {

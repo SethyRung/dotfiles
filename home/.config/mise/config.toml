@@ -1,0 +1,9 @@
+[tools]
+bun = "latest"
+herdr = "latest"
+node = "lts"
+opencode = "latest"
+pi = "latest"
+
+[settings]
+auto_update = true

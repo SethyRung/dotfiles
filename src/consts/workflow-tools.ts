@@ -6,16 +6,12 @@ export const workflowTools = {
   zsh: { command: "zsh", label: "zsh" },
   git: { command: "git", label: "git" },
   stow: { command: "stow", label: "stow" },
-  npm: {
-    command: "npm",
-    label: "npm",
-    // npm on PATH is the presence proxy for the nvm Upstream Install
-    upstream: "nvm",
-  },
-  bun: { command: "bun", label: "bun", upstream: "bun" },
-  pi: { command: "pi", label: "pi", upstream: "pi" },
-  herdr: { command: "herdr", label: "herdr", upstream: "herdr" },
-  opencode: { command: "opencode", label: "OpenCode", upstream: "opencode" },
+  mise: { command: "mise", label: "mise", upstream: "mise" },
+  npm: { command: "npm", label: "npm" },
+  bun: { command: "bun", label: "bun" },
+  pi: { command: "pi", label: "pi" },
+  herdr: { command: "herdr", label: "herdr" },
+  opencode: { command: "opencode", label: "OpenCode" },
   zed: { command: "zed", label: "Zed", upstream: "zed" },
   ghostty: { command: "ghostty", label: "Ghostty" },
 } as const satisfies Record<string, { command: string; label: string; upstream?: UpstreamKey }>;

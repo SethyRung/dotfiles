@@ -4,13 +4,13 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Init Upstream-Installs mise when it is missing and skips that install when it is present
-- [ ] Init Stows the Workflow mise config (five Mise Tools + auto_update) before `installMiseTools`
-- [ ] Init always calls `installMiseTools` even if bun/npm/herdr/pi/OpenCode already exist on the fake Host
-- [ ] Init never requests nvm, bun, herdr, pi, or OpenCode as Upstream Installs
-- [ ] Pi packages are requested only when pi was missing before `installMiseTools`
-- [ ] Progress Log no longer has nvm / herdr / OpenCode Upstream steps
-- [ ] A failed mise Upstream Install or failed `installMiseTools` fails the command
-- [ ] Behaviour is observed only through the CLI against a fake Host
+- [x] Init Upstream-Installs mise when it is missing and skips that install when it is present
+- [x] Init Stows the Workflow mise config (five Mise Tools + auto_update) before `installMiseTools`
+- [x] Init always calls `installMiseTools` even if bun/npm/herdr/pi/OpenCode already exist on the fake Host
+- [x] Init never requests nvm, bun, herdr, pi, or OpenCode as Upstream Installs
+- [x] Pi packages are requested only when pi was missing before `installMiseTools`
+- [x] Progress Log no longer has nvm / herdr / OpenCode Upstream steps
+- [x] A failed mise Upstream Install or failed `installMiseTools` fails the command
+- [x] Behaviour is observed only through the CLI against a fake Host

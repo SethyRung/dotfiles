@@ -5,6 +5,7 @@ export type PackageManager = "apt" | "pacman" | "dnf" | "zypper";
 export type Host = {
   commandExists(command: string): boolean;
   runUpstreamInstall(tool: string): Promise<void>;
+  installMiseTools(): Promise<void>;
   packageManager(): PackageManager | null;
   installPackages(packages: string[]): Promise<void>;
   homeDir(): string;

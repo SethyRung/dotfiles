@@ -16,9 +16,6 @@ import { isGhosttyConfig, isStowJunk } from "@/utils/stow.ts";
 export type { RunResult };
 
 export async function run(args: string[], host: Host): Promise<RunResult> {
-  if (!host.commandExists(workflowTools.bun.command)) {
-    await host.runUpstreamInstall(workflowTools.bun.upstream);
-  }
   const command = args[0];
   if (command === "init") {
     return await init(host);
@@ -46,19 +43,20 @@ const STEPS = {
   DISTRO: 0,
   OMZ: 1,
   OMZ_PLUGINS: 2,
-  NVM: 3,
-  HERDR: 4,
-  PI: 5,
-  OPENCODE: 6,
+  MISE: 3,
+  STOW: 4,
+  MISE_TOOLS: 5,
+  PI_PACKAGES: 6,
   ZED: 7,
   SKILLS: 8,
-  STOW: 9,
-  MCP: 10,
-  KEYS: 11,
-  GHOSTTY: 12,
-  SHELL: 13,
-  CLI: 14,
+  MCP: 9,
+  KEYS: 10,
+  GHOSTTY: 11,
+  SHELL: 12,
+  CLI: 13,
 } as const;
+
+const miseToolsDetail = "bun, herdr, node, opencode, pi";
 
 function initialSteps(): ProgressStep[] {
   const pending = (label: string, detail: string): ProgressStep => ({
@@ -70,13 +68,12 @@ function initialSteps(): ProgressStep[] {
     pending("Distro packages", "zsh, git, stow"),
     pending("Oh My Zsh", "latest"),
     pending("OMZ plugins", "autosuggestions, syntax-highlighting"),
-    pending("nvm + Node LTS", "node LTS"),
-    pending(workflowTools.herdr.label, "latest"),
-    pending("pi + packages", "latest"),
-    pending(workflowTools.opencode.label, "latest"),
+    pending(workflowTools.mise.label, "latest"),
+    pending("Stow", "home/ tree"),
+    pending("Mise Tools", miseToolsDetail),
+    pending("pi packages", `${piPackages.length} packages`),
     pending(workflowTools.zed.label, "latest"),
     pending("Skills", `${skillsList.length} skills`),
-    pending("Stow", "home/ tree"),
     pending("OpenCode MCP", "mcp key"),
     pending("API Keys", "will prompt"),
     pending(workflowTools.ghostty.label, "will prompt"),
@@ -141,34 +138,29 @@ async function init(host: Host): Promise<RunResult> {
     } else {
       update(STEPS.OMZ_PLUGINS, "skipped", "present");
     }
-    if (!host.commandExists(workflowTools.npm.command)) {
-      update(STEPS.NVM, "running", "node LTS");
-      await host.runUpstreamInstall(workflowTools.npm.upstream);
-      update(STEPS.NVM, "done", "node LTS");
+    if (!host.commandExists(workflowTools.mise.command)) {
+      update(STEPS.MISE, "running", "latest");
+      await host.runUpstreamInstall(workflowTools.mise.upstream);
+      update(STEPS.MISE, "done", "latest");
     } else {
-      update(STEPS.NVM, "skipped", "npm present");
+      update(STEPS.MISE, "skipped", "present");
     }
-    if (!host.commandExists(workflowTools.herdr.command)) {
-      update(STEPS.HERDR, "running", "latest");
-      await host.runUpstreamInstall(workflowTools.herdr.upstream);
-      update(STEPS.HERDR, "done", "latest");
-    } else {
-      update(STEPS.HERDR, "skipped", "present");
+    update(STEPS.STOW, "running", "home/ tree");
+    const stowed = await stow(host, { skipGhostty: true, confirmConflicts: reRun });
+    if (stowed.exitCode !== 0) {
+      return stowed;
     }
-    if (!host.commandExists(workflowTools.pi.command)) {
-      update(STEPS.PI, "running", `latest + ${piPackages.length} packages`);
-      await host.runUpstreamInstall(workflowTools.pi.upstream);
+    update(STEPS.STOW, "done", "linked");
+    const piWasMissing = !host.commandExists(workflowTools.pi.command);
+    update(STEPS.MISE_TOOLS, "running", miseToolsDetail);
+    await host.installMiseTools();
+    update(STEPS.MISE_TOOLS, "done", miseToolsDetail);
+    if (piWasMissing) {
+      update(STEPS.PI_PACKAGES, "running", `${piPackages.length} packages`);
       await host.installPiPackages(piPackages);
-      update(STEPS.PI, "done", `${piPackages.length} packages`);
+      update(STEPS.PI_PACKAGES, "done", `${piPackages.length} packages`);
     } else {
-      update(STEPS.PI, "skipped", "present");
-    }
-    if (!host.commandExists(workflowTools.opencode.command)) {
-      update(STEPS.OPENCODE, "running", "latest");
-      await host.runUpstreamInstall(workflowTools.opencode.upstream);
-      update(STEPS.OPENCODE, "done", "latest");
-    } else {
-      update(STEPS.OPENCODE, "skipped", "present");
+      update(STEPS.PI_PACKAGES, "skipped", "present");
     }
     if (!host.commandExists(workflowTools.zed.command)) {
       update(STEPS.ZED, "running", "latest");
@@ -185,12 +177,6 @@ async function init(host: Host): Promise<RunResult> {
     } else {
       update(STEPS.SKILLS, "skipped", "present");
     }
-    update(STEPS.STOW, "running", "home/ tree");
-    const stowed = await stow(host, { skipGhostty: true, confirmConflicts: reRun });
-    if (stowed.exitCode !== 0) {
-      return stowed;
-    }
-    update(STEPS.STOW, "done", "linked");
     update(STEPS.MCP, "running", "mirroring XDG mcp");
     await mirrorOpenCodeMcp(host);
     update(STEPS.MCP, "done", "mcp key refreshed");
