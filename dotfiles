@@ -4,9 +4,12 @@ set -euo pipefail
 root="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 
 if ! command -v bun >/dev/null 2>&1; then
-  curl -fsSL https://bun.com/install | bash
-  export BUN_INSTALL="${BUN_INSTALL:-$HOME/.bun}"
-  export PATH="$BUN_INSTALL/bin:$PATH"
+  export PATH="$HOME/.local/bin:$PATH"
+  if [[ ! -x "$HOME/.local/bin/mise" ]]; then
+    curl -fsSL https://mise.run | sh
+  fi
+  "$HOME/.local/bin/mise" use -g -y bun@latest
+  export PATH="$HOME/.local/share/mise/shims:$PATH"
 fi
 
 exec bun "$root/src/main.ts" "$@"

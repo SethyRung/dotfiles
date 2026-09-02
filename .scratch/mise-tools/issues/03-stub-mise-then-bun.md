@@ -4,9 +4,9 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Missing bun: stub installs mise from mise.run, then bun via mise, then execs the CLI
-- [ ] Present bun: stub does not install mise or bun and execs the CLI
-- [ ] Stub does not use bun.com/install
-- [ ] No unit tests of the stub (per spec)
+- [x] Missing bun: stub installs mise from mise.run, then bun via mise, then execs the CLI
+- [x] Present bun: stub does not install mise or bun and execs the CLI
+- [x] Stub does not use bun.com/install
+- [x] No unit tests of the stub (per spec)
