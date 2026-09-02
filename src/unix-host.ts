@@ -54,21 +54,19 @@ export const unixHost: Host = {
     if (Bun.which(command) !== null) {
       return true;
     }
-
     const home = homedir();
-    const binDirs = [join(home, ".bun/bin"), join(home, ".local/bin"), join(home, ".opencode/bin")];
-    for (const dir of binDirs) {
-      if (existsSync(join(dir, command))) {
-        return true;
-      }
+    if (existsSync(join(home, ".local/bin", command))) {
+      return true;
     }
-    if (command === "npm") {
-      const nvm = join(home, ".nvm");
-      if (existsSync(nvm)) {
-        const found = [...new Bun.Glob("versions/node/*/bin/npm").scanSync({ cwd: nvm })];
-        if (found.length > 0) {
-          return true;
-        }
+    const mise = join(home, ".local/share/mise");
+    if (existsSync(join(mise, "shims", command))) {
+      return true;
+    }
+    const installs = join(mise, "installs");
+    if (existsSync(installs)) {
+      const found = [...new Bun.Glob(`*/*/bin/${command}`).scanSync({ cwd: installs })];
+      if (found.length > 0) {
+        return true;
       }
     }
     return false;

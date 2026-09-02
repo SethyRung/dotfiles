@@ -272,6 +272,7 @@ async function doctor(host: Host): Promise<RunResult> {
   );
   const git = host.commandExists(workflowTools.git.command);
   const stowOk = host.commandExists(workflowTools.stow.command);
+  const mise = host.commandExists(workflowTools.mise.command);
   const npm = host.commandExists(workflowTools.npm.command);
   const bun = host.commandExists(workflowTools.bun.command);
   const pi = host.commandExists(workflowTools.pi.command);
@@ -291,6 +292,7 @@ async function doctor(host: Host): Promise<RunResult> {
     plugins,
     git,
     stowOk,
+    mise,
     npm,
     bun,
     pi,
@@ -312,6 +314,7 @@ async function doctor(host: Host): Promise<RunResult> {
     doctorRow("OMZ plugins", plugins),
     doctorRow("git", git),
     doctorRow("stow", stowOk),
+    doctorRow(workflowTools.mise.label, mise),
     doctorRow("npm", npm),
     doctorRow("bun", bun),
     doctorRow("pi", pi),

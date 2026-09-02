@@ -23,6 +23,7 @@ export const requiredWorkflowTools: readonly WorkflowTool[] = [
   workflowTools.zsh,
   workflowTools.git,
   workflowTools.stow,
+  workflowTools.mise,
   workflowTools.npm,
   workflowTools.bun,
   workflowTools.pi,

@@ -308,6 +308,7 @@ test("on an empty Host, doctor reports required Workflow pieces missing and exit
     "OMZ plugins",
     "git",
     "stow",
+    "mise",
     "npm",
     "bun",
     "pi",
@@ -322,13 +323,28 @@ test("on an empty Host, doctor reports required Workflow pieces missing and exit
     expect(result.stdout).toContain(`[!!]  ${piece}`);
   }
   expect(result.stdout).toContain("Workflow");
-  expect(result.stdout).toContain("0/15 required ok");
+  expect(result.stdout).toContain("0/16 required ok");
+});
+
+test("doctor reports mise missing as a required failure", async () => {
+  const host = createFakeHost();
+  const result = await run(["doctor"], host);
+  expect(result.exitCode).not.toBe(0);
+  expect(result.stdout).toContain("[!!]  mise");
+  expect(result.stdout).not.toMatch(/mise.*optional/i);
+});
+
+test("doctor does not mention nvm", async () => {
+  const host = createFakeHost();
+  const result = await run(["doctor"], host);
+  expect(result.stdout).not.toMatch(/nvm/i);
+  expect(result.stderr).not.toMatch(/nvm/i);
 });
 
 test("Ghostty missing is a warning, not a required failure", async () => {
   const home = "/fake-home";
   const host = createFakeHost(
-    ["zsh", "git", "stow", "npm", "bun", "pi", "herdr", "opencode", "zed"],
+    ["zsh", "git", "stow", "mise", "npm", "bun", "pi", "herdr", "opencode", "zed"],
     {
       homeDir: home,
       files: [
@@ -347,7 +363,8 @@ test("Ghostty missing is a warning, not a required failure", async () => {
   expect(result.stdout).toContain("[skip] Ghostty");
   expect(result.stdout).not.toContain("[!!]  Ghostty");
   expect(result.stdout).toContain("Optional");
-  expect(result.stdout).toContain("15 required ok");
+  expect(result.stdout).toContain("[ok]  mise");
+  expect(result.stdout).toContain("16 required ok");
 });
 
 test("doctor never prints API Key values", async () => {
@@ -968,7 +985,7 @@ test("answering yes reboots after the rest of init has finished", async () => {
 test("no reboot question when the login shell is already zsh", async () => {
   const home = "/fake-home";
   const host = createFakeHost(
-    ["zsh", "git", "stow", "npm", "bun", "pi", "herdr", "opencode", "zed"],
+    ["zsh", "git", "stow", "mise", "npm", "bun", "pi", "herdr", "opencode", "zed"],
     {
       homeDir: home,
       packageManager: "apt",
@@ -1313,7 +1330,7 @@ test("already-installed Ghostty is not offered again but its config is still Sto
 test("on a re-run, init still offers Ghostty when it is missing", async () => {
   const home = "/fake-home";
   const host = createFakeHost(
-    ["zsh", "git", "stow", "npm", "bun", "pi", "herdr", "opencode", "zed"],
+    ["zsh", "git", "stow", "mise", "npm", "bun", "pi", "herdr", "opencode", "zed"],
     {
       homeDir: home,
       packageManager: "apt",
@@ -1364,7 +1381,7 @@ test("yes on a Distro without a mapping warns and does not abort the rest of ini
 test("when Workflow already looks present, init asks continue? before doing work", async () => {
   const home = "/fake-home";
   const host = createFakeHost(
-    ["zsh", "git", "stow", "npm", "bun", "pi", "herdr", "opencode", "zed"],
+    ["zsh", "git", "stow", "mise", "npm", "bun", "pi", "herdr", "opencode", "zed"],
     {
       homeDir: home,
       packageManager: "apt",
@@ -1390,7 +1407,7 @@ test("declining continue leaves the Host unchanged", async () => {
   const home = "/fake-home";
   const existing = 'PATH="/usr/bin"\n';
   const host = createFakeHost(
-    ["zsh", "git", "stow", "npm", "bun", "pi", "herdr", "opencode", "zed"],
+    ["zsh", "git", "stow", "mise", "npm", "bun", "pi", "herdr", "opencode", "zed"],
     {
       homeDir: home,
       packageManager: "apt",
@@ -1451,7 +1468,7 @@ test("continue still confirms before /etc/environment writes", async () => {
   const home = "/fake-home";
   const existing = 'PATH="/usr/bin"\n';
   const host = createFakeHost(
-    ["zsh", "git", "stow", "npm", "bun", "pi", "herdr", "opencode", "zed"],
+    ["zsh", "git", "stow", "mise", "npm", "bun", "pi", "herdr", "opencode", "zed"],
     {
       homeDir: home,
       packageManager: "apt",
@@ -1477,7 +1494,7 @@ test("continue still confirms before /etc/environment writes", async () => {
 test("continue still confirms before Stow conflicts", async () => {
   const home = "/fake-home";
   const host = createFakeHost(
-    ["zsh", "git", "stow", "npm", "bun", "pi", "herdr", "opencode", "zed"],
+    ["zsh", "git", "stow", "mise", "npm", "bun", "pi", "herdr", "opencode", "zed"],
     {
       homeDir: home,
       packageManager: "apt",
@@ -1559,7 +1576,7 @@ test("doctor reports OpenCode missing as a required failure", async () => {
 test("doctor reports OpenCode and Zed present without treating them as optional", async () => {
   const home = "/fake-home";
   const host = createFakeHost(
-    ["zsh", "git", "stow", "npm", "bun", "pi", "herdr", "opencode", "zed"],
+    ["zsh", "git", "stow", "mise", "npm", "bun", "pi", "herdr", "opencode", "zed"],
     {
       homeDir: home,
       files: [
@@ -1744,6 +1761,30 @@ test("re-running init refreshes OpenCode mcp key from the XDG file", async () =>
   ]);
 });
 
+test("a Host missing mise is not treated as Workflow already present", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(
+    ["zsh", "git", "stow", "npm", "bun", "pi", "herdr", "opencode", "zed"],
+    {
+      homeDir: home,
+      packageManager: "apt",
+      files: [
+        `${home}/.oh-my-zsh`,
+        `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
+        `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
+        ...skillDirs(home),
+        `${home}/.config/mcp/mcp.json`,
+        `${home}/.local/bin/dotfiles`,
+      ],
+      loginShell: "/bin/zsh",
+    },
+  );
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.prompts[0]?.toLowerCase()).not.toContain("continue?");
+  expect(host.upstreamInstalls).toContain("mise");
+});
+
 test("a Host missing OpenCode is not treated as Workflow already present", async () => {
   const home = "/fake-home";
   const host = createFakeHost(["zsh", "git", "stow", "npm", "bun", "pi", "herdr"], {
@@ -1771,7 +1812,7 @@ test("a Host missing OpenCode is not treated as Workflow already present", async
 test("continue still confirms before Stow conflicts for OpenCode config", async () => {
   const home = "/fake-home";
   const host = createFakeHost(
-    ["zsh", "git", "stow", "npm", "bun", "pi", "herdr", "opencode", "zed"],
+    ["zsh", "git", "stow", "mise", "npm", "bun", "pi", "herdr", "opencode", "zed"],
     {
       homeDir: home,
       packageManager: "apt",

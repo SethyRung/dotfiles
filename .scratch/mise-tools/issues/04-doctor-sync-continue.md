@@ -4,12 +4,12 @@
 
 **Blocked by:** 01: `dotfiles init` installs Mise Tools through mise
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Doctor reports mise missing as a required failure and present as ok
-- [ ] Doctor does not mention nvm
-- [ ] Doctor still treats bun, npm, pi, herdr, and OpenCode as required
-- [ ] A Host missing mise is not treated as Workflow already present
-- [ ] `dotfiles sync` does not call `installMiseTools`
-- [ ] Real Host `commandExists` does not treat leftover bun.com / nvm / OpenCode bins as installed
-- [ ] Behaviour for doctor, continue?, and sync is observed through the CLI against a fake Host
+- [x] Doctor reports mise missing as a required failure and present as ok
+- [x] Doctor does not mention nvm
+- [x] Doctor still treats bun, npm, pi, herdr, and OpenCode as required
+- [x] A Host missing mise is not treated as Workflow already present
+- [x] `dotfiles sync` does not call `installMiseTools`
+- [x] Real Host `commandExists` does not treat leftover bun.com / nvm / OpenCode bins as installed
+- [x] Behaviour for doctor, continue?, and sync is observed through the CLI against a fake Host
