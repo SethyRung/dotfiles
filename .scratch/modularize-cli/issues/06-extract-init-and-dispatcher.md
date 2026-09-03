@@ -4,11 +4,11 @@
 
 **Blocked by:** 04: Extract shared `stow` engine and command
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Bootstrap workflow logic and re-run detection helper reside in their own command module under `src/commands/`
-- [ ] Dispatcher in `src/cli.ts` acts strictly as a router from CLI arguments to command functions
-- [ ] Init tests are moved to a dedicated test file under `tests/commands/` and invoke behavior exclusively via `run(["init"], host)`
-- [ ] Top-level CLI test file covers only `--help`, empty arguments, and unknown command handling
-- [ ] Full bootstrap sequence, progress tracking, Upstream Installs, and prompt interactions remain unchanged
-- [ ] `bun test` passes
+- [x] Bootstrap workflow logic and re-run detection helper reside in their own command module under `src/commands/`
+- [x] Dispatcher in `src/cli.ts` acts strictly as a router from CLI arguments to command functions
+- [x] Init tests are moved to a dedicated test file under `tests/commands/` and invoke behavior exclusively via `run(["init"], host)`
+- [x] Top-level CLI test file covers only `--help`, empty arguments, and unknown command handling
+- [x] Full bootstrap sequence, progress tracking, Upstream Installs, and prompt interactions remain unchanged
+- [x] `bun test` passes
