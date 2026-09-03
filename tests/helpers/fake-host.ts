@@ -1,7 +1,10 @@
 import { skillsList } from "@/consts/skills-list.ts";
 import type { Host, PackageManager } from "@/types/host.ts";
 import type { ProgressFrame } from "@/types/progress.ts";
+import type { StowOptions } from "@/types/result.ts";
 import { mergeEnvironment } from "@/utils/environment.ts";
+import { isYes } from "@/utils/prompt.ts";
+import { isGhosttyConfig, isStowJunk } from "@/utils/stow.ts";
 import { backupStamp, parseDate } from "@/utils/time.ts";
 
 export function skillDirs(home: string): string[] {
@@ -199,32 +202,55 @@ export function createFakeHost(
     homeTree() {
       return tree;
     },
-    backup(path) {
-      const dest = `${path}.${backupStamp(clock)}`;
-      backups.push(dest);
-      files.delete(path);
-      return dest;
-    },
     removeFile(path) {
       removedFiles.push(path);
       files.delete(path);
     },
-    linksIntoRepo(path) {
-      return repoLinks.has(path);
-    },
-    isSymlink(path) {
-      return repoLinks.has(path) || staleLinks.has(path);
-    },
-    async stow(relPaths) {
-      actions.push(`stow:${relPaths.join(",")}`);
-      for (const rel of relPaths) {
-        linked.push(rel);
+    async stowTree(options: StowOptions = {}) {
+      let rels = tree.filter((rel) => {
+        if (isStowJunk(rel)) {
+          return false;
+        }
+        if (options.onlyGhostty) {
+          return isGhosttyConfig(rel);
+        }
+        if (options.skipGhostty) {
+          return !isGhosttyConfig(rel);
+        }
+        return true;
+      });
+      if (options.confirmConflicts) {
+        const conflicts = rels.filter((rel) => files.has(`${homeDir}/${rel}`));
+        if (conflicts.length > 0) {
+          prompts.push("Overwrite existing files with Stow? [y/N] ");
+          const answer = promptAnswers.shift() ?? "";
+          if (!isYes(answer)) {
+            rels = rels.filter((rel) => !conflicts.includes(rel));
+          }
+        }
+      }
+      for (const rel of rels) {
         const dest = `${homeDir}/${rel}`;
+        const isRepoLink = repoLinks.has(dest);
+        const isStale = staleLinks.has(dest);
+        const exists = files.has(dest);
+
+        if (exists && !isRepoLink && !isStale) {
+          const bkp = `${dest}.${backupStamp(clock)}`;
+          backups.push(bkp);
+          files.delete(dest);
+        }
+        if (isStale) {
+          staleLinks.delete(dest);
+        }
+        linked.push(rel);
         files.add(dest);
+        repoLinks.add(dest);
         if (extras.treeContents?.[rel] != null) {
           fileContents[dest] = extras.treeContents[rel];
         }
       }
+      actions.push(`stow:${rels.join(",")}`);
     },
     async installMiseTools() {
       actions.push("mise-tools");

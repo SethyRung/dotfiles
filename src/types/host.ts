@@ -1,4 +1,5 @@
 import type { ProgressFrame } from "@/types/progress.ts";
+import type { StowOptions } from "@/types/result.ts";
 
 export type PackageManager = "apt" | "pacman" | "dnf" | "zypper";
 
@@ -19,11 +20,8 @@ export type Host = {
   brokenStowLinks(): string[];
   stowBackups(): string[];
   homeTree(): string[];
-  backup(path: string): string;
   removeFile(path: string): void;
-  linksIntoRepo(path: string): boolean;
-  isSymlink(path: string): boolean;
-  stow(relPaths: string[]): Promise<void>;
+  stowTree(options?: StowOptions): Promise<void>;
   installPiPackages(packages: string[]): Promise<void>;
   installSkills(specs: string[]): Promise<void>;
   prompt(message: string): Promise<string>;

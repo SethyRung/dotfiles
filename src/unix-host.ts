@@ -16,6 +16,8 @@ import type { Host } from "@/types/host.ts";
 import type { ProgressFrame } from "@/types/progress.ts";
 import { mergeEnvironment } from "@/utils/environment.ts";
 import { renderBanner, renderPanel, spinnerFrames } from "@/utils/panel.ts";
+import { isYes } from "@/utils/prompt.ts";
+import { isGhosttyConfig, isStowJunk } from "@/utils/stow.ts";
 import { backupStamp, isBackupStamp } from "@/utils/time.ts";
 
 let progressStartedAt = 0;
@@ -242,43 +244,56 @@ export const unixHost: Host = {
     }
     return [...new Bun.Glob("**/*").scanSync({ cwd: tree, dot: true })];
   },
-  backup(path) {
-    const dest = `${path}.${backupStamp()}`;
-    renameSync(path, dest);
-    return dest;
-  },
   removeFile(path) {
     unlinkSync(path);
   },
-  linksIntoRepo(path) {
-    try {
-      const tree = join(import.meta.dir, "..", "home");
-      return readlinkSync(path).startsWith(`${tree}/`);
-    } catch {
-      return false;
-    }
-  },
-  isSymlink(path) {
-    try {
-      return lstatSync(path).isSymbolicLink();
-    } catch {
-      return false;
-    }
-  },
-  async stow(relPaths) {
+  async stowTree(options = {}) {
     const tree = join(import.meta.dir, "..", "home");
     const home = homedir();
-    for (const rel of relPaths) {
+    let rels = unixHost.homeTree().filter((rel) => {
+      if (isStowJunk(rel)) {
+        return false;
+      }
+      if (options.onlyGhostty) {
+        return isGhosttyConfig(rel);
+      }
+      if (options.skipGhostty) {
+        return !isGhosttyConfig(rel);
+      }
+      return true;
+    });
+    if (options.confirmConflicts) {
+      const conflicts = rels.filter((rel) => existsSync(join(home, rel)));
+      if (conflicts.length > 0) {
+        const overwrite = isYes(
+          await unixHost.prompt("Overwrite existing files with Stow? [y/N] "),
+        );
+        if (!overwrite) {
+          rels = rels.filter((rel) => !conflicts.includes(rel));
+        }
+      }
+    }
+    for (const rel of rels) {
       const dest = join(home, rel);
+      const src = join(tree, rel);
       mkdirSync(dirname(dest), { recursive: true });
       try {
         const stat = lstatSync(dest);
-        if (!stat.isSymbolicLink()) {
-          continue;
+        if (stat.isSymbolicLink()) {
+          try {
+            const target = readlinkSync(dest);
+            if (target === src || target.startsWith(`${tree}/`)) {
+              continue;
+            }
+          } catch {}
+          unlinkSync(dest);
+        } else {
+          renameSync(dest, `${dest}.${backupStamp()}`);
         }
-        unlinkSync(dest);
-      } catch {}
-      symlinkSync(join(tree, rel), dest);
+      } catch {
+        // dest does not exist
+      }
+      symlinkSync(src, dest);
     }
   },
   async installPiPackages(packages) {

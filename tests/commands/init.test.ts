@@ -121,15 +121,15 @@ test("init Stows the Workflow mise config before requesting Mise Tools", async (
   expect(miseToolsAt).toBeGreaterThan(stowAt);
 });
 
-test("the committed mise config declares only the five Workflow Mise Tools with auto_update", async () => {
+test("the committed mise config declares the Workflow Mise Tools with auto_update", async () => {
   const toml = await Bun.file(join(import.meta.dir, "../../home/.config/mise/config.toml")).text();
   expect(toml).toContain('bun = "latest"');
+  expect(toml).toContain('codex = "latest"');
   expect(toml).toContain('herdr = "latest"');
   expect(toml).toContain('node = "lts"');
   expect(toml).toContain('opencode = "latest"');
   expect(toml).toContain('pi = "latest"');
   expect(toml).toContain("auto_update = true");
-  expect(toml).not.toContain("codex");
   expect(toml).not.toContain("grok");
   expect(toml).not.toContain("gh =");
 });
