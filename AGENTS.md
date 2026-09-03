@@ -14,7 +14,7 @@ v1 Bootstrap CLI is done. Extend `src/cli.ts` + Host; do not invent a parallel c
 bun run lint && bun run fmt:check && bun run typecheck && bun test
 ```
 
-- One test: `bun test -t "substring"` (all cases live in `tests/cli.test.ts`).
+- One test: `bun test -t "substring"` (cases live in `tests/commands/` and `tests/cli.test.ts`).
 - Lint is oxlint (`typescript`; `@typescript-eslint/no-explicit-any` is **off**). Format is oxfmt (2-space, semicolons, double quotes, trailing commas, printWidth 100). oxfmt ignores `home/`.
 - Imports: `@/` → `src/`, keep `.ts` extensions (`verbatimModuleSyntax`).
 

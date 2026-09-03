@@ -9,10 +9,10 @@
 - 05: Extract `sync` command and test suite
 - 06: Extract `init` command and finalize dispatcher
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `AGENTS.md` test location reference updated to point to `tests/commands/`
-- [ ] `bun run lint` (oxlint) passes with zero warnings or errors
-- [ ] `bun run fmt:check` (oxfmt) passes
-- [ ] `bun run typecheck` passes
-- [ ] `bun test` passes across all test files
+- [x] `AGENTS.md` test location reference updated to point to `tests/commands/`
+- [x] `bun run lint` (oxlint) passes with zero warnings or errors
+- [x] `bun run fmt:check` (oxfmt) passes
+- [x] `bun run typecheck` passes
+- [x] `bun test` passes across all test files
