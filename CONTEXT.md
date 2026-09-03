@@ -20,6 +20,10 @@ _Avoid_: OS, flavor, platform
 The development environment Bootstrap restores: zsh + Oh My Zsh, Mise Tools (bun, Node, herdr, pi, OpenCode), pi's current packages, Zed, global Skills (via skills.sh), XDG MCP, API Keys, optional Ghostty, and git installed with no git config.
 _Avoid_: using "dotfiles" for the running environment
 
+**Workflow Health**:
+The evaluated health status of the Workflow: presence of required Distro packages, OMZ plugins, Mise Tools, pi packages, Zed, Skills, XDG MCP, login shell, dotfiles symlink, and broken Stow links. Evaluated by `dotfiles doctor` and checked by `dotfiles init` to detect a re-run.
+_Avoid_: status check, doctor check, system test (when you mean this evaluation)
+
 **Dotfiles**:
 This repository: the `dotfiles` CLI plus the config files Bootstrap applies.
 _Avoid_: using "dotfiles" for secrets or for software packages
