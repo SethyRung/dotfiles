@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { clean } from "@/commands/clean.ts";
 import { doctor } from "@/commands/doctor.ts";
+import { stow, stowCommand } from "@/commands/stow.ts";
 import { helpText } from "@/consts/help.ts";
 import { omzPlugins } from "@/consts/omz-plugins.ts";
 import { ghosttyPackageFor, packagesFor } from "@/consts/package-map.ts";
@@ -9,11 +10,10 @@ import { skillDir, skillsList } from "@/consts/skills-list.ts";
 import { requiredWorkflowTools, workflowTools } from "@/consts/workflow-tools.ts";
 import type { Host } from "@/types/host.ts";
 import type { ProgressState, ProgressStep } from "@/types/progress.ts";
-import type { RunResult, StowOptions } from "@/types/result.ts";
+import type { RunResult } from "@/types/result.ts";
 import { mergeEnvironment, parseApiKeyCsv } from "@/utils/environment.ts";
 import { mirrorOpenCodeMcp } from "@/utils/mcp.ts";
 import { isYes, isZsh } from "@/utils/prompt.ts";
-import { isGhosttyConfig, isStowJunk } from "@/utils/stow.ts";
 
 export type { RunResult };
 
@@ -26,8 +26,7 @@ export async function run(args: string[], host: Host): Promise<RunResult> {
     return await doctor(host);
   }
   if (command === "stow") {
-    await host.linkDotfiles();
-    return await stow(host);
+    return await stowCommand(host);
   }
   if (command === "clean") {
     return await clean(host);
@@ -289,37 +288,4 @@ function workflowLooksPresent(host: Host): boolean {
     isZsh(host.loginShell()) &&
     host.fileExists(join(home, ".local/bin/dotfiles"))
   );
-}
-
-async function stow(host: Host, options: StowOptions = {}): Promise<RunResult> {
-  let rels = host.homeTree().filter((rel) => {
-    if (isStowJunk(rel)) {
-      return false;
-    }
-    if (options.onlyGhostty) {
-      return isGhosttyConfig(rel);
-    }
-    if (options.skipGhostty) {
-      return !isGhosttyConfig(rel);
-    }
-    return true;
-  });
-  const home = host.homeDir();
-  if (options.confirmConflicts) {
-    const conflicts = rels.filter((rel) => host.fileExists(join(home, rel)));
-    if (conflicts.length > 0) {
-      const overwrite = isYes(await host.prompt("Overwrite existing files with Stow? [y/N] "));
-      if (!overwrite) {
-        rels = rels.filter((rel) => !conflicts.includes(rel));
-      }
-    }
-  }
-  for (const rel of rels) {
-    const dest = join(home, rel);
-    if (host.fileExists(dest) && !host.linksIntoRepo(dest) && !host.isSymlink(dest)) {
-      host.backup(dest);
-    }
-  }
-  await host.stow(rels);
-  return { exitCode: 0, stdout: "", stderr: "" };
 }

@@ -4,11 +4,11 @@
 
 **Blocked by:** 01: Extract test helpers and restore green test baseline
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Module under `src/commands/` exports the stow file-linking engine accepting options (filtering, conflicts, backups)
-- [ ] Module exports the stow command handler performing dotfiles symlinking and stowing
-- [ ] Stow tests are moved to a dedicated test file under `tests/commands/`
-- [ ] Stow tests invoke the CLI exclusively via `run(["stow"], host)`
-- [ ] Backup creation, symlink replacement, and junk filtering behaviors remain unchanged
-- [ ] `bun test` passes
+- [x] Module under `src/commands/` exports the stow file-linking engine accepting options (filtering, conflicts, backups)
+- [x] Module exports the stow command handler performing dotfiles symlinking and stowing
+- [x] Stow tests are moved to a dedicated test file under `tests/commands/`
+- [x] Stow tests invoke the CLI exclusively via `run(["stow"], host)`
+- [x] Backup creation, symlink replacement, and junk filtering behaviors remain unchanged
+- [x] `bun test` passes
