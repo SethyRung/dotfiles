@@ -1,5 +1,6 @@
 [tools]
 bun = "latest"
+codex = "latest"
 herdr = "latest"
 node = "lts"
 opencode = "latest"
