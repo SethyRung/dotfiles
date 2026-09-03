@@ -4,9 +4,9 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Test helper modules provide `createFakeHost`, `skillDirs`, `finalSteps`, `frameStep`, and `readZshrc`
-- [ ] Existing test suite imports and uses the shared test helpers without test duplication
-- [ ] The curated zshrc PATH test accurately matches the configured PATH
-- [ ] Entire test suite passes with `bun test`
+- [x] Test helper modules provide `createFakeHost`, `skillDirs`, `finalSteps`, `frameStep`, and `readZshrc`
+- [x] Existing test suite imports and uses the shared test helpers without test duplication
+- [x] The curated zshrc PATH test accurately matches the configured PATH
+- [x] Entire test suite passes with `bun test`
