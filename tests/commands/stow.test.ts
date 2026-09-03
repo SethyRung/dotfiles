@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { run } from "@/cli.ts";
-import { toDayJS } from "@/utils/time.ts";
+import { parseDate } from "@/utils/time.ts";
 import { createFakeHost } from "../helpers/fake-host.ts";
 
 test("dotfiles stow on a clean fake $HOME links the home/ tree and PATH stub", async () => {
@@ -23,7 +23,7 @@ test("when a target file already exists, a timestamped backup is created and Sto
     homeDir: home,
     homeTree: [".zshrc"],
     files: [`${home}/.zshrc`],
-    now: toDayJS("2026-01-01_10:30:20", "YYYY-MM-DD_HH:mm:ss"),
+    now: parseDate("2026-01-01_10:30:20"),
   });
   const result = await run(["stow"], host);
   expect(result.exitCode).toBe(0);

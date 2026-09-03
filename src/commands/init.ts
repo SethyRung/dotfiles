@@ -8,7 +8,7 @@ import { requiredWorkflowTools, workflowTools } from "@/consts/workflow-tools.ts
 import type { Host } from "@/types/host.ts";
 import type { ProgressState, ProgressStep } from "@/types/progress.ts";
 import type { RunResult } from "@/types/result.ts";
-import { mergeEnvironment, parseApiKeyCsv } from "@/utils/environment.ts";
+import { parseApiKeyCsv } from "@/utils/environment.ts";
 import { mirrorOpenCodeMcp } from "@/utils/mcp.ts";
 import { isYes, isZsh } from "@/utils/prompt.ts";
 
@@ -167,9 +167,7 @@ export async function init(host: Host): Promise<RunResult> {
     if (apiKeysCsv !== "") {
       const confirmed = await host.prompt("Write API Keys to /etc/environment? [y/N] ");
       if (isYes(confirmed)) {
-        await host.writeEnvironment(
-          mergeEnvironment(await host.readEnvironment(), parseApiKeyCsv(apiKeysCsv)),
-        );
+        await host.mergeApiKeys(parseApiKeyCsv(apiKeysCsv));
         update(STEPS.KEYS, "done", "merged into /etc/environment");
       } else {
         update(STEPS.KEYS, "skipped", "declined");

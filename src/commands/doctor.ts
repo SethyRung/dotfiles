@@ -35,7 +35,7 @@ export async function doctor(host: Host): Promise<RunResult> {
   const shell = isZsh(host.loginShell());
   const pathOk = host.fileExists(join(home, ".local/bin/dotfiles"));
   const ghostty = host.commandExists(workflowTools.ghostty.command);
-  const keys = await host.environmentKeyNames();
+  const keys = await host.listApiKeyNames();
   const broken = host.brokenStowLinks();
   const required = [
     zsh,

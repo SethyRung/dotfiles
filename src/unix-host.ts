@@ -14,6 +14,7 @@ import { dirname, join } from "node:path";
 import { upstreamInstallFor } from "@/consts/upstream-installs.ts";
 import type { Host } from "@/types/host.ts";
 import type { ProgressFrame } from "@/types/progress.ts";
+import { mergeEnvironment } from "@/utils/environment.ts";
 import { renderBanner, renderPanel, spinnerFrames } from "@/utils/panel.ts";
 import { backupStamp, isBackupStamp } from "@/utils/time.ts";
 
@@ -175,7 +176,7 @@ export const unixHost: Host = {
     } catch {}
     symlinkSync(join(import.meta.dir, "..", "dotfiles"), dest);
   },
-  async environmentKeyNames() {
+  async listApiKeyNames() {
     const file = Bun.file("/etc/environment");
     if (!(await file.exists())) {
       return [];
@@ -330,15 +331,11 @@ export const unixHost: Host = {
       spinnerTimer = null;
     }
   },
-  async readEnvironment() {
-    const file = Bun.file("/etc/environment");
-    if (!(await file.exists())) {
-      return "";
-    }
-    return await file.text();
-  },
-  async writeEnvironment(content) {
+  async mergeApiKeys(keys) {
     markNoisy();
+    const file = Bun.file("/etc/environment");
+    const existing = (await file.exists()) ? await file.text() : "";
+    const content = mergeEnvironment(existing, keys);
     const proc = Bun.spawn(["sudo", "tee", "/etc/environment"], {
       stdin: new Blob([content]),
       stdout: "ignore",

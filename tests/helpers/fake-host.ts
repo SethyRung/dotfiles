@@ -1,7 +1,8 @@
 import { skillsList } from "@/consts/skills-list.ts";
 import type { Host, PackageManager } from "@/types/host.ts";
 import type { ProgressFrame } from "@/types/progress.ts";
-import { backupStamp, toDayJS, type Dayjs } from "@/utils/time.ts";
+import { mergeEnvironment } from "@/utils/environment.ts";
+import { backupStamp, parseDate } from "@/utils/time.ts";
 
 export function skillDirs(home: string): string[] {
   return skillsList.map((spec) => `${home}/.agents/skills/${spec.split("@")[1] ?? spec}`);
@@ -23,6 +24,9 @@ export type FakeHost = Host & {
   dotfilesLinks: number;
   miseToolsCalls: number;
   actions: string[];
+  environmentFile: string;
+  readEnvironment(): Promise<string>;
+  writeEnvironment(content: string): Promise<void>;
 };
 
 export function createFakeHost(
@@ -37,7 +41,7 @@ export function createFakeHost(
     homeTree?: string[];
     treeContents?: Record<string, string>;
     fileContents?: Record<string, string>;
-    now?: Dayjs;
+    now?: Date;
     packageManager?: PackageManager | null;
     installError?: string;
     upstreamInstallError?: string;
@@ -71,7 +75,7 @@ export function createFakeHost(
   const promptAnswers = extras.promptAnswers ?? [];
   const progressFrames: ProgressFrame[] = [];
   let environmentFile = extras.environmentFile ?? "";
-  const clock = extras.now ?? toDayJS("1970-01-01T00:00:00.000Z");
+  const clock = extras.now ?? parseDate("1970-01-01T00:00:00.000Z");
   const packageManager = extras.packageManager ?? null;
   const installError = extras.installError;
   const upstreamInstallError = extras.upstreamInstallError;
@@ -164,8 +168,27 @@ export function createFakeHost(
       dotfilesLinks += 1;
       files.add(`${homeDir}/.local/bin/dotfiles`);
     },
-    async environmentKeyNames() {
-      return Object.keys(environmentKeys);
+    async listApiKeyNames() {
+      if (Object.keys(environmentKeys).length > 0) {
+        return Object.keys(environmentKeys);
+      }
+      const names: string[] = [];
+      for (const line of environmentFile.split("\n")) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith("#")) {
+          continue;
+        }
+        const eq = trimmed.indexOf("=");
+        if (eq <= 0) {
+          continue;
+        }
+        names.push(trimmed.slice(0, eq));
+      }
+      return names;
+    },
+    async mergeApiKeys(keys) {
+      actions.push("merge-api-keys");
+      environmentFile = mergeEnvironment(environmentFile, keys);
     },
     brokenStowLinks() {
       return stowLinks;
@@ -228,6 +251,9 @@ export function createFakeHost(
     },
     progress(frame) {
       progressFrames.push({ title: frame.title, steps: frame.steps.map((step) => ({ ...step })) });
+    },
+    get environmentFile() {
+      return environmentFile;
     },
     async readEnvironment() {
       return environmentFile;

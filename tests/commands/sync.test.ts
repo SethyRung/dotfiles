@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { run } from "@/cli.ts";
-import { toDayJS } from "@/utils/time.ts";
+import { parseDate } from "@/utils/time.ts";
 import { createFakeHost } from "../helpers/fake-host.ts";
 
 test("dotfiles sync backs up only dests that are not already repo links", async () => {
@@ -10,7 +10,7 @@ test("dotfiles sync backs up only dests that are not already repo links", async 
     homeTree: [".zshrc", ".config/mcp/mcp.json"],
     repoLinks: [`${home}/.zshrc`],
     files: [`${home}/.config/mcp/mcp.json`],
-    now: toDayJS("2026-01-01_10:30:20", "YYYY-MM-DD_HH:mm:ss"),
+    now: parseDate("2026-01-01_10:30:20"),
   });
   const result = await run(["sync"], host);
   expect(result.exitCode).toBe(0);

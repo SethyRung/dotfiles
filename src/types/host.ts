@@ -15,7 +15,7 @@ export type Host = {
   reboot(): Promise<void>;
   pullRepo(): Promise<string>;
   linkDotfiles(): Promise<void>;
-  environmentKeyNames(): Promise<string[]>;
+  listApiKeyNames(): Promise<string[]>;
   brokenStowLinks(): string[];
   stowBackups(): string[];
   homeTree(): string[];
@@ -28,8 +28,7 @@ export type Host = {
   installSkills(specs: string[]): Promise<void>;
   prompt(message: string): Promise<string>;
   progress(frame: ProgressFrame): void;
-  readEnvironment(): Promise<string>;
-  writeEnvironment(content: string): Promise<void>;
+  mergeApiKeys(keys: Record<string, string>): Promise<void>;
   readFile(path: string): Promise<string | null>;
   writeFile(path: string, content: string): Promise<void>;
 };
