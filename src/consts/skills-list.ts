@@ -1,3 +1,5 @@
+import { join } from "node:path";
+
 export const skillsList = [
   "vercel-labs/skills@find-skills",
   "mattpocock/skills@grill-me",
@@ -14,3 +16,8 @@ export const skillsList = [
   "mattpocock/skills@prototype",
   "mattpocock/skills@wait-what",
 ];
+
+export function skillDir(home: string, spec: string): string {
+  const name = spec.split("@")[1] ?? spec;
+  return join(home, ".agents/skills", name);
+}

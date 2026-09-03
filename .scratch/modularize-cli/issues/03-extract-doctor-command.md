@@ -4,10 +4,10 @@
 
 **Blocked by:** 01: Extract test helpers and restore green test baseline
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Doctor command logic and formatting helpers reside in their own command module under `src/commands/`
-- [ ] Doctor tests are moved to a dedicated test file under `tests/commands/`
-- [ ] Doctor tests invoke the CLI exclusively via `run(["doctor"], host)`
-- [ ] All workflow diagnostics, optional tool warnings, broken stow link reporting, and exit code logic remain unchanged
-- [ ] `bun test` passes
+- [x] Doctor command logic and formatting helpers reside in their own command module under `src/commands/`
+- [x] Doctor tests are moved to a dedicated test file under `tests/commands/`
+- [x] Doctor tests invoke the CLI exclusively via `run(["doctor"], host)`
+- [x] All workflow diagnostics, optional tool warnings, broken stow link reporting, and exit code logic remain unchanged
+- [x] `bun test` passes
