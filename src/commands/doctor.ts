@@ -1,13 +1,10 @@
 import type { Host } from "@/types/host.ts";
 import type { RunResult } from "@/types/result.ts";
+import { statusCell } from "@/utils/panel.ts";
 import { assessWorkflow } from "@/utils/workflow-health.ts";
 
-function doctorCell(ok: boolean): string {
-  return ok ? "[ok]  " : "[!!]  ";
-}
-
 function doctorRow(label: string, ok: boolean): string {
-  return `  ${doctorCell(ok)}${label}`;
+  return `  ${statusCell(ok)}${label}`;
 }
 
 export async function doctor(host: Host): Promise<RunResult> {

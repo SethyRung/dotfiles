@@ -13,43 +13,118 @@ import { homedir, userInfo } from "node:os";
 import { dirname, join } from "node:path";
 import { upstreamInstallFor } from "@/consts/upstream-installs.ts";
 import type { Host } from "@/types/host.ts";
-import type { ProgressFrame } from "@/types/progress.ts";
+import type {
+  ProgressFrame,
+  ProgressSession,
+  ProgressState,
+  ProgressStep,
+} from "@/types/progress.ts";
 import { mergeEnvironment } from "@/utils/environment.ts";
 import { renderBanner, renderPanel, spinnerFrames } from "@/utils/panel.ts";
 import { isYes } from "@/utils/prompt.ts";
 import { isGhosttyConfig, isStowJunk } from "@/utils/stow.ts";
 import { backupStamp, isBackupStamp } from "@/utils/time.ts";
 
-let progressStartedAt = 0;
-let progressLines = 0;
-let progressFresh = true;
-let spinnerPhase = 0;
-let spinnerTimer: ReturnType<typeof setInterval> | null = null;
-let lastFrame: ProgressFrame | null = null;
-const printedSteps = new Set<number>();
+class UnixProgressSession implements ProgressSession {
+  private title: string;
+  private steps: ProgressStep[];
+  private startedAt = Date.now();
+  private lines = 0;
+  private fresh = true;
+  private spinnerPhase = 0;
+  private spinnerTimer: ReturnType<typeof setInterval> | null = null;
+  private printedSteps = new Set<number>();
 
-function drawProgress(frame: ProgressFrame) {
-  const lines = renderPanel(
-    frame,
-    spinnerPhase,
-    Math.floor((Date.now() - progressStartedAt) / 1000),
-  );
-  const body = `${lines.map((line) => `${line}\x1b[K`).join("\n")}\n`;
-  if (progressLines === 0 || progressFresh) {
-    process.stdout.write("\x1b[2J\x1b[H");
-    process.stdout.write(renderBanner(frame.title));
-    process.stdout.write(body);
-    progressLines = lines.length;
-    progressFresh = false;
-    return;
+  constructor(title: string, steps: ProgressStep[]) {
+    this.title = title;
+    this.steps = steps.map((step) => ({ ...step }));
+    if (!process.stdout.isTTY) {
+      this.flushNonTty();
+    } else {
+      this.draw();
+      this.ensureSpinner();
+    }
   }
-  process.stdout.write(`\x1b[${progressLines}A\r`);
-  process.stdout.write(body);
-  progressLines = lines.length;
+
+  markFresh() {
+    this.fresh = true;
+  }
+
+  update(i: number, state: ProgressState, detail?: string) {
+    this.steps[i] = {
+      ...this.steps[i],
+      state,
+      detail: detail ?? this.steps[i].detail,
+    };
+    if (!process.stdout.isTTY) {
+      this.flushNonTty();
+    } else {
+      this.draw();
+      this.ensureSpinner();
+    }
+  }
+
+  done() {
+    if (this.spinnerTimer !== null) {
+      clearInterval(this.spinnerTimer);
+      this.spinnerTimer = null;
+    }
+    if (process.stdout.isTTY && this.lines > 0) {
+      this.draw();
+    }
+  }
+
+  private flushNonTty() {
+    this.steps.forEach((step, i) => {
+      const terminal = step.state !== "pending" && step.state !== "running";
+      if (terminal && !this.printedSteps.has(i)) {
+        this.printedSteps.add(i);
+        process.stdout.write(`  ${step.label}: ${step.detail}\n`);
+      }
+    });
+  }
+
+  private draw() {
+    const frame: ProgressFrame = { title: this.title, steps: this.steps };
+    const renderedLines = renderPanel(
+      frame,
+      this.spinnerPhase,
+      Math.floor((Date.now() - this.startedAt) / 1000),
+    );
+    const body = `${renderedLines.map((line) => `${line}\x1b[K`).join("\n")}\n`;
+    if (this.lines === 0 || this.fresh) {
+      process.stdout.write("\x1b[2J\x1b[H");
+      process.stdout.write(renderBanner(this.title));
+      process.stdout.write(body);
+      this.lines = renderedLines.length;
+      this.fresh = false;
+      return;
+    }
+    process.stdout.write(`\x1b[${this.lines}A\r`);
+    process.stdout.write(body);
+    this.lines = renderedLines.length;
+  }
+
+  private ensureSpinner() {
+    const anyRunning = this.steps.some((step) => step.state === "running");
+    if (anyRunning && this.spinnerTimer === null) {
+      this.spinnerTimer = setInterval(() => {
+        this.spinnerPhase = (this.spinnerPhase + 1) % spinnerFrames();
+        if (this.lines > 0 && !this.fresh) {
+          this.draw();
+        }
+      }, 120);
+    } else if (!anyRunning && this.spinnerTimer !== null) {
+      clearInterval(this.spinnerTimer);
+      this.spinnerTimer = null;
+    }
+  }
 }
 
+let activeProgressSession: UnixProgressSession | null = null;
+
 function markNoisy() {
-  progressFresh = true;
+  activeProgressSession?.markFresh();
 }
 
 export const unixHost: Host = {
@@ -317,34 +392,20 @@ export const unixHost: Host = {
     markNoisy();
     return globalThis.prompt(message) ?? "";
   },
+  startProgress(title, steps) {
+    activeProgressSession?.done();
+    const session = new UnixProgressSession(title, steps);
+    activeProgressSession = session;
+    return session;
+  },
   progress(frame) {
-    lastFrame = { title: frame.title, steps: frame.steps.map((step) => ({ ...step })) };
-    if (progressStartedAt === 0) {
-      progressStartedAt = Date.now();
-    }
-    if (!process.stdout.isTTY) {
-      lastFrame.steps.forEach((step, i) => {
-        const terminal = step.state !== "pending" && step.state !== "running";
-        if (terminal && !printedSteps.has(i)) {
-          printedSteps.add(i);
-          process.stdout.write(`  ${step.label}: ${step.detail}\n`);
-        }
-      });
+    if (!activeProgressSession) {
+      activeProgressSession = new UnixProgressSession(frame.title, frame.steps);
       return;
     }
-    drawProgress(lastFrame);
-    const anyRunning = lastFrame.steps.some((step) => step.state === "running");
-    if (anyRunning && spinnerTimer === null) {
-      spinnerTimer = setInterval(() => {
-        spinnerPhase = (spinnerPhase + 1) % spinnerFrames();
-        if (lastFrame && progressLines > 0 && !progressFresh) {
-          drawProgress(lastFrame);
-        }
-      }, 120);
-    } else if (!anyRunning && spinnerTimer !== null) {
-      clearInterval(spinnerTimer);
-      spinnerTimer = null;
-    }
+    frame.steps.forEach((step, i) => {
+      activeProgressSession?.update(i, step.state, step.detail);
+    });
   },
   async mergeApiKeys(keys) {
     markNoisy();

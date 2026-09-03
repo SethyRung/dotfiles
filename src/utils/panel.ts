@@ -1,3 +1,4 @@
+import Bun from "bun";
 import type { ProgressFrame, ProgressStep } from "@/types/progress.ts";
 
 const bannerLines = [
@@ -13,8 +14,11 @@ const banner = `${bannerLines.join("\n")}\n`;
 
 const spinnerCells = ["[\\]   ", "[|]   ", "[/]   ", "[-]   "];
 
-function statusCell(step: ProgressStep, phase: number): string {
-  switch (step.state) {
+export function statusCell(state: ProgressStep["state"] | boolean, phase = 0): string {
+  if (typeof state === "boolean") {
+    return state ? "[ok]  " : "[!!]  ";
+  }
+  switch (state) {
     case "done":
       return "[ok]  ";
     case "skipped":
@@ -28,6 +32,12 @@ function statusCell(step: ProgressStep, phase: number): string {
   }
 }
 
+export function padWidth(str: string, targetWidth: number): string {
+  const width = Bun.stringWidth(str);
+  const padding = Math.max(0, targetWidth - width);
+  return str + " ".repeat(padding);
+}
+
 export function renderPanel(
   frame: ProgressFrame,
   spinnerPhase: number,
@@ -35,7 +45,7 @@ export function renderPanel(
 ): string[] {
   const rule = `  ${"-".repeat(44)}`;
   const rows = frame.steps.map(
-    (step) => `  ${statusCell(step, spinnerPhase)} ${step.label.padEnd(17)}${step.detail}`,
+    (step) => `  ${statusCell(step.state, spinnerPhase)} ${padWidth(step.label, 17)}${step.detail}`,
   );
   const current = frame.steps.findIndex((step) => step.state === "running") + 1;
   const footer =

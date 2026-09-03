@@ -1,6 +1,11 @@
 import { skillsList } from "@/consts/skills-list.ts";
 import type { Host, PackageManager } from "@/types/host.ts";
-import type { ProgressFrame } from "@/types/progress.ts";
+import type {
+  ProgressFrame,
+  ProgressSession,
+  ProgressState,
+  ProgressStep,
+} from "@/types/progress.ts";
 import type { StowOptions } from "@/types/result.ts";
 import { mergeEnvironment } from "@/utils/environment.ts";
 import { isYes } from "@/utils/prompt.ts";
@@ -274,6 +279,27 @@ export function createFakeHost(
     async prompt(message) {
       prompts.push(message);
       return promptAnswers.shift() ?? "";
+    },
+    startProgress(title: string, steps: ProgressStep[]): ProgressSession {
+      const currentSteps = steps.map((step) => ({ ...step }));
+      const pushFrame = () => {
+        progressFrames.push({
+          title,
+          steps: currentSteps.map((s) => ({ ...s })),
+        });
+      };
+      pushFrame();
+      return {
+        update(i: number, state: ProgressState, detail?: string) {
+          currentSteps[i] = {
+            ...currentSteps[i],
+            state,
+            detail: detail ?? currentSteps[i].detail,
+          };
+          pushFrame();
+        },
+        done() {},
+      };
     },
     progress(frame) {
       progressFrames.push({ title: frame.title, steps: frame.steps.map((step) => ({ ...step })) });

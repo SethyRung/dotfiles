@@ -10,3 +10,8 @@ export type ProgressFrame = {
   title: string;
   steps: ProgressStep[];
 };
+
+export type ProgressSession = {
+  update(stepIndex: number, state: ProgressState, detail?: string): void;
+  done(): void;
+};

@@ -1,4 +1,4 @@
-import type { ProgressFrame } from "@/types/progress.ts";
+import type { ProgressFrame, ProgressSession, ProgressStep } from "@/types/progress.ts";
 import type { StowOptions } from "@/types/result.ts";
 
 export type PackageManager = "apt" | "pacman" | "dnf" | "zypper";
@@ -25,6 +25,7 @@ export type Host = {
   installPiPackages(packages: string[]): Promise<void>;
   installSkills(specs: string[]): Promise<void>;
   prompt(message: string): Promise<string>;
+  startProgress(title: string, steps: ProgressStep[]): ProgressSession;
   progress(frame: ProgressFrame): void;
   mergeApiKeys(keys: Record<string, string>): Promise<void>;
   readFile(path: string): Promise<string | null>;
