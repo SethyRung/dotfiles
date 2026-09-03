@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import { clean } from "@/commands/clean.ts";
 import { helpText } from "@/consts/help.ts";
 import { omzPlugins } from "@/consts/omz-plugins.ts";
 import { ghosttyPackageFor, packagesFor } from "@/consts/package-map.ts";
@@ -344,31 +345,6 @@ async function doctor(host: Host): Promise<RunResult> {
   return {
     exitCode: requiredOk === required.length && broken.length === 0 ? 0 : 1,
     stdout: `${lines.join("\n")}\n`,
-    stderr: "",
-  };
-}
-
-async function clean(host: Host): Promise<RunResult> {
-  const backups = host.stowBackups();
-  if (backups.length === 0) {
-    return { exitCode: 0, stdout: "No Stow backups to clean.\n", stderr: "" };
-  }
-  const confirmed = isYes(
-    await host.prompt(`Delete ${backups.length} Stow backup file(s)? [y/N] `),
-  );
-  if (!confirmed) {
-    return {
-      exitCode: 0,
-      stdout: `Kept ${backups.length} Stow backup file(s):\n${backups.join("\n")}\n`,
-      stderr: "",
-    };
-  }
-  for (const path of backups) {
-    host.removeFile(path);
-  }
-  return {
-    exitCode: 0,
-    stdout: `Deleted ${backups.length} Stow backup file(s):\n${backups.join("\n")}\n`,
     stderr: "",
   };
 }

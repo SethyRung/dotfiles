@@ -4,10 +4,10 @@
 
 **Blocked by:** 01: Extract test helpers and restore green test baseline
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Clean command logic resides in its own command module under `src/commands/`
-- [ ] Clean tests are moved to a dedicated test file under `tests/commands/`
-- [ ] Clean tests invoke the CLI exclusively via `run(["clean"], host)`
-- [ ] No prompt, confirmation, or backup deletion behavior regressions
-- [ ] `bun test` passes
+- [x] Clean command logic resides in its own command module under `src/commands/`
+- [x] Clean tests are moved to a dedicated test file under `tests/commands/`
+- [x] Clean tests invoke the CLI exclusively via `run(["clean"], host)`
+- [x] No prompt, confirmation, or backup deletion behavior regressions
+- [x] `bun test` passes
