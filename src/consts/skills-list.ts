@@ -15,6 +15,8 @@ export const skillsList = [
   "mattpocock/skills@teach",
   "mattpocock/skills@prototype",
   "mattpocock/skills@wait-what",
+  "mattpocock/skills@research",
+  "mattpocock/skills@writing-for-agents",
 ];
 
 export function skillDir(home: string, spec: string): string {
