@@ -4,10 +4,10 @@
 
 **Blocked by:** 04: Extract shared `stow` engine and command
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Sync command logic resides in its own command module under `src/commands/`, consuming the shared stow engine
-- [ ] Sync tests are moved to a dedicated test file under `tests/commands/`
-- [ ] Sync tests invoke the CLI exclusively via `run(["sync"], host)`
-- [ ] Clean pull, fast-forward failure handling, stow backup rules, and MCP mirror refresh remain unchanged
-- [ ] `bun test` passes
+- [x] Sync command logic resides in its own command module under `src/commands/`, consuming the shared stow engine
+- [x] Sync tests are moved to a dedicated test file under `tests/commands/`
+- [x] Sync tests invoke the CLI exclusively via `run(["sync"], host)`
+- [x] Clean pull, fast-forward failure handling, stow backup rules, and MCP mirror refresh remain unchanged
+- [x] `bun test` passes

@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { clean } from "@/commands/clean.ts";
 import { doctor } from "@/commands/doctor.ts";
 import { stow, stowCommand } from "@/commands/stow.ts";
+import { sync } from "@/commands/sync.ts";
 import { helpText } from "@/consts/help.ts";
 import { omzPlugins } from "@/consts/omz-plugins.ts";
 import { ghosttyPackageFor, packagesFor } from "@/consts/package-map.ts";
@@ -249,30 +250,6 @@ async function init(host: Host): Promise<RunResult> {
     const message = error instanceof Error ? error.message : "required step failed";
     return { exitCode: 1, stdout: "", stderr: `${message}\n` };
   }
-}
-
-async function sync(host: Host): Promise<RunResult> {
-  let pull;
-  try {
-    pull = await host.pullRepo();
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "git pull --ff-only failed";
-    return {
-      exitCode: 1,
-      stdout: "",
-      stderr: `Repo pull failed: ${message}\ndotfiles sync needs a clean repo that fast-forwards from origin.\n`,
-    };
-  }
-  const stowed = await stow(host);
-  if (stowed.exitCode !== 0) {
-    return stowed;
-  }
-  await mirrorOpenCodeMcp(host);
-  return {
-    exitCode: 0,
-    stdout: `${pull}\nConfig synced: home/ re-Stowed into $HOME and OpenCode MCP refreshed.\n`,
-    stderr: "",
-  };
 }
 
 function workflowLooksPresent(host: Host): boolean {
