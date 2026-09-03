@@ -4,13 +4,14 @@ import { omzPlugins } from "@/consts/omz-plugins.ts";
 import { ghosttyPackageFor, packagesFor } from "@/consts/package-map.ts";
 import { piPackages } from "@/consts/pi-packages.ts";
 import { skillDir, skillsList } from "@/consts/skills-list.ts";
-import { requiredWorkflowTools, workflowTools } from "@/consts/workflow-tools.ts";
+import { workflowTools } from "@/consts/workflow-tools.ts";
 import type { Host } from "@/types/host.ts";
 import type { ProgressState, ProgressStep } from "@/types/progress.ts";
 import type { RunResult } from "@/types/result.ts";
 import { parseApiKeyCsv } from "@/utils/environment.ts";
 import { mirrorOpenCodeMcp } from "@/utils/mcp.ts";
 import { isYes, isZsh } from "@/utils/prompt.ts";
+import { assessWorkflow } from "@/utils/workflow-health.ts";
 
 const STEPS = {
   DISTRO: 0,
@@ -55,19 +56,8 @@ function initialSteps(): ProgressStep[] {
   ];
 }
 
-function workflowLooksPresent(host: Host): boolean {
-  const home = host.homeDir();
-  return (
-    requiredWorkflowTools.every((tool) => host.commandExists(tool.command)) &&
-    host.fileExists(join(home, ".oh-my-zsh")) &&
-    omzPlugins.every((plugin) =>
-      host.fileExists(join(home, `.oh-my-zsh/custom/plugins/${plugin}`)),
-    ) &&
-    skillsList.every((spec) => host.fileExists(skillDir(home, spec))) &&
-    host.fileExists(join(home, ".config/mcp/mcp.json")) &&
-    isZsh(host.loginShell()) &&
-    host.fileExists(join(home, ".local/bin/dotfiles"))
-  );
+async function workflowLooksPresent(host: Host): Promise<boolean> {
+  return (await assessWorkflow(host)).isComplete;
 }
 
 export async function init(host: Host): Promise<RunResult> {
@@ -79,7 +69,7 @@ export async function init(host: Host): Promise<RunResult> {
       stderr: "Unknown package manager. Bootstrap needs apt, pacman, dnf, or zypper.\n",
     };
   }
-  const reRun = workflowLooksPresent(host);
+  const reRun = await workflowLooksPresent(host);
   if (reRun) {
     const cont = await host.prompt("Workflow already present. Continue? [y/N] ");
     if (!isYes(cont)) {
