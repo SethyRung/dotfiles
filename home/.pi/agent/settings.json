@@ -12,7 +12,8 @@
     "npm:@narumitw/pi-retry",
     "npm:pi-zentui",
     "npm:@ogulcancelik/pi-herdr",
-    "npm:@ollama/pi-web-search"
+    "npm:@ollama/pi-web-search",
+    "npm:pi-antigravity"
   ],
   "showCacheMissNotices": false,
   "showHardwareCursor": true,
