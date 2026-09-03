@@ -19,9 +19,6 @@ plugins=(
 
 source "$ZSH/oh-my-zsh.sh"
 
-export PATH="$HOME/.local/bin:$PATH"
-
 eval "$($HOME/.local/bin/mise activate zsh)"
 
-# Cache SSH key passphrases in systemd's ssh-agent for the whole login.
-export SSH_AUTH_SOCK="${XDG_RUNTIME_DIR}/ssh-agent.socket"
+export PATH="$HOME/.local/bin:$HOME/.cache/.bun/bin:$PATH"
