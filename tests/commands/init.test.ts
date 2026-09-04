@@ -130,8 +130,8 @@ test("the committed mise config declares the Workflow Mise Tools with auto_updat
   expect(toml).toContain('opencode = "latest"');
   expect(toml).toContain('pi = "latest"');
   expect(toml).toContain("auto_update = true");
-  expect(toml).not.toContain("grok");
-  expect(toml).not.toContain("gh =");
+  expect(toml).toContain('gh = "latest"');
+  expect(toml).toContain('"npm:@xai-official/grok" = "latest"');
 });
 
 test("init always requests installMiseTools even when the Mise Tool commands already exist", async () => {

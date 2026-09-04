@@ -7,3 +7,51 @@ Commands:
   clean   Delete Stow backup files from $HOME
   sync    Pull the repo and re-Stow config
 `;
+
+export const initHelpText = `Usage: dotfiles init
+
+Bootstrap the Workflow
+
+Options:
+  -h, --help  Show help
+`;
+
+export const doctorHelpText = `Usage: dotfiles doctor
+
+Report what is present or missing
+
+Options:
+  -h, --help  Show help
+`;
+
+export const stowHelpText = `Usage: dotfiles stow
+
+Re-link home/ and ~/.local/bin/dotfiles
+
+Options:
+  -h, --help  Show help
+`;
+
+export const cleanHelpText = `Usage: dotfiles clean
+
+Delete Stow backup files from $HOME
+
+Options:
+  -h, --help  Show help
+`;
+
+export const syncHelpText = `Usage: dotfiles sync
+
+Pull the repo and re-Stow config
+
+Options:
+  -h, --help  Show help
+`;
+
+export const commandHelpTexts: Record<string, string> = {
+  init: initHelpText,
+  doctor: doctorHelpText,
+  stow: stowHelpText,
+  clean: cleanHelpText,
+  sync: syncHelpText,
+};
