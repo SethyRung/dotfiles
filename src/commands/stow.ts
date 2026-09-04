@@ -1,14 +1,11 @@
 import type { Host } from "@/types/host.ts";
-import type { RunResult, StowOptions, StowReport } from "@/types/result.ts";
+import type { RunResult, StowOptions } from "@/types/result.ts";
 import { mirrorOpenCodeMcp } from "@/utils/mcp.ts";
 import { formatStowReport } from "@/utils/stow.ts";
 
-export async function stow(
-  host: Host,
-  options: StowOptions = {},
-): Promise<RunResult & { report: StowReport }> {
+export async function stow(host: Host, options: StowOptions = {}): Promise<RunResult> {
   const report = await host.stowTree(options);
-  return { exitCode: 0, stdout: formatStowReport(report), stderr: "", report };
+  return { exitCode: 0, stdout: formatStowReport(report), stderr: "" };
 }
 
 export async function stowCommand(host: Host, options: StowOptions = {}): Promise<RunResult> {

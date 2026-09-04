@@ -4,12 +4,12 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `dotfiles init --help` and `dotfiles init -h` print init help, exit 0, and perform no Bootstrap (no packages, Upstream Installs, Stow, or prompts)
-- [ ] `doctor`, `stow`, `clean`, and `sync` each print their own help on `--help` / `-h` and do no work
-- [ ] `--help` together with other argv still prints help and does no work
-- [ ] An unknown flag or extra positional on any command exits 1, writes nothing on the fake Host, and does not run the command
-- [ ] Top-level help still lists `init`, `doctor`, `stow`, `clean`, and `sync`, and does not mention `update`, `repair`, `package`, or `link`
-- [ ] `--dry-run` is not implemented yet; `stow --dry-run` without `--help` is rejected as unknown
-- [ ] Behaviour is observed only through the CLI against a fake Host
+- [x] `dotfiles init --help` and `dotfiles init -h` print init help, exit 0, and perform no Bootstrap (no packages, Upstream Installs, Stow, or prompts)
+- [x] `doctor`, `stow`, `clean`, and `sync` each print their own help on `--help` / `-h` and do no work
+- [x] `--help` together with other argv still prints help and does no work
+- [x] An unknown flag or extra positional on any command exits 1, writes nothing on the fake Host, and does not run the command
+- [x] Top-level help still lists `init`, `doctor`, `stow`, `clean`, and `sync`, and does not mention `update`, `repair`, `package`, or `link`
+- [x] `--dry-run` is not implemented yet; `stow --dry-run` without `--help` is rejected as unknown
+- [x] Behaviour is observed only through the CLI against a fake Host

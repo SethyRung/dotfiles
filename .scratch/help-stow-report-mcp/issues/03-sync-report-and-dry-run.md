@@ -4,11 +4,11 @@
 
 **Blocked by:** 02: Stow report and `stow --dry-run`
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Real `dotfiles sync` pulls, Stows, prints the Stow report plus the existing sync summary, refreshes OpenCode MCP, and does not call Mise Tools or Upstream Installs
-- [ ] A failed pull exits non-zero, Stows nothing, and prints no Stow report
-- [ ] `dotfiles sync --dry-run` prints the Stow report, does not pull, does not write `$HOME` or OpenCode config, and does not fail on a dirty/diverged repo
-- [ ] `dotfiles sync --help` documents `--dry-run`
-- [ ] README command copy for `stow` and `sync` mentions `--dry-run` and the report
-- [ ] Behaviour is observed only through the CLI against a fake Host
+- [x] Real `dotfiles sync` pulls, Stows, prints the Stow report plus the existing sync summary, refreshes OpenCode MCP, and does not call Mise Tools or Upstream Installs
+- [x] A failed pull exits non-zero, Stows nothing, and prints no Stow report
+- [x] `dotfiles sync --dry-run` prints the Stow report, does not pull, does not write `$HOME` or OpenCode config, and does not fail on a dirty/diverged repo
+- [x] `dotfiles sync --help` documents `--dry-run`
+- [x] README command copy for `stow` and `sync` mentions `--dry-run` and the report
+- [x] Behaviour is observed only through the CLI against a fake Host

@@ -9,6 +9,21 @@ import type { RunResult } from "@/types/result.ts";
 
 export type { RunResult };
 
+function parseDryRun(rest: string[], help: string): { dryRun: boolean } | RunResult {
+  let dryRun = false;
+  for (const arg of rest) {
+    if (arg === "--dry-run") {
+      dryRun = true;
+    } else {
+      const message = arg.startsWith("-")
+        ? `unknown option: ${arg}`
+        : `unexpected argument: ${arg}`;
+      return { exitCode: 1, stdout: "", stderr: `${message}\n\n${help}` };
+    }
+  }
+  return { dryRun };
+}
+
 export async function run(args: string[], host: Host): Promise<RunResult> {
   const command = args[0];
 
@@ -23,33 +38,19 @@ export async function run(args: string[], host: Host): Promise<RunResult> {
       return { exitCode: 0, stdout: help, stderr: "" };
     }
     if (command === "stow") {
-      let dryRun = false;
-      for (const arg of rest) {
-        if (arg === "--dry-run") {
-          dryRun = true;
-        } else {
-          const message = arg.startsWith("-")
-            ? `unknown option: ${arg}`
-            : `unexpected argument: ${arg}`;
-          return { exitCode: 1, stdout: "", stderr: `${message}\n\n${help}` };
-        }
+      const parsed = parseDryRun(rest, help);
+      if ("exitCode" in parsed) {
+        return parsed;
       }
-      return await stowCommand(host, { dryRun });
+      return await stowCommand(host, parsed);
     }
 
     if (command === "sync") {
-      let dryRun = false;
-      for (const arg of rest) {
-        if (arg === "--dry-run") {
-          dryRun = true;
-        } else {
-          const message = arg.startsWith("-")
-            ? `unknown option: ${arg}`
-            : `unexpected argument: ${arg}`;
-          return { exitCode: 1, stdout: "", stderr: `${message}\n\n${help}` };
-        }
+      const parsed = parseDryRun(rest, help);
+      if ("exitCode" in parsed) {
+        return parsed;
       }
-      return await sync(host, { dryRun });
+      return await sync(host, parsed);
     }
 
     if (rest.length > 0) {

@@ -4,11 +4,11 @@
 
 **Blocked by:** 02: Stow report and `stow --dry-run`
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Real `dotfiles stow` writes OpenCode `mcp` from the XDG file after linking
-- [ ] `dotfiles stow --dry-run` does not write OpenCode config
-- [ ] Missing XDG MCP file skips the mirror write and does not invent OpenCode config
-- [ ] `dotfiles init` still refreshes the mirror in its MCP step; real `dotfiles sync` still refreshes after Stow
-- [ ] Help still has no `mcp` command
-- [ ] Behaviour is observed only through the CLI against a fake Host
+- [x] Real `dotfiles stow` writes OpenCode `mcp` from the XDG file after linking
+- [x] `dotfiles stow --dry-run` does not write OpenCode config
+- [x] Missing XDG MCP file skips the mirror write and does not invent OpenCode config
+- [x] `dotfiles init` still refreshes the mirror in its MCP step; real `dotfiles sync` still refreshes after Stow
+- [x] Help still has no `mcp` command
+- [x] Behaviour is observed only through the CLI against a fake Host

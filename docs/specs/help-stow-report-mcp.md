@@ -1,6 +1,6 @@
 # Help, Stow report, and MCP on stow
 
-Status: ready-for-agent
+Status: done
 
 ## Problem Statement
 
