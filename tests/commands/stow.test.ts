@@ -160,3 +160,59 @@ test("--dry-run on init, doctor, or clean fails closed", async () => {
     expect(result.stderr).toContain("unknown option: --dry-run");
   }
 });
+
+test("real dotfiles stow writes OpenCode mcp from the XDG file after linking", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["bun"], {
+    homeDir: home,
+    homeTree: [".config/mcp/mcp.json", ".config/opencode/opencode.json"],
+    treeContents: {
+      ".config/mcp/mcp.json": JSON.stringify({
+        mcpServers: { bun: { command: "bunx", args: ["https://bun.com/mcp"] } },
+      }),
+      ".config/opencode/opencode.json": JSON.stringify({ permission: "allow" }),
+    },
+  });
+  const result = await run(["stow"], host);
+  expect(result.exitCode).toBe(0);
+  const oc = JSON.parse(host.fileContents[`${home}/.config/opencode/opencode.json`] ?? "{}");
+  expect(oc.mcp).toBeDefined();
+  expect(oc.mcp.bun).toEqual({ type: "remote", url: "https://bun.com/mcp" });
+});
+
+test("dotfiles stow --dry-run does not write OpenCode config", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["bun"], {
+    homeDir: home,
+    homeTree: [".config/mcp/mcp.json", ".config/opencode/opencode.json"],
+    treeContents: {
+      ".config/mcp/mcp.json": JSON.stringify({
+        mcpServers: { bun: { command: "bunx", args: ["https://bun.com/mcp"] } },
+      }),
+      ".config/opencode/opencode.json": JSON.stringify({ permission: "allow" }),
+    },
+  });
+  const result = await run(["stow", "--dry-run"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.fileContents[`${home}/.config/opencode/opencode.json`]).toBeUndefined();
+});
+
+test("missing XDG MCP file skips mirror write and does not invent OpenCode config", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["bun"], {
+    homeDir: home,
+    homeTree: [".zshrc"],
+  });
+  const result = await run(["stow"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.fileExists(`${home}/.config/opencode/opencode.json`)).toBe(false);
+});
+
+test("help still has no mcp command and mcp command is rejected as unknown", async () => {
+  const host = createFakeHost(["bun"]);
+  const helpResult = await run(["--help"], host);
+  expect(helpResult.stdout).not.toMatch(/\bmcp\b/);
+  const mcpResult = await run(["mcp"], host);
+  expect(mcpResult.exitCode).toBe(1);
+  expect(mcpResult.stderr).toContain("unknown command: mcp");
+});

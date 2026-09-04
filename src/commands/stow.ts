@@ -1,5 +1,6 @@
 import type { Host } from "@/types/host.ts";
 import type { RunResult, StowOptions, StowReport } from "@/types/result.ts";
+import { mirrorOpenCodeMcp } from "@/utils/mcp.ts";
 import { formatStowReport } from "@/utils/stow.ts";
 
 export async function stow(
@@ -15,6 +16,9 @@ export async function stowCommand(host: Host, options: StowOptions = {}): Promis
     await host.linkDotfiles();
   }
   const stowed = await stow(host, options);
+  if (!options.dryRun) {
+    await mirrorOpenCodeMcp(host);
+  }
   let stdout = stowed.stdout;
   if (options.dryRun) {
     stdout += "\n(dry run: would link ~/.local/bin/dotfiles)\n";
