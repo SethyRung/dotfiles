@@ -1,6 +1,6 @@
 # Mise Tools for bun, Node, herdr, pi, and OpenCode
 
-Status: ready-for-agent
+Status: done
 
 ## Problem Statement
 

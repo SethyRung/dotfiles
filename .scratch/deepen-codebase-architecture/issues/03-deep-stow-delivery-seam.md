@@ -4,12 +4,12 @@
 
 **Blocked by:** 01: Zero runtime dependencies & deep Environment seam
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] The Host interface exposes a single Stow delivery method that takes options (such as Ghostty-only or skip-Ghostty filters) and returns a summary report of linked, backed-up, and skipped files.
-- [ ] Granular file inspection and backup methods (`backup`, `linksIntoRepo`, `isSymlink`, `stow`) are removed from the Host interface, shrinking the seam surface area.
-- [ ] Running `dotfiles stow` creates timestamped backups of existing non-symlink files, replaces stale or broken symlinks, and skips files already linking into the repository without creating backups.
-- [ ] Both production and fake Host implementations enforce identical collision and backup rules, eliminating behavioral divergence in tests.
-- [ ] `dotfiles sync` and `dotfiles init` use the deep Stow method, preserving confirmation behavior when conflicts exist.
-- [ ] `dotfiles clean` continues to list and clean Stow backup files that match the timestamp pattern.
-- [ ] Existing Stow, Sync, Clean, and Init test suites pass without regression.
+- [x] The Host interface exposes a single Stow delivery method that takes options (such as Ghostty-only or skip-Ghostty filters) and returns a summary report of linked, backed-up, and skipped files.
+- [x] Granular file inspection and backup methods (`backup`, `linksIntoRepo`, `isSymlink`, `stow`) are removed from the Host interface, shrinking the seam surface area.
+- [x] Running `dotfiles stow` creates timestamped backups of existing non-symlink files, replaces stale or broken symlinks, and skips files already linking into the repository without creating backups.
+- [x] Both production and fake Host implementations enforce identical collision and backup rules, eliminating behavioral divergence in tests.
+- [x] `dotfiles sync` and `dotfiles init` use the deep Stow method, preserving confirmation behavior when conflicts exist.
+- [x] `dotfiles clean` continues to list and clean Stow backup files that match the timestamp pattern.
+- [x] Existing Stow, Sync, Clean, and Init test suites pass without regression.
