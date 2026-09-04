@@ -35,6 +35,9 @@ test("dotfiles sync pulls the repo, re-Stows, and refreshes the OpenCode MCP mir
   const result = await run(["sync"], host);
   expect(result.exitCode).toBe(0);
   expect(result.stdout).toContain("Fast-forward; new config.");
+  expect(result.stdout).toContain("Stow:");
+  expect(result.stdout).toContain("linked:");
+  expect(result.stdout).toContain(`${home}/.zshrc`);
   expect(result.stdout).toContain("Config synced");
   expect(host.repoPulls).toBe(1);
   expect(host.linked).toEqual([".zshrc", ".config/mcp/mcp.json"]);
@@ -56,4 +59,34 @@ test("a failed repo pull exits non-zero and Stows nothing", async () => {
   expect(result.stdout).toBe("");
   expect(host.repoPulls).toBe(1);
   expect(host.linked).toEqual([]);
+});
+
+test("dotfiles sync --dry-run prints Stow report, does not pull, and succeeds on dirty repo", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["bun"], {
+    homeDir: home,
+    homeTree: [".zshrc", ".config/mcp/mcp.json"],
+    pullRepoError: "divergent branches",
+    fileContents: {
+      [`${home}/.config/opencode/opencode.json`]: JSON.stringify({ permission: "allow" }),
+    },
+  });
+  const result = await run(["sync", "--dry-run"], host);
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("Stow:");
+  expect(result.stdout).toContain("linked:");
+  expect(result.stdout).toContain(`${home}/.zshrc`);
+  expect(result.stdout).not.toContain("Config synced");
+  expect(host.repoPulls).toBe(0);
+  expect(host.linked).toEqual([]);
+  expect(host.backups).toEqual([]);
+  const ocConfig = JSON.parse(host.fileContents[`${home}/.config/opencode/opencode.json`] ?? "{}");
+  expect(ocConfig).not.toHaveProperty("mcp");
+});
+
+test("dotfiles sync --help documents --dry-run", async () => {
+  const host = createFakeHost(["bun"]);
+  const result = await run(["sync", "--help"], host);
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("--dry-run");
 });

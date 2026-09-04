@@ -129,12 +129,13 @@ dotfiles doctor
 
 ### `dotfiles stow`
 
-Re-link `home/` into `$HOME` and `~/.local/bin/dotfiles`.
+Re-link `home/` into `$HOME` and `~/.local/bin/dotfiles`. Prints a report of linked, backed-up, and skipped destinations.
 
-Use it after editing Stowed config, or after moving the repo (run from the **new** location). Re-running is idempotent — already-correct links are left alone.
+Use `--dry-run` to preview changes without modifying the filesystem. Use it after editing Stowed config, or after moving the repo (run from the **new** location). Re-running is idempotent — already-correct links are left alone.
 
 ```bash
 dotfiles stow
+dotfiles stow --dry-run
 ```
 
 ### `dotfiles clean`
@@ -147,12 +148,15 @@ dotfiles clean
 
 ### `dotfiles sync`
 
-Sync config: `git pull --ff-only`, re-Stow `home/`, refresh the OpenCode MCP mirror.
+Sync config: `git pull --ff-only`, re-Stow `home/`, refresh the OpenCode MCP mirror. Prints the Stow report along with the sync summary.
+
+Use `--dry-run` to preview the Stow report without pulling or writing.
 
 Never installs or upgrades tools — presence is `init`'s job, upgrades belong to each tool (ADR 0014, 0015). A dirty or diverged repo fails fast before anything is Stowed.
 
 ```bash
 dotfiles sync
+dotfiles sync --dry-run
 ```
 
 ## API Keys

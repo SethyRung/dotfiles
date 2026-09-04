@@ -41,12 +41,13 @@ Options:
   -h, --help  Show help
 `;
 
-export const syncHelpText = `Usage: dotfiles sync
+export const syncHelpText = `Usage: dotfiles sync [options]
 
 Pull the repo and re-Stow config
 
 Options:
-  -h, --help  Show help
+      --dry-run  Preview changes without modifying the filesystem
+  -h, --help     Show help
 `;
 
 export const commandHelpTexts: Record<string, string> = {

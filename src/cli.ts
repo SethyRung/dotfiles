@@ -37,6 +37,21 @@ export async function run(args: string[], host: Host): Promise<RunResult> {
       return await stowCommand(host, { dryRun });
     }
 
+    if (command === "sync") {
+      let dryRun = false;
+      for (const arg of rest) {
+        if (arg === "--dry-run") {
+          dryRun = true;
+        } else {
+          const message = arg.startsWith("-")
+            ? `unknown option: ${arg}`
+            : `unexpected argument: ${arg}`;
+          return { exitCode: 1, stdout: "", stderr: `${message}\n\n${help}` };
+        }
+      }
+      return await sync(host, { dryRun });
+    }
+
     if (rest.length > 0) {
       const invalid = rest[0];
       const message = invalid.startsWith("-")
@@ -53,9 +68,6 @@ export async function run(args: string[], host: Host): Promise<RunResult> {
     }
     if (command === "clean") {
       return await clean(host);
-    }
-    if (command === "sync") {
-      return await sync(host);
     }
   }
 

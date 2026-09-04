@@ -136,8 +136,8 @@ test("an unknown flag or extra positional on any command exits 1, writes nothing
     { args: ["clean", "--force"], error: "unknown option: --force", help: "Usage: dotfiles clean" },
     { args: ["clean", "now"], error: "unexpected argument: now", help: "Usage: dotfiles clean" },
     {
-      args: ["sync", "--dry-run"],
-      error: "unknown option: --dry-run",
+      args: ["sync", "--invalid"],
+      error: "unknown option: --invalid",
       help: "Usage: dotfiles sync",
     },
     { args: ["sync", "bar"], error: "unexpected argument: bar", help: "Usage: dotfiles sync" },
