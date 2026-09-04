@@ -22,6 +22,21 @@ export async function run(args: string[], host: Host): Promise<RunResult> {
     if (rest.includes("-h") || rest.includes("--help")) {
       return { exitCode: 0, stdout: help, stderr: "" };
     }
+    if (command === "stow") {
+      let dryRun = false;
+      for (const arg of rest) {
+        if (arg === "--dry-run") {
+          dryRun = true;
+        } else {
+          const message = arg.startsWith("-")
+            ? `unknown option: ${arg}`
+            : `unexpected argument: ${arg}`;
+          return { exitCode: 1, stdout: "", stderr: `${message}\n\n${help}` };
+        }
+      }
+      return await stowCommand(host, { dryRun });
+    }
+
     if (rest.length > 0) {
       const invalid = rest[0];
       const message = invalid.startsWith("-")
@@ -35,9 +50,6 @@ export async function run(args: string[], host: Host): Promise<RunResult> {
     }
     if (command === "doctor") {
       return await doctor(host);
-    }
-    if (command === "stow") {
-      return await stowCommand(host);
     }
     if (command === "clean") {
       return await clean(host);

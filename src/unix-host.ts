@@ -21,6 +21,7 @@ import type {
   ProgressState,
   ProgressStep,
 } from "@/types/progress.ts";
+import type { StowOptions, StowReport } from "@/types/result.ts";
 import { mergeEnvironment } from "@/utils/environment.ts";
 import { renderBanner, renderPanel, spinnerFrames } from "@/utils/panel.ts";
 import { isYes } from "@/utils/prompt.ts";
@@ -343,9 +344,10 @@ export const unixHost: Host = {
   removeFile(path) {
     unlinkSync(path);
   },
-  async stowTree(options = {}) {
+  async stowTree(options: StowOptions = {}): Promise<StowReport> {
     const tree = join(import.meta.dir, "..", "home");
     const home = homedir();
+    const report: StowReport = { linked: [], backedUp: [], skipped: [] };
     let rels = unixHost.homeTree().filter((rel) => {
       if (isStowJunk(rel)) {
         return false;
@@ -372,25 +374,41 @@ export const unixHost: Host = {
     for (const rel of rels) {
       const dest = join(home, rel);
       const src = join(tree, rel);
-      mkdirSync(dirname(dest), { recursive: true });
       try {
         const stat = lstatSync(dest);
         if (stat.isSymbolicLink()) {
+          let target = "";
           try {
-            const target = readlinkSync(dest);
-            if (target === src || target.startsWith(`${tree}/`)) {
-              continue;
-            }
+            target = readlinkSync(dest);
           } catch {}
-          unlinkSync(dest);
+          if (target === src || target.startsWith(`${tree}/`)) {
+            report.skipped.push(dest);
+            continue;
+          }
+          report.linked.push(dest);
+          if (!options.dryRun) {
+            mkdirSync(dirname(dest), { recursive: true });
+            unlinkSync(dest);
+            symlinkSync(src, dest);
+          }
         } else {
-          renameSync(dest, `${dest}.${backupStamp()}`);
+          report.backedUp.push(dest);
+          report.linked.push(dest);
+          if (!options.dryRun) {
+            mkdirSync(dirname(dest), { recursive: true });
+            renameSync(dest, `${dest}.${backupStamp()}`);
+            symlinkSync(src, dest);
+          }
         }
       } catch {
-        // dest does not exist
+        report.linked.push(dest);
+        if (!options.dryRun) {
+          mkdirSync(dirname(dest), { recursive: true });
+          symlinkSync(src, dest);
+        }
       }
-      symlinkSync(src, dest);
     }
+    return report;
   },
   async installPiPackages(packages) {
     for (const pkg of packages) {

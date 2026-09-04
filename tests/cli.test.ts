@@ -128,8 +128,8 @@ test("an unknown flag or extra positional on any command exits 1, writes nothing
       help: "Usage: dotfiles doctor",
     },
     {
-      args: ["stow", "--dry-run"],
-      error: "unknown option: --dry-run",
+      args: ["stow", "--invalid"],
+      error: "unknown option: --invalid",
       help: "Usage: dotfiles stow",
     },
     { args: ["stow", "foo"], error: "unexpected argument: foo", help: "Usage: dotfiles stow" },

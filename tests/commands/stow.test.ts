@@ -11,6 +11,11 @@ test("dotfiles stow on a clean fake $HOME links the home/ tree and PATH stub", a
   });
   const result = await run(["stow"], host);
   expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("linked:");
+  expect(result.stdout).toContain(`${home}/.zshrc`);
+  expect(result.stdout).toContain(`${home}/.config/herdr/config.toml`);
+  expect(result.stdout).not.toContain("backed up:");
+  expect(result.stdout).not.toContain("skipped:");
   expect(host.linked).toEqual([".zshrc", ".config/herdr/config.toml"]);
   expect(host.backups).toEqual([]);
   expect(host.dotfilesLinks).toBe(1);
@@ -27,6 +32,9 @@ test("when a target file already exists, a timestamped backup is created and Sto
   });
   const result = await run(["stow"], host);
   expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("backed up:");
+  expect(result.stdout).toContain(`${home}/.zshrc`);
+  expect(result.stdout).toContain("linked:");
   expect(host.backups).toEqual([`${home}/.zshrc.2026-01-01_10:30:20`]);
   expect(host.linked).toEqual([".zshrc"]);
 });
@@ -40,6 +48,10 @@ test("re-Stowing a dest that already symlinks into the repo creates no backup", 
   });
   const result = await run(["stow"], host);
   expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("skipped:");
+  expect(result.stdout).toContain(`${home}/.zshrc`);
+  expect(result.stdout).toContain(`${home}/.config/herdr/config.toml`);
+  expect(result.stdout).not.toContain("backed up:");
   expect(host.backups).toEqual([]);
   expect(host.linked).toEqual([".zshrc", ".config/herdr/config.toml"]);
 });
@@ -54,6 +66,8 @@ test("herdr logs and sockets are not linked", async () => {
   });
   const result = await run(["stow"], host);
   expect(result.exitCode).toBe(0);
+  expect(result.stdout).not.toContain("session.log");
+  expect(result.stdout).not.toContain("herdr.sock");
   expect(host.linked).toEqual([".config/herdr/config.toml"]);
 });
 
@@ -86,7 +100,63 @@ test("dotfiles stow replaces stale dest symlinks without a backup", async () => 
   });
   const result = await run(["stow"], host);
   expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("linked:");
+  expect(result.stdout).not.toContain("backed up:");
   expect(host.backups).toEqual([]);
   expect(host.linked).toEqual([".zshrc", ".config/herdr/config.toml"]);
   expect(host.dotfilesLinks).toBe(1);
+});
+
+test("dotfiles stow --dry-run prints report and writes nothing", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["bun"], {
+    homeDir: home,
+    homeTree: [".zshrc", ".config/herdr/config.toml"],
+    files: [`${home}/.zshrc`],
+    now: parseDate("2026-01-01_10:30:20"),
+  });
+  const result = await run(["stow", "--dry-run"], host);
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("backed up:");
+  expect(result.stdout).toContain(`${home}/.zshrc`);
+  expect(result.stdout).toContain("linked:");
+  expect(result.stdout).toContain(`${home}/.zshrc`);
+  expect(result.stdout).toContain(`${home}/.config/herdr/config.toml`);
+  expect(host.backups).toEqual([]);
+  expect(host.linked).toEqual([]);
+  expect(host.dotfilesLinks).toBe(0);
+  expect(host.fileExists(`${home}/.config/herdr/config.toml`)).toBe(false);
+});
+
+test("dotfiles stow --dry-run with already linked files reports them as skipped", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["bun"], {
+    homeDir: home,
+    homeTree: [".zshrc", ".config/herdr/config.toml"],
+    repoLinks: [`${home}/.zshrc`],
+  });
+  const result = await run(["stow", "--dry-run"], host);
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("skipped:");
+  expect(result.stdout).toContain(`${home}/.zshrc`);
+  expect(result.stdout).toContain("linked:");
+  expect(result.stdout).toContain(`${home}/.config/herdr/config.toml`);
+  expect(host.linked).toEqual([]);
+  expect(host.dotfilesLinks).toBe(0);
+});
+
+test("dotfiles stow --help documents --dry-run", async () => {
+  const host = createFakeHost(["bun"]);
+  const result = await run(["stow", "--help"], host);
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("--dry-run");
+});
+
+test("--dry-run on init, doctor, or clean fails closed", async () => {
+  const host = createFakeHost(["bun"], { packageManager: "apt" });
+  for (const cmd of ["init", "doctor", "clean"]) {
+    const result = await run([cmd, "--dry-run"], host);
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("unknown option: --dry-run");
+  }
 });

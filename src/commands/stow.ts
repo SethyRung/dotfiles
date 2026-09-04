@@ -1,12 +1,23 @@
 import type { Host } from "@/types/host.ts";
-import type { RunResult, StowOptions } from "@/types/result.ts";
+import type { RunResult, StowOptions, StowReport } from "@/types/result.ts";
+import { formatStowReport } from "@/utils/stow.ts";
 
-export async function stow(host: Host, options: StowOptions = {}): Promise<RunResult> {
-  await host.stowTree(options);
-  return { exitCode: 0, stdout: "", stderr: "" };
+export async function stow(
+  host: Host,
+  options: StowOptions = {},
+): Promise<RunResult & { report: StowReport }> {
+  const report = await host.stowTree(options);
+  return { exitCode: 0, stdout: formatStowReport(report), stderr: "", report };
 }
 
-export async function stowCommand(host: Host): Promise<RunResult> {
-  await host.linkDotfiles();
-  return await stow(host);
+export async function stowCommand(host: Host, options: StowOptions = {}): Promise<RunResult> {
+  if (!options.dryRun) {
+    await host.linkDotfiles();
+  }
+  const stowed = await stow(host, options);
+  let stdout = stowed.stdout;
+  if (options.dryRun) {
+    stdout += "\n(dry run: would link ~/.local/bin/dotfiles)\n";
+  }
+  return { exitCode: 0, stdout, stderr: "" };
 }

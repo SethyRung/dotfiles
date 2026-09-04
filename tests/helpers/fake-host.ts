@@ -6,7 +6,7 @@ import type {
   ProgressState,
   ProgressStep,
 } from "@/types/progress.ts";
-import type { StowOptions } from "@/types/result.ts";
+import type { StowOptions, StowReport } from "@/types/result.ts";
 import { mergeEnvironment } from "@/utils/environment.ts";
 import { isYes } from "@/utils/prompt.ts";
 import { isGhosttyConfig, isStowJunk } from "@/utils/stow.ts";
@@ -211,7 +211,8 @@ export function createFakeHost(
       removedFiles.push(path);
       files.delete(path);
     },
-    async stowTree(options: StowOptions = {}) {
+    async stowTree(options: StowOptions = {}): Promise<StowReport> {
+      const report: StowReport = { linked: [], backedUp: [], skipped: [] };
       let rels = tree.filter((rel) => {
         if (isStowJunk(rel)) {
           return false;
@@ -240,22 +241,50 @@ export function createFakeHost(
         const isStale = staleLinks.has(dest);
         const exists = files.has(dest);
 
-        if (exists && !isRepoLink && !isStale) {
-          const bkp = `${dest}.${backupStamp(clock)}`;
-          backups.push(bkp);
-          files.delete(dest);
+        if (isRepoLink) {
+          report.skipped.push(dest);
+          if (extras.treeContents?.[rel] != null) {
+            fileContents[dest] = extras.treeContents[rel];
+          }
+          if (!options.dryRun) {
+            linked.push(rel);
+          }
+          continue;
         }
-        if (isStale) {
-          staleLinks.delete(dest);
-        }
-        linked.push(rel);
-        files.add(dest);
-        repoLinks.add(dest);
-        if (extras.treeContents?.[rel] != null) {
-          fileContents[dest] = extras.treeContents[rel];
+
+        if (exists && !isStale) {
+          report.backedUp.push(dest);
+          report.linked.push(dest);
+          if (!options.dryRun) {
+            const bkp = `${dest}.${backupStamp(clock)}`;
+            backups.push(bkp);
+            files.delete(dest);
+            linked.push(rel);
+            files.add(dest);
+            repoLinks.add(dest);
+            if (extras.treeContents?.[rel] != null) {
+              fileContents[dest] = extras.treeContents[rel];
+            }
+          }
+        } else {
+          if (isStale && !options.dryRun) {
+            staleLinks.delete(dest);
+          }
+          report.linked.push(dest);
+          if (!options.dryRun) {
+            linked.push(rel);
+            files.add(dest);
+            repoLinks.add(dest);
+            if (extras.treeContents?.[rel] != null) {
+              fileContents[dest] = extras.treeContents[rel];
+            }
+          }
         }
       }
-      actions.push(`stow:${rels.join(",")}`);
+      if (!options.dryRun) {
+        actions.push(`stow:${rels.join(",")}`);
+      }
+      return report;
     },
     async installMiseTools() {
       actions.push("mise-tools");

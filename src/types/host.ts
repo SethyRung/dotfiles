@@ -1,5 +1,5 @@
 import type { ProgressFrame, ProgressSession, ProgressStep } from "@/types/progress.ts";
-import type { StowOptions } from "@/types/result.ts";
+import type { StowOptions, StowReport } from "@/types/result.ts";
 
 export type PackageManager = "apt" | "pacman" | "dnf" | "zypper";
 
@@ -21,7 +21,7 @@ export type Host = {
   stowBackups(): string[];
   homeTree(): string[];
   removeFile(path: string): void;
-  stowTree(options?: StowOptions): Promise<void>;
+  stowTree(options?: StowOptions): Promise<StowReport>;
   installPiPackages(packages: string[]): Promise<void>;
   installSkills(specs: string[]): Promise<void>;
   prompt(message: string): Promise<string>;

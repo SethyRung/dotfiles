@@ -24,12 +24,13 @@ Options:
   -h, --help  Show help
 `;
 
-export const stowHelpText = `Usage: dotfiles stow
+export const stowHelpText = `Usage: dotfiles stow [options]
 
 Re-link home/ and ~/.local/bin/dotfiles
 
 Options:
-  -h, --help  Show help
+      --dry-run  Preview changes without modifying the filesystem
+  -h, --help     Show help
 `;
 
 export const cleanHelpText = `Usage: dotfiles clean
