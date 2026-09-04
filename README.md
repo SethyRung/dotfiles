@@ -8,7 +8,7 @@
         personal linux bootstrap
 ```
 
-One command takes a Fresh Install of Linux to the full dev Workflow: zsh + Oh My Zsh, git, herdr, pi, OpenCode, Zed, Skills, MCP, API Keys, and optional Ghostty. Linux only — any Distro with apt, pacman, dnf, or zypper.
+One command takes a Fresh Install of Linux to the full dev Workflow: zsh + Oh My Zsh, git, Mise Tools (bun, Node, herdr, pi, OpenCode), Zed, Skills, MCP, API Keys, and optional Ghostty. Linux only — any Distro with apt, pacman, dnf, or zypper.
 
 ## Contents
 
@@ -31,12 +31,12 @@ One command takes a Fresh Install of Linux to the full dev Workflow: zsh + Oh My
 
 ## Requirements
 
-| Requirement      | Detail                                                                          |
-| ---------------- | ------------------------------------------------------------------------------- |
-| Operating system | Linux with apt, pacman, dnf, or zypper                                          |
-| Internet access  | Needed for Upstream Installs (curl, GitHub releases)                            |
-| sudo             | Only for merging API Keys into `/etc/environment` (optional)                    |
-| Everything else  | Installed by Bootstrap itself, including [bun](https://bun.com/install) and git |
+| Requirement      | Detail                                                                                     |
+| ---------------- | ------------------------------------------------------------------------------------------ |
+| Operating system | Linux with apt, pacman, dnf, or zypper                                                     |
+| Internet access  | Needed for Upstream Installs (curl, GitHub releases) and Mise Tools                        |
+| sudo             | Only for merging API Keys into `/etc/environment` (optional)                               |
+| Everything else  | Installed by Bootstrap itself, including [mise](https://mise.run) and bun (as a Mise Tool) |
 
 An unknown Distro — no apt, pacman, dnf, or zypper — fails **before** installing anything.
 
@@ -54,7 +54,7 @@ From there:
 
 ## Architecture
 
-The `dotfiles` entrypoint is a bash stub that installs [bun](https://bun.com/install) if missing, then runs the TypeScript CLI (`src/`). Bootstrap itself is a sequence of 15 steps, each either a Distro package install via the Package Map, an Upstream Install, a Stow delivery, or a machine-state change:
+The `dotfiles` entrypoint is a bash stub that installs [mise](https://mise.run) then bun (via mise) when bun is missing, then runs the TypeScript CLI (`src/`). Bootstrap is a sequence of 14 steps, each a Distro package install via the Package Map, an Upstream Install, a Mise Tool install, a Stow delivery, or a machine-state change:
 
 ```text
 ./dotfiles ── bash stub ──▶ bun ──▶ src/main.ts ──▶ init | doctor | stow | clean | sync
@@ -71,32 +71,33 @@ A live ASCII dashboard redraws as each step runs:
   [ok]   Distro packages  zsh, git, stow
   [ok]   Oh My Zsh        latest
   [ok]   OMZ plugins      autosuggestions, syntax-highlighting
-  [skip] nvm + Node LTS   npm present
-  [ok]   herdr            latest
-  [ok]   pi + packages    8 packages
-  [ok]   OpenCode         latest
-  [ok]   Zed              latest
-  [ok]   Skills           14 skills
-  [\]    Stow             home/ tree
+  [ok]   mise             latest
+  [ok]   Stow             linked
+  [\]    Mise Tools       bun, herdr, node, opencode, pi
+  [--]   pi packages      8 packages
+  [--]   Zed              latest
+  [--]   Skills           16 skills
   [--]   OpenCode MCP     mcp key
   [--]   API Keys         will prompt
   [--]   Ghostty          will prompt
   [--]   login shell      zsh
   [--]   dotfiles CLI     ~/.local/bin
   --------------------------------------------
-  step 9/15 - 42s elapsed
+  step 6/14 - 42s elapsed
 ```
 
 ## What Bootstrap installs
 
-| Category            | Contents                                                                                                                                                                           |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Distro packages     | zsh, git, stow via the Package Map — no git config                                                                                                                                 |
-| Upstream installs   | Oh My Zsh, herdr, pi + its packages, OpenCode, Zed, nvm + Node LTS when npm is missing, Skills via skills.sh (always latest, never version-pinned)                                 |
-| Stowed from `home/` | zshrc, herdr config.toml, XDG mcp.json, OpenCode config + TUI files, Zed settings.json + keymap.json (Zed extensions are declared in `auto_install_extensions`, never snapshotted) |
-| Machine state       | login shell becomes zsh, dotfiles symlinked into `~/.local/bin`, API Keys merged into `/etc/environment`                                                                           |
+| Category            | Contents                                                                                                                                                                                                              |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Distro packages     | zsh, git, stow via the Package Map — no git config                                                                                                                                                                    |
+| Upstream Installs   | mise, Oh My Zsh, OMZ plugins, Zed (always latest, never version-pinned)                                                                                                                                               |
+| Mise Tools          | bun, herdr, pi, OpenCode, grok, codex (`latest`) and Node (`lts`) from the Stowed mise config; npm comes from mise's Node                                                                                             |
+| pi packages         | Current pi plugins, installed only when pi was missing before Mise Tools                                                                                                                                              |
+| Stowed from `home/` | zshrc, mise config.toml, herdr config.toml, XDG mcp.json, OpenCode config + TUI files, pi agent config, Zed settings.json + keymap.json (Zed extensions are declared in `auto_install_extensions`, never snapshotted) |
+| Machine state       | login shell becomes zsh, dotfiles symlinked into `~/.local/bin`, API Keys merged into `/etc/environment`                                                                                                              |
 
-Existing target files are backed up with a timestamp, then Stowed.
+Skills are installed globally via skills.sh from `src/consts/skills-list.ts`, not snapshotted. Regular files at the destination are timestamp-backed-up then replaced; repo links are left; stale symlinks are replaced.
 
 ## Command reference
 
@@ -106,7 +107,7 @@ Usage: `dotfiles <command>` — with no arguments, the CLI prints its help.
 
 Bootstrap the Workflow, guided by the live Progress Log.
 
-Runs all 15 steps: Distro packages, Oh My Zsh + plugins, nvm + Node LTS (skipped when npm is present), herdr, pi + packages, OpenCode, Zed, Skills, Stow, OpenCode MCP mirror, API Keys, optional Ghostty, login shell, and the `~/.local/bin/dotfiles` symlink.
+Runs all 14 steps: Distro packages, Oh My Zsh + plugins, mise, Stow, Mise Tools, pi packages, Zed, Skills, OpenCode MCP mirror, API Keys, optional Ghostty, login shell, and the `~/.local/bin/dotfiles` symlink.
 
 ```bash
 dotfiles init
@@ -170,6 +171,7 @@ Empty input skips the step. Otherwise confirm, then **merge** into `/etc/environ
 ## Re-runs and safety
 
 - Workflow already present: one `Continue? [y/N]` prompt. Decline changes nothing; continue skips installed tools quietly (`[skip] ... present`).
+- Stow always re-links `home/`; Mise Tools always run `mise install` after that Stow (idempotent; not an upgrade).
 - Extra prompts appear only before destructive writes: `/etc/environment` and Stow conflicts.
 - Fail fast on required steps; Ghostty failure is a warning, not a crash.
 - After changing the login shell, init offers a reboot (default no) — `zsh` or logging out/in also applies it.
