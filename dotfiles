@@ -3,13 +3,15 @@ set -euo pipefail
 
 root="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 
+bun_bin="$HOME/.local/share/mise/installs/bun/latest/bin"
+export PATH="$bun_bin:$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"
+
 if ! command -v bun >/dev/null 2>&1; then
-  export PATH="$HOME/.local/bin:$PATH"
   if [[ ! -x "$HOME/.local/bin/mise" ]]; then
     curl -fsSL https://mise.run | sh
   fi
   "$HOME/.local/bin/mise" use -g -y bun@latest
-  export PATH="$HOME/.local/share/mise/shims:$PATH"
+  export PATH="$bun_bin:$HOME/.local/share/mise/shims:$PATH"
 fi
 
 exec bun "$root/src/main.ts" "$@"

@@ -1,5 +1,6 @@
 import Bun from "bun";
 import {
+  chmodSync,
   existsSync,
   lstatSync,
   mkdirSync,
@@ -8,6 +9,7 @@ import {
   renameSync,
   symlinkSync,
   unlinkSync,
+  writeFileSync,
 } from "node:fs";
 import { homedir, userInfo } from "node:os";
 import { dirname, join } from "node:path";
@@ -244,6 +246,7 @@ export const unixHost: Host = {
     return output.trim();
   },
   async linkDotfiles() {
+    const root = join(import.meta.dir, "..");
     const destDir = join(homedir(), ".local/bin");
     mkdirSync(destDir, { recursive: true });
     const dest = join(destDir, "dotfiles");
@@ -251,7 +254,25 @@ export const unixHost: Host = {
       lstatSync(dest);
       unlinkSync(dest);
     } catch {}
-    symlinkSync(join(import.meta.dir, "..", "dotfiles"), dest);
+    writeFileSync(
+      dest,
+      [
+        "#!/usr/bin/env bash",
+        "set -euo pipefail",
+        `root=${JSON.stringify(root)}`,
+        'if [[ -x "${PWD}/dotfiles" && -f "${PWD}/src/main.ts" ]]; then',
+        '  root="${PWD}"',
+        "fi",
+        'if [[ ! -f "${root}/src/main.ts" ]]; then',
+        '  echo "dotfiles: repo not found at ${root}" >&2',
+        '  echo "cd to the repo and run ./dotfiles stow" >&2',
+        "  exit 1",
+        "fi",
+        'exec "${root}/dotfiles" "$@"',
+        "",
+      ].join("\n"),
+    );
+    chmodSync(dest, 0o755);
   },
   async listApiKeyNames() {
     const file = Bun.file("/etc/environment");

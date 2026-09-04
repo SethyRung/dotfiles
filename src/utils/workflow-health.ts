@@ -12,6 +12,7 @@ export type WorkflowCheck = {
 
 export type WorkflowHealth = {
   isComplete: boolean;
+  isBootstrapped: boolean;
   requiredChecks: WorkflowCheck[];
   optional: {
     ghostty: boolean;
@@ -64,9 +65,26 @@ export async function assessWorkflow(host: Host): Promise<WorkflowHealth> {
   ];
 
   const isComplete = requiredChecks.every((check) => check.ok);
+  const isBootstrapped = [
+    zsh,
+    omz,
+    plugins,
+    git,
+    stowOk,
+    mise,
+    npm,
+    bun,
+    pi,
+    herdr,
+    opencode,
+    zed,
+    skills,
+    shell,
+  ].every(Boolean);
 
   return {
     isComplete,
+    isBootstrapped,
     requiredChecks,
     optional: { ghostty },
     keys,

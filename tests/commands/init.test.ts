@@ -572,22 +572,7 @@ test("Skills are requested via skills.sh, not by snapshotting skill files as the
   const host = createFakeHost(["bun"], { packageManager: "apt" });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
-  expect(host.skillsRequested).toEqual([
-    "vercel-labs/skills@find-skills",
-    "mattpocock/skills@grill-me",
-    "mattpocock/skills@grill-with-docs",
-    "mattpocock/skills@to-spec",
-    "mattpocock/skills@to-tickets",
-    "firecrawl/anydoc@convert-documents-to-markdown",
-    "mattpocock/skills@code-review",
-    "mattpocock/skills@implement",
-    "mattpocock/skills@improve-codebase-architecture",
-    "mattpocock/skills@resolving-merge-conflicts",
-    "mattpocock/skills@tdd",
-    "mattpocock/skills@teach",
-    "mattpocock/skills@prototype",
-    "mattpocock/skills@wait-what",
-  ]);
+  expect(host.skillsRequested).toEqual(skillsList);
   expect(host.linked.some((rel) => rel.startsWith(".agents/skills/"))).toBe(false);
 });
 
@@ -803,6 +788,31 @@ test("yes on a Distro without a mapping warns and does not abort the rest of ini
   expect(host.packagesRequested).toEqual(["zsh", "git", "stow"]);
   expect(host.linked).not.toContain(".config/ghostty/config");
   expect(host.loginShell()).toBe("zsh");
+});
+
+test("dangling PATH and MCP dests after a repo move still ask continue?", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(
+    ["zsh", "git", "stow", "mise", "npm", "bun", "pi", "herdr", "opencode", "zed"],
+    {
+      homeDir: home,
+      packageManager: "apt",
+      files: [
+        `${home}/.oh-my-zsh`,
+        `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
+        `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
+        ...skillDirs(home),
+      ],
+      loginShell: "/bin/zsh",
+      brokenStowLinks: [`${home}/.config/mcp/mcp.json`, `${home}/.zshrc`],
+    },
+  );
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.prompts[0]?.toLowerCase()).toContain("continue?");
+  expect(host.packagesRequested).toEqual([]);
+  expect(host.upstreamInstalls).toEqual([]);
+  expect(host.linked).toEqual([]);
 });
 
 test("when Workflow already looks present, init asks continue? before doing work", async () => {

@@ -57,7 +57,7 @@ function initialSteps(): ProgressStep[] {
 }
 
 async function workflowLooksPresent(host: Host): Promise<boolean> {
-  return (await assessWorkflow(host)).isComplete;
+  return (await assessWorkflow(host)).isBootstrapped;
 }
 
 export async function init(host: Host): Promise<RunResult> {
