@@ -2,11 +2,11 @@
 bun = "latest"
 codex = "latest"
 gh = "latest"
-grok = "latest"
 herdr = "latest"
 node = "lts"
 opencode = "latest"
 pi = "latest"
+"npm:@xai-official/grok" = "latest"
 
 [settings]
 auto_update = true
