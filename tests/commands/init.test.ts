@@ -718,7 +718,7 @@ test("yes on a Distro with a mapping installs Ghostty and Stows its config", asy
   const cfg = await Bun.file(
     join(import.meta.dir, "../../home/.config/ghostty/config.ghostty"),
   ).text();
-  expect(cfg).toContain("font-size=10");
+  expect(cfg).toContain("font-size = 10");
 });
 
 test("already-installed Ghostty is not offered again but its config is still Stowed", async () => {
