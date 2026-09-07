@@ -236,7 +236,7 @@ test("a curated zshrc is Stowed without Android SDK paths or out-of-scope aliase
   expect(result.exitCode).toBe(0);
   expect(host.linked).toEqual([".zshrc"]);
   const zshrc = await readZshrc();
-  expect(zshrc).toContain('ZSH_THEME="bira"');
+  expect(zshrc).toContain('ZSH_THEME="alanpeabody"');
   expect(zshrc).toContain("git");
   expect(zshrc).toContain("docker");
   expect(zshrc).toContain("zsh-autosuggestions");

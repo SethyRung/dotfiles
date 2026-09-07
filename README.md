@@ -23,11 +23,12 @@ One command takes a Fresh Install of Linux to the full dev Workflow: zsh + Oh My
    - [`dotfiles stow`](#dotfiles-stow)
    - [`dotfiles clean`](#dotfiles-clean)
    - [`dotfiles sync`](#dotfiles-sync)
-7. [API Keys](#api-keys)
-8. [Re-runs and safety](#re-runs-and-safety)
-9. [Keeping machines in sync](#keeping-machines-in-sync)
-10. [Troubleshooting](#troubleshooting)
-11. [Scope and limitations](#scope-and-limitations)
+7. [Environment variables & API Keys](#environment-variables--api-keys)
+8. [Preset configuration (`dotfiles.json`)](#preset-configuration-dotfilesjson)
+9. [Re-runs and safety](#re-runs-and-safety)
+10. [Keeping machines in sync](#keeping-machines-in-sync)
+11. [Troubleshooting](#troubleshooting)
+12. [Scope and limitations](#scope-and-limitations)
 
 ## Requirements
 
@@ -95,9 +96,9 @@ A live ASCII dashboard redraws as each step runs:
 | Mise Tools          | bun, herdr, pi, OpenCode, grok, codex (`latest`) and Node (`lts`) from the Stowed mise config; npm comes from mise's Node                                                                                             |
 | pi packages         | Current pi plugins, installed only when pi was missing before Mise Tools                                                                                                                                              |
 | Stowed from `home/` | zshrc, mise config.toml, herdr config.toml, XDG mcp.json, OpenCode config + TUI files, pi agent config, Zed settings.json + keymap.json (Zed extensions are declared in `auto_install_extensions`, never snapshotted) |
-| Machine state       | login shell becomes zsh, dotfiles symlinked into `~/.local/bin`, API Keys merged into `/etc/environment`                                                                                                              |
+| Machine state       | login shell becomes zsh, dotfiles symlinked into `~/.local/bin`, environment variables merged into chosen store location (`/etc/environment`, `~/.zshenv`, etc.)                                                      |
 
-Skills are installed globally via skills.sh from `src/consts/skills-list.ts`, not snapshotted. Regular files at the destination are timestamp-backed-up then replaced; repo links are left; stale symlinks are replaced.
+Skills, pi packages, OMZ plugins, and distro packages are configured in `dotfiles.json` and installed via their package mechanisms (skills.sh for skills). Regular files at the destination are timestamp-backed-up then replaced; repo links are left; stale symlinks are replaced.
 
 ## Command reference
 
@@ -159,18 +160,68 @@ dotfiles sync
 dotfiles sync --dry-run
 ```
 
-## API Keys
+## Environment variables & API Keys
 
-API Keys are never committed. During `init`:
+API Keys and environment variables are never committed.
+
+### 1. Input: `.env` or CSV
+
+When reaching the environment step during `init`:
+
+- **From `.env`**: If `.env` exists in the repository root, variables are loaded automatically. Variable names (never secret values) are displayed:
+  ```text
+  Loaded environment variables from .env:
+    OPENAI_API_KEY, ANTHROPIC_API_KEY
+  Do you want to modify it? [y/N]
+  ```
+  If modifying, choose **Override** (`o`) to replace with a new CSV or **Append** (`a`) to merge new key-value pairs into the loaded `.env`.
+- **From CSV**: If no `.env` is present, it prompts for standard `key=value` CSV input (empty skips):
+  ```text
+  API Keys (key=value CSV, empty skips): OPENROUTER_API_KEY=abc,OPENAI_API_KEY=xyz
+  ```
+
+### 2. Store location
+
+You are prompted to select where to write the environment variables (defaulting to `/etc/environment`):
 
 ```text
-API Keys (key=value CSV, empty skips): OPENROUTER_API_KEY=abc,OPENAI_API_KEY=xyz
+Store location:
+1) /etc/environment (system-wide) [default]
+2) ~/.zshenv
+3) ~/.profile
+4) Custom path
+Select [1-4, default 1]:
 ```
 
-Empty input skips the step. Otherwise confirm, then **merge** into `/etc/environment` (sudo, world-readable):
+- Writing to `/etc/environment` prompts for `sudo` and provides system-wide visibility.
+- User files (`~/.zshenv`, `~/.profile`, custom paths) are written directly.
+- Existing lines such as `PATH` stay untouched — variables are merged into the target file, never overwriting unrelated lines.
+- Secret values are never printed to the screen, logged, or included in the Progress Log.
 
-- Existing lines such as `PATH` stay untouched — the file is merged, never replaced.
-- Values are never logged and never appear in the Progress Log.
+## Preset configuration (`dotfiles.json`)
+
+The repository includes `dotfiles.json` as the single source of truth for tools, skills, and packages. You can customize this file in your fork/clone to tailor your workflow:
+
+```json
+{
+  "$schema": "./schema/dotfiles.schema.json",
+  "skills": ["vercel-labs/skills@find-skills", "mattpocock/skills@implement"],
+  "piPackages": ["npm:pi-subagents", "npm:pi-mcp-adapter"],
+  "omzPlugins": ["zsh-autosuggestions", "zsh-syntax-highlighting"],
+  "packages": {
+    "apt": ["zsh", "git", "stow"],
+    "pacman": ["zsh", "git", "stow"],
+    "dnf": ["zsh", "git", "stow"],
+    "zypper": ["zsh", "git", "stow"]
+  }
+}
+```
+
+- **`skills`**: Global agent skills installed via `skills.sh`.
+- **`piPackages`**: Pi agent extensions installed when pi is set up.
+- **`omzPlugins`**: Oh My Zsh plugins cloned into custom plugins.
+- **`packages`**: Distro packages required by the workflow (distro-agnostic list or per-package-manager mapping).
+- **JSON Schema**: `schema/dotfiles.schema.json` provides validation and auto-completion in modern editors (Zed, VS Code, etc.).
 
 ## Re-runs and safety
 
