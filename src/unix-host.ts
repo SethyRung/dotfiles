@@ -213,6 +213,9 @@ export const unixHost: Host = {
       throw new Error("Distro package install failed");
     }
   },
+  repoDir() {
+    return join(import.meta.dir, "..");
+  },
   homeDir() {
     return homedir();
   },
@@ -276,24 +279,30 @@ export const unixHost: Host = {
     chmodSync(dest, 0o755);
   },
   async listApiKeyNames() {
-    const file = Bun.file("/etc/environment");
-    if (!(await file.exists())) {
-      return [];
-    }
-    const text = await file.text();
-    const names: string[] = [];
-    for (const line of text.split("\n")) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith("#")) {
+    const locations = ["/etc/environment", join(homedir(), ".zshenv"), join(homedir(), ".profile")];
+    const names = new Set<string>();
+    for (const loc of locations) {
+      const file = Bun.file(loc);
+      if (!(await file.exists())) {
         continue;
       }
-      const eq = trimmed.indexOf("=");
-      if (eq <= 0) {
-        continue;
+      const text = await file.text();
+      for (const line of text.split("\n")) {
+        let trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith("#")) {
+          continue;
+        }
+        if (trimmed.startsWith("export ")) {
+          trimmed = trimmed.slice(7).trim();
+        }
+        const eq = trimmed.indexOf("=");
+        if (eq <= 0) {
+          continue;
+        }
+        names.add(trimmed.slice(0, eq));
       }
-      names.push(trimmed.slice(0, eq));
     }
-    return names;
+    return [...names];
   },
   brokenStowLinks() {
     const tree = join(import.meta.dir, "..", "home");
@@ -446,18 +455,22 @@ export const unixHost: Host = {
       activeProgressSession?.update(i, step.state, step.detail);
     });
   },
-  async mergeApiKeys(keys) {
+  async mergeApiKeys(keys, targetPath = "/etc/environment") {
     markNoisy();
-    const file = Bun.file("/etc/environment");
+    const file = Bun.file(targetPath);
     const existing = (await file.exists()) ? await file.text() : "";
     const content = mergeEnvironment(existing, keys);
-    const proc = Bun.spawn(["sudo", "tee", "/etc/environment"], {
-      stdin: new Blob([content]),
-      stdout: "ignore",
-      stderr: "inherit",
-    });
-    if ((await proc.exited) !== 0) {
-      throw new Error("failed to write /etc/environment");
+    if (targetPath.startsWith("/etc/")) {
+      const proc = Bun.spawn(["sudo", "tee", targetPath], {
+        stdin: new Blob([content]),
+        stdout: "ignore",
+        stderr: "inherit",
+      });
+      if ((await proc.exited) !== 0) {
+        throw new Error(`failed to write ${targetPath}`);
+      }
+    } else {
+      await unixHost.writeFile(targetPath, content);
     }
   },
   async readFile(path) {

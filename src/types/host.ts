@@ -9,6 +9,7 @@ export type Host = {
   installMiseTools(): Promise<void>;
   packageManager(): PackageManager | null;
   installPackages(packages: string[]): Promise<void>;
+  repoDir(): string;
   homeDir(): string;
   fileExists(path: string): boolean;
   loginShell(): string | null;
@@ -27,7 +28,7 @@ export type Host = {
   prompt(message: string): Promise<string>;
   startProgress(title: string, steps: ProgressStep[]): ProgressSession;
   progress(frame: ProgressFrame): void;
-  mergeApiKeys(keys: Record<string, string>): Promise<void>;
+  mergeApiKeys(keys: Record<string, string>, targetPath?: string): Promise<void>;
   readFile(path: string): Promise<string | null>;
   writeFile(path: string, content: string): Promise<void>;
 };

@@ -632,7 +632,7 @@ test("non-empty CSV prompts for confirmation before writing", async () => {
   const host = createFakeHost(["bun"], {
     packageManager: "apt",
     environmentFile: 'PATH="/usr/bin"\n',
-    promptAnswers: ["OPENROUTER_API_KEY=sk-secret", "n"],
+    promptAnswers: ["OPENROUTER_API_KEY=sk-secret", "1", "n"],
   });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
@@ -643,7 +643,7 @@ test("accepting merges keys only; other lines in the file remain", async () => {
   const host = createFakeHost(["bun"], {
     packageManager: "apt",
     environmentFile: 'PATH="/usr/bin"\nKEEP=yes\n',
-    promptAnswers: ["OPENROUTER_API_KEY=sk-secret", "y"],
+    promptAnswers: ["OPENROUTER_API_KEY=sk-secret", "1", "y"],
   });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
@@ -662,7 +662,7 @@ test("declining confirmation does not write", async () => {
   const host = createFakeHost(["bun"], {
     packageManager: "apt",
     environmentFile: existing,
-    promptAnswers: ["OPENROUTER_API_KEY=sk-secret", "n"],
+    promptAnswers: ["OPENROUTER_API_KEY=sk-secret", "1", "n"],
   });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
@@ -675,13 +675,132 @@ test("CLI output and logs never contain API Key values", async () => {
   const host = createFakeHost(["bun"], {
     packageManager: "apt",
     environmentFile: 'PATH="/usr/bin"\n',
-    promptAnswers: [`OPENROUTER_API_KEY=${secret}`, "y"],
+    promptAnswers: [`OPENROUTER_API_KEY=${secret}`, "1", "y"],
   });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
   expect(result.stdout).not.toContain(secret);
   expect(result.stderr).not.toContain(secret);
   expect(host.prompts.join("")).not.toContain(secret);
+  expect(JSON.stringify(host.progressFrames)).not.toContain(secret);
+});
+
+test("init loads .env from repo root, shows variable names, and merges on acceptance", async () => {
+  const repo = "/fake-repo";
+  const secret = "super-secret-from-dotenv";
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    repoDir: repo,
+    files: [`${repo}/.env`],
+    fileContents: {
+      [`${repo}/.env`]: `OPENAI_API_KEY=${secret}\nANTHROPIC_API_KEY=anthropic-secret\n`,
+    },
+    environmentFile: 'PATH="/usr/bin"\n',
+    promptAnswers: ["n", "1", "y"],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.prompts[0]).toContain("OPENAI_API_KEY, ANTHROPIC_API_KEY");
+  expect(host.prompts[0]).not.toContain(secret);
+  expect(await host.readEnvironment()).toContain(`OPENAI_API_KEY=${secret}`);
+  expect(await host.readEnvironment()).toContain("ANTHROPIC_API_KEY=anthropic-secret");
+  expect(finalSteps(host).get("API Keys")).toEqual({
+    label: "API Keys",
+    detail: "merged into /etc/environment",
+    state: "done",
+  });
+});
+
+test("modifying .env with Append merges additional keys into loaded keys", async () => {
+  const repo = "/fake-repo";
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    repoDir: repo,
+    files: [`${repo}/.env`],
+    fileContents: {
+      [`${repo}/.env`]: "KEY_ONE=val1\n",
+    },
+    environmentFile: 'PATH="/usr/bin"\n',
+    promptAnswers: ["y", "a", "KEY_TWO=val2", "1", "y"],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  const env = await host.readEnvironment();
+  expect(env).toContain("KEY_ONE=val1");
+  expect(env).toContain("KEY_TWO=val2");
+});
+
+test("modifying .env with Override replaces loaded keys with new ones", async () => {
+  const repo = "/fake-repo";
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    repoDir: repo,
+    files: [`${repo}/.env`],
+    fileContents: {
+      [`${repo}/.env`]: "OLD_KEY=oldval\n",
+    },
+    environmentFile: 'PATH="/usr/bin"\n',
+    promptAnswers: ["y", "o", "NEW_KEY=newval", "1", "y"],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  const env = await host.readEnvironment();
+  expect(env).not.toContain("OLD_KEY");
+  expect(env).toContain("NEW_KEY=newval");
+});
+
+test("store location option 2 writes to ~/.zshenv", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    homeDir: home,
+    promptAnswers: ["FOO_KEY=bar", "2", "y"],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(await host.readFile(`${home}/.zshenv`)).toContain("FOO_KEY=bar");
+  expect(finalSteps(host).get("API Keys")).toEqual({
+    label: "API Keys",
+    detail: "merged into ~/.zshenv",
+    state: "done",
+  });
+});
+
+test("store location option 4 prompts for custom path and writes there", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    homeDir: home,
+    promptAnswers: ["CUSTOM_KEY=customval", "4", "~/.custom_env", "y"],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(await host.readFile(`${home}/.custom_env`)).toContain("CUSTOM_KEY=customval");
+  expect(finalSteps(host).get("API Keys")).toEqual({
+    label: "API Keys",
+    detail: "merged into ~/.custom_env",
+    state: "done",
+  });
+});
+
+test("API Key values loaded from .env are never leaked in logs, stdout, stderr, or prompts", async () => {
+  const repo = "/fake-repo";
+  const secret = "ultra-secret-value-never-leak-12345";
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    repoDir: repo,
+    files: [`${repo}/.env`],
+    fileContents: {
+      [`${repo}/.env`]: `SUPER_SECRET=${secret}\n`,
+    },
+    environmentFile: 'PATH="/usr/bin"\n',
+    promptAnswers: ["n", "1", "y"],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).not.toContain(secret);
+  expect(result.stderr).not.toContain(secret);
+  expect(host.prompts.join("\n")).not.toContain(secret);
   expect(JSON.stringify(host.progressFrames)).not.toContain(secret);
 });
 
@@ -919,7 +1038,7 @@ test("continue still confirms before /etc/environment writes", async () => {
       ],
       loginShell: "/bin/zsh",
       environmentFile: existing,
-      promptAnswers: ["y", "OPENROUTER_API_KEY=sk-secret", "n"],
+      promptAnswers: ["y", "OPENROUTER_API_KEY=sk-secret", "1", "n"],
     },
   );
   const result = await run(["init"], host);
@@ -999,7 +1118,7 @@ test("Zed settings and keymap are Stowed with extensions declared for auto-insta
     vue: true,
   });
   const keymap = await Bun.file(join(import.meta.dir, "../../home/.config/zed/keymap.json")).json();
-  expect(JSON.stringify(keymap)).toContain("terminal::SendText");
+  expect(JSON.stringify(keymap)).toContain("editor::DuplicateLineUp");
 });
 
 test("OpenCode global config and TUI config are Stowed", async () => {

@@ -8,7 +8,12 @@ import { workflowTools } from "@/consts/workflow-tools.ts";
 import type { Host } from "@/types/host.ts";
 import type { ProgressState, ProgressStep } from "@/types/progress.ts";
 import type { RunResult } from "@/types/result.ts";
-import { parseApiKeyCsv } from "@/utils/environment.ts";
+import {
+  formatStorePath,
+  parseApiKeyCsv,
+  parseDotenv,
+  resolveStorePath,
+} from "@/utils/environment.ts";
 import { mirrorOpenCodeMcp } from "@/utils/mcp.ts";
 import { isYes, isZsh } from "@/utils/prompt.ts";
 import { assessWorkflow } from "@/utils/workflow-health.ts";
@@ -151,12 +156,56 @@ export async function init(host: Host): Promise<RunResult> {
     update(STEPS.MCP, "running", "mirroring XDG mcp");
     await mirrorOpenCodeMcp(host);
     update(STEPS.MCP, "done", "mcp key refreshed");
-    const apiKeysCsv = (await host.prompt("API Keys (key=value CSV, empty skips): ")).trim();
-    if (apiKeysCsv !== "") {
-      const confirmed = await host.prompt("Write API Keys to /etc/environment? [y/N] ");
+    let envVars: Record<string, string> = {};
+    const dotenvPath = join(host.repoDir(), ".env");
+    const dotenvContent = await host.readFile(dotenvPath);
+    const parsedDotenv = dotenvContent !== null ? parseDotenv(dotenvContent) : {};
+    const dotenvKeys = Object.keys(parsedDotenv);
+
+    if (dotenvKeys.length > 0) {
+      const modifyPrompt =
+        `Loaded environment variables from .env:\n  ${dotenvKeys.join(", ")}\n` +
+        "Do you want to modify it? [y/N] ";
+      const wantModify = isYes(await host.prompt(modifyPrompt));
+      if (wantModify) {
+        const mode = (await host.prompt("Override or Append? [o/A] ")).trim().toLowerCase();
+        if (mode === "o" || mode === "override") {
+          const csv = (await host.prompt("API Keys (key=value CSV): ")).trim();
+          envVars = parseApiKeyCsv(csv);
+        } else {
+          const csv = (await host.prompt("API Keys to append (key=value CSV): ")).trim();
+          envVars = { ...parsedDotenv, ...parseApiKeyCsv(csv) };
+        }
+      } else {
+        envVars = parsedDotenv;
+      }
+    } else {
+      const apiKeysCsv = (await host.prompt("API Keys (key=value CSV, empty skips): ")).trim();
+      if (apiKeysCsv !== "") {
+        envVars = parseApiKeyCsv(apiKeysCsv);
+      }
+    }
+
+    if (Object.keys(envVars).length > 0) {
+      const locationMenu =
+        "Store location:\n" +
+        "1) /etc/environment (system-wide) [default]\n" +
+        "2) ~/.zshenv\n" +
+        "3) ~/.profile\n" +
+        "4) Custom path\n" +
+        "Select [1-4, default 1]: ";
+      const choice = (await host.prompt(locationMenu)).trim();
+      let storeTarget = choice;
+      if (choice === "4") {
+        const custom = (await host.prompt("Custom store location: ")).trim();
+        storeTarget = custom !== "" ? custom : "/etc/environment";
+      }
+      const resolvedPath = resolveStorePath(storeTarget, home);
+      const displayPath = formatStorePath(resolvedPath, home);
+      const confirmed = await host.prompt(`Write API Keys to ${displayPath}? [y/N] `);
       if (isYes(confirmed)) {
-        await host.mergeApiKeys(parseApiKeyCsv(apiKeysCsv));
-        update(STEPS.KEYS, "done", "merged into /etc/environment");
+        await host.mergeApiKeys(envVars, resolvedPath);
+        update(STEPS.KEYS, "done", `merged into ${displayPath}`);
       } else {
         update(STEPS.KEYS, "skipped", "declined");
       }

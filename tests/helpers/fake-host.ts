@@ -42,6 +42,7 @@ export function createFakeHost(
   extras: {
     files?: string[];
     homeDir?: string;
+    repoDir?: string;
     loginShell?: string | null;
     environmentKeys?: Record<string, string>;
     brokenStowLinks?: string[];
@@ -70,6 +71,7 @@ export function createFakeHost(
   const piPackagesRequested: string[] = [];
   const skillsRequested: string[] = [];
   const homeDir = extras.homeDir ?? "/fake-home";
+  const repoDir = extras.repoDir ?? "/fake-repo";
   let loginShell = extras.loginShell ?? null;
   const environmentKeys = extras.environmentKeys ?? {};
   const stowLinks = extras.brokenStowLinks ?? [];
@@ -149,6 +151,9 @@ export function createFakeHost(
     homeDir() {
       return homeDir;
     },
+    repoDir() {
+      return repoDir;
+    },
     fileExists(path) {
       return files.has(path);
     },
@@ -180,23 +185,39 @@ export function createFakeHost(
       if (Object.keys(environmentKeys).length > 0) {
         return Object.keys(environmentKeys);
       }
-      const names: string[] = [];
-      for (const line of environmentFile.split("\n")) {
-        const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith("#")) {
-          continue;
+      const names = new Set<string>();
+      const sources = [
+        environmentFile,
+        fileContents[`${homeDir}/.zshenv`] ?? "",
+        fileContents[`${homeDir}/.profile`] ?? "",
+      ];
+      for (const text of sources) {
+        for (const line of text.split("\n")) {
+          let trimmed = line.trim();
+          if (!trimmed || trimmed.startsWith("#")) {
+            continue;
+          }
+          if (trimmed.startsWith("export ")) {
+            trimmed = trimmed.slice(7).trim();
+          }
+          const eq = trimmed.indexOf("=");
+          if (eq <= 0) {
+            continue;
+          }
+          names.add(trimmed.slice(0, eq));
         }
-        const eq = trimmed.indexOf("=");
-        if (eq <= 0) {
-          continue;
-        }
-        names.push(trimmed.slice(0, eq));
       }
-      return names;
+      return [...names];
     },
-    async mergeApiKeys(keys) {
+    async mergeApiKeys(keys, targetPath = "/etc/environment") {
       actions.push("merge-api-keys");
-      environmentFile = mergeEnvironment(environmentFile, keys);
+      if (targetPath === "/etc/environment") {
+        environmentFile = mergeEnvironment(environmentFile, keys);
+      } else {
+        const existing = fileContents[targetPath] ?? "";
+        fileContents[targetPath] = mergeEnvironment(existing, keys);
+        files.add(targetPath);
+      }
     },
     brokenStowLinks() {
       return stowLinks;
