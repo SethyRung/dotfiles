@@ -1,1 +1,3 @@
-export const omzPlugins = ["zsh-autosuggestions", "zsh-syntax-highlighting"];
+import { defaultOmzPlugins } from "@/config.ts";
+
+export const omzPlugins: string[] = defaultOmzPlugins;

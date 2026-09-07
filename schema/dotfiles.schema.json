@@ -1,0 +1,78 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/sethyrung/dotfiles/dotfiles.schema.json",
+  "title": "Dotfiles Configuration",
+  "description": "Configuration schema for dotfiles bootstrap presets",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Relative or absolute URI to the dotfiles configuration JSON Schema"
+    },
+    "skills": {
+      "type": "array",
+      "description": "Agent skills to install (e.g. owner/repo@skill)",
+      "items": {
+        "type": "string"
+      }
+    },
+    "piPackages": {
+      "type": "array",
+      "description": "pi extensions to install",
+      "items": {
+        "type": "string"
+      }
+    },
+    "omzPlugins": {
+      "type": "array",
+      "description": "Oh My Zsh plugins to clone",
+      "items": {
+        "type": "string"
+      }
+    },
+    "packages": {
+      "description": "Distro packages required by the workflow",
+      "oneOf": [
+        {
+          "type": "array",
+          "description": "Distro-agnostic list of package names",
+          "items": {
+            "type": "string"
+          }
+        },
+        {
+          "type": "object",
+          "description": "Mapping of package manager to package names",
+          "properties": {
+            "apt": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "pacman": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "dnf": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "zypper": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
+  },
+  "additionalProperties": false
+}

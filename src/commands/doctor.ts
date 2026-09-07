@@ -8,7 +8,13 @@ function doctorRow(label: string, ok: boolean): string {
 }
 
 export async function doctor(host: Host): Promise<RunResult> {
-  const health = await assessWorkflow(host);
+  let health: Awaited<ReturnType<typeof assessWorkflow>>;
+  try {
+    health = await assessWorkflow(host);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "doctor failed";
+    return { exitCode: 1, stdout: "", stderr: `${message}\n` };
+  }
   const requiredOk = health.requiredChecks.filter((check) => check.ok).length;
   const totalRequired = health.requiredChecks.length;
   const lines = [

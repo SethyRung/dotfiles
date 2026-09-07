@@ -1,8 +1,9 @@
 import { join } from "node:path";
-import { omzPlugins } from "@/consts/omz-plugins.ts";
-import { skillDir, skillsList } from "@/consts/skills-list.ts";
+import { skillDir } from "@/consts/skills-list.ts";
 import { workflowTools } from "@/consts/workflow-tools.ts";
 import type { Host } from "@/types/host.ts";
+import type { DotfilesPreset } from "@/utils/preset.ts";
+import { loadPreset } from "@/utils/preset.ts";
 import { isZsh } from "@/utils/prompt.ts";
 
 export type WorkflowCheck = {
@@ -21,11 +22,12 @@ export type WorkflowHealth = {
   brokenStowLinks: string[];
 };
 
-export async function assessWorkflow(host: Host): Promise<WorkflowHealth> {
+export async function assessWorkflow(host: Host, preset?: DotfilesPreset): Promise<WorkflowHealth> {
+  const activePreset = preset ?? (await loadPreset(host));
   const home = host.homeDir();
   const zsh = host.commandExists(workflowTools.zsh.command);
   const omz = host.fileExists(join(home, ".oh-my-zsh"));
-  const plugins = omzPlugins.every((plugin) =>
+  const plugins = activePreset.omzPlugins.every((plugin) =>
     host.fileExists(join(home, `.oh-my-zsh/custom/plugins/${plugin}`)),
   );
   const git = host.commandExists(workflowTools.git.command);
@@ -37,7 +39,7 @@ export async function assessWorkflow(host: Host): Promise<WorkflowHealth> {
   const herdr = host.commandExists(workflowTools.herdr.command);
   const opencode = host.commandExists(workflowTools.opencode.command);
   const zed = host.commandExists(workflowTools.zed.command);
-  const skills = skillsList.every((spec) => host.fileExists(skillDir(home, spec)));
+  const skills = activePreset.skills.every((spec) => host.fileExists(skillDir(home, spec)));
   const mcp = host.fileExists(join(home, ".config/mcp/mcp.json"));
   const shell = isZsh(host.loginShell());
   const pathOk = host.fileExists(join(home, ".local/bin/dotfiles"));

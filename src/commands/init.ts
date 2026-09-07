@@ -1,9 +1,7 @@
 import { join } from "node:path";
 import { stow } from "@/commands/stow.ts";
-import { omzPlugins } from "@/consts/omz-plugins.ts";
-import { ghosttyPackageFor, packagesFor } from "@/consts/package-map.ts";
-import { piPackages } from "@/consts/pi-packages.ts";
-import { skillDir, skillsList } from "@/consts/skills-list.ts";
+import { ghosttyPackageFor } from "@/consts/package-map.ts";
+import { skillDir } from "@/consts/skills-list.ts";
 import { workflowTools } from "@/consts/workflow-tools.ts";
 import type { Host } from "@/types/host.ts";
 import type { ProgressState, ProgressStep } from "@/types/progress.ts";
@@ -15,6 +13,8 @@ import {
   resolveStorePath,
 } from "@/utils/environment.ts";
 import { mirrorOpenCodeMcp } from "@/utils/mcp.ts";
+import type { DotfilesPreset } from "@/utils/preset.ts";
+import { loadPreset } from "@/utils/preset.ts";
 import { isYes, isZsh } from "@/utils/prompt.ts";
 import { assessWorkflow } from "@/utils/workflow-health.ts";
 
@@ -37,7 +37,7 @@ const STEPS = {
 
 const miseToolsDetail = "bun, herdr, node, opencode, pi";
 
-function initialSteps(): ProgressStep[] {
+function initialSteps(preset: DotfilesPreset): ProgressStep[] {
   const pending = (label: string, detail: string): ProgressStep => ({
     label,
     detail,
@@ -50,9 +50,9 @@ function initialSteps(): ProgressStep[] {
     pending(workflowTools.mise.label, "latest"),
     pending("Stow", "home/ tree"),
     pending("Mise Tools", miseToolsDetail),
-    pending("pi packages", `${piPackages.length} packages`),
+    pending("pi packages", `${preset.piPackages.length} packages`),
     pending(workflowTools.zed.label, "latest"),
-    pending("Skills", `${skillsList.length} skills`),
+    pending("Skills", `${preset.skills.length} skills`),
     pending("OpenCode MCP", "mcp key"),
     pending("API Keys", "will prompt"),
     pending(workflowTools.ghostty.label, "will prompt"),
@@ -61,8 +61,8 @@ function initialSteps(): ProgressStep[] {
   ];
 }
 
-async function workflowLooksPresent(host: Host): Promise<boolean> {
-  return (await assessWorkflow(host)).isBootstrapped;
+async function workflowLooksPresent(host: Host, preset: DotfilesPreset): Promise<boolean> {
+  return (await assessWorkflow(host, preset)).isBootstrapped;
 }
 
 export async function init(host: Host): Promise<RunResult> {
@@ -74,7 +74,14 @@ export async function init(host: Host): Promise<RunResult> {
       stderr: "Unknown package manager. Bootstrap needs apt, pacman, dnf, or zypper.\n",
     };
   }
-  const reRun = await workflowLooksPresent(host);
+  let preset: DotfilesPreset;
+  try {
+    preset = await loadPreset(host);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "failed to load preset";
+    return { exitCode: 1, stdout: "", stderr: `${message}\n` };
+  }
+  const reRun = await workflowLooksPresent(host, preset);
   if (reRun) {
     const cont = await host.prompt("Workflow already present. Continue? [y/N] ");
     if (!isYes(cont)) {
@@ -82,12 +89,12 @@ export async function init(host: Host): Promise<RunResult> {
     }
   }
   const home = host.homeDir();
-  const session = host.startProgress(`Distro packages: ${pm}`, initialSteps());
+  const session = host.startProgress(`Distro packages: ${pm}`, initialSteps(preset));
   const update = (i: number, state: ProgressState, detail: string) => {
     session.update(i, state, detail);
   };
   try {
-    const pkgs = packagesFor(pm).filter((name) => !host.commandExists(name));
+    const pkgs = preset.distroPackagesFor(pm).filter((name) => !host.commandExists(name));
     if (pkgs.length > 0) {
       update(STEPS.DISTRO, "running", pkgs.join(", "));
       await host.installPackages(pkgs);
@@ -102,7 +109,7 @@ export async function init(host: Host): Promise<RunResult> {
     } else {
       update(STEPS.OMZ, "skipped", "present");
     }
-    const missingPlugins = omzPlugins.filter(
+    const missingPlugins = preset.omzPlugins.filter(
       (plugin) => !host.fileExists(join(home, `.oh-my-zsh/custom/plugins/${plugin}`)),
     );
     if (missingPlugins.length > 0) {
@@ -110,7 +117,7 @@ export async function init(host: Host): Promise<RunResult> {
       for (const plugin of missingPlugins) {
         await host.runUpstreamInstall(plugin);
       }
-      update(STEPS.OMZ_PLUGINS, "done", `${omzPlugins.length} plugins`);
+      update(STEPS.OMZ_PLUGINS, "done", `${preset.omzPlugins.length} plugins`);
     } else {
       update(STEPS.OMZ_PLUGINS, "skipped", "present");
     }
@@ -132,9 +139,9 @@ export async function init(host: Host): Promise<RunResult> {
     await host.installMiseTools();
     update(STEPS.MISE_TOOLS, "done", miseToolsDetail);
     if (piWasMissing) {
-      update(STEPS.PI_PACKAGES, "running", `${piPackages.length} packages`);
-      await host.installPiPackages(piPackages);
-      update(STEPS.PI_PACKAGES, "done", `${piPackages.length} packages`);
+      update(STEPS.PI_PACKAGES, "running", `${preset.piPackages.length} packages`);
+      await host.installPiPackages(preset.piPackages);
+      update(STEPS.PI_PACKAGES, "done", `${preset.piPackages.length} packages`);
     } else {
       update(STEPS.PI_PACKAGES, "skipped", "present");
     }
@@ -145,11 +152,13 @@ export async function init(host: Host): Promise<RunResult> {
     } else {
       update(STEPS.ZED, "skipped", "present");
     }
-    const missingSkillSpecs = skillsList.filter((spec) => !host.fileExists(skillDir(home, spec)));
+    const missingSkillSpecs = preset.skills.filter(
+      (spec) => !host.fileExists(skillDir(home, spec)),
+    );
     if (missingSkillSpecs.length > 0) {
-      update(STEPS.SKILLS, "running", `${missingSkillSpecs.length} of ${skillsList.length}`);
+      update(STEPS.SKILLS, "running", `${missingSkillSpecs.length} of ${preset.skills.length}`);
       await host.installSkills(missingSkillSpecs);
-      update(STEPS.SKILLS, "done", `${skillsList.length} skills`);
+      update(STEPS.SKILLS, "done", `${preset.skills.length} skills`);
     } else {
       update(STEPS.SKILLS, "skipped", "present");
     }

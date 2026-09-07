@@ -1361,3 +1361,96 @@ test("continue still confirms before Stow conflicts for OpenCode config", async 
   expect(host.backups).toEqual([]);
   expect(host.linked).not.toContain(".config/opencode/opencode.json");
 });
+
+test("init uses preset skills from dotfiles.json to override default skills", async () => {
+  const repo = "/fake-repo";
+  const customSkills = ["custom-owner/custom-repo@my-skill"];
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    repoDir: repo,
+    files: [`${repo}/dotfiles.json`],
+    fileContents: {
+      [`${repo}/dotfiles.json`]: JSON.stringify({ skills: customSkills }),
+    },
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.skillsRequested).toEqual(customSkills);
+  expect(finalSteps(host).get("Skills")).toMatchObject({
+    state: "done",
+    detail: "1 skills",
+  });
+});
+
+test("init uses preset pi packages from dotfiles.json to override default pi packages", async () => {
+  const repo = "/fake-repo";
+  const customPiPackages = ["npm:custom-pi-ext"];
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    repoDir: repo,
+    files: [`${repo}/dotfiles.json`],
+    fileContents: {
+      [`${repo}/dotfiles.json`]: JSON.stringify({ piPackages: customPiPackages }),
+    },
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.piPackagesRequested).toEqual(customPiPackages);
+  expect(finalSteps(host).get("pi packages")).toMatchObject({
+    state: "done",
+    detail: "1 packages",
+  });
+});
+
+test("init uses preset omz plugins from dotfiles.json to override default omz plugins", async () => {
+  const repo = "/fake-repo";
+  const customPlugins = ["custom-plugin"];
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    repoDir: repo,
+    files: [`${repo}/dotfiles.json`],
+    fileContents: {
+      [`${repo}/dotfiles.json`]: JSON.stringify({ omzPlugins: customPlugins }),
+    },
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.upstreamInstalls).toContain("custom-plugin");
+  expect(host.upstreamInstalls).not.toContain("zsh-autosuggestions");
+  expect(finalSteps(host).get("OMZ plugins")).toMatchObject({
+    state: "done",
+    detail: "1 plugins",
+  });
+});
+
+test("init uses preset distro packages from dotfiles.json to override default packages", async () => {
+  const repo = "/fake-repo";
+  const customPkgs = ["zsh", "git", "stow", "htop"];
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    repoDir: repo,
+    files: [`${repo}/dotfiles.json`],
+    fileContents: {
+      [`${repo}/dotfiles.json`]: JSON.stringify({ packages: customPkgs }),
+    },
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.packagesRequested).toEqual(customPkgs);
+});
+
+test("invalid dotfiles.json causes init to fail with error before doing work", async () => {
+  const repo = "/fake-repo";
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    repoDir: repo,
+    files: [`${repo}/dotfiles.json`],
+    fileContents: {
+      [`${repo}/dotfiles.json`]: "not valid json {",
+    },
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).not.toBe(0);
+  expect(result.stderr).toContain("Failed to parse dotfiles.json");
+  expect(host.packagesRequested).toEqual([]);
+});
