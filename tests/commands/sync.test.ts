@@ -1,35 +1,36 @@
 import { expect, test } from "bun:test";
 import { run } from "@/cli.ts";
 import { parseDate } from "@/utils/time.ts";
-import { createFakeHost } from "../helpers/fake-host.ts";
+import { createFakeHost, mcpSource } from "../helpers/fake-host.ts";
 
 test("dotfiles sync backs up only dests that are not already repo links", async () => {
   const home = "/fake-home";
   const host = createFakeHost(["bun"], {
     homeDir: home,
-    homeTree: [".zshrc", ".config/mcp/mcp.json"],
+    homeTree: [".zshrc", ".config/herdr/config.toml"],
     repoLinks: [`${home}/.zshrc`],
-    files: [`${home}/.config/mcp/mcp.json`],
+    files: [`${home}/.config/herdr/config.toml`],
     now: parseDate("2026-01-01_10:30:20"),
   });
   const result = await run(["sync"], host);
   expect(result.exitCode).toBe(0);
   expect(result.stdout).toContain("Config synced");
   expect(host.repoPulls).toBe(1);
-  expect(host.backups).toEqual([`${home}/.config/mcp/mcp.json.2026-01-01_10:30:20`]);
-  expect(host.linked).toEqual([".zshrc", ".config/mcp/mcp.json"]);
+  expect(host.backups).toEqual([`${home}/.config/herdr/config.toml.2026-01-01_10:30:20`]);
+  expect(host.linked).toEqual([".zshrc", ".config/herdr/config.toml"]);
 });
 
-test("dotfiles sync pulls the repo, re-Stows, and refreshes the OpenCode MCP mirror", async () => {
+test("dotfiles sync pulls the repo, re-Stows, and refreshes MCP translations", async () => {
   const home = "/fake-home";
+  const repo = "/fake-repo";
   const host = createFakeHost(["bun"], {
     homeDir: home,
-    homeTree: [".zshrc", ".config/mcp/mcp.json"],
-    fileContents: {
-      [`${home}/.config/mcp/mcp.json`]: JSON.stringify({
-        mcpServers: { bun: { command: "bunx", args: ["https://bun.com/mcp"] } },
-      }),
+    repoDir: repo,
+    homeTree: [".zshrc", ".config/opencode/opencode.json"],
+    treeContents: {
+      ".config/opencode/opencode.json": JSON.stringify({ permission: "allow" }),
     },
+    fileContents: mcpSource(repo, { bun: { url: "https://bun.com/mcp" } }),
     pullRepoOutput: "Fast-forward; new config.",
   });
   const result = await run(["sync"], host);
@@ -39,9 +40,12 @@ test("dotfiles sync pulls the repo, re-Stows, and refreshes the OpenCode MCP mir
   expect(result.stdout).toContain("linked:");
   expect(result.stdout).toContain(`${home}/.zshrc`);
   expect(result.stdout).toContain("Config synced");
+  expect(result.stdout).toContain("MCP refreshed");
   expect(host.repoPulls).toBe(1);
-  expect(host.linked).toEqual([".zshrc", ".config/mcp/mcp.json"]);
+  expect(host.linked).toEqual([".zshrc", ".config/opencode/opencode.json"]);
   expect(host.fileContents[`${home}/.config/opencode/opencode.json`]).toContain('"remote"');
+  const pi = JSON.parse(host.fileContents[`${home}/.pi/agent/mcp.json`] ?? "{}");
+  expect(pi.mcpServers.bun).toEqual({ url: "https://bun.com/mcp" });
   expect(host.upstreamInstalls).toEqual([]);
   expect(host.packagesRequested).toEqual([]);
   expect(host.miseToolsCalls).toBe(0);
@@ -65,10 +69,11 @@ test("dotfiles sync --dry-run prints Stow report, does not pull, and succeeds on
   const home = "/fake-home";
   const host = createFakeHost(["bun"], {
     homeDir: home,
-    homeTree: [".zshrc", ".config/mcp/mcp.json"],
+    homeTree: [".zshrc", ".config/opencode/opencode.json"],
     pullRepoError: "divergent branches",
     fileContents: {
       [`${home}/.config/opencode/opencode.json`]: JSON.stringify({ permission: "allow" }),
+      ...mcpSource("/fake-repo", { bun: { url: "https://bun.com/mcp" } }),
     },
   });
   const result = await run(["sync", "--dry-run"], host);
@@ -82,6 +87,7 @@ test("dotfiles sync --dry-run prints Stow report, does not pull, and succeeds on
   expect(host.backups).toEqual([]);
   const ocConfig = JSON.parse(host.fileContents[`${home}/.config/opencode/opencode.json`] ?? "{}");
   expect(ocConfig).not.toHaveProperty("mcp");
+  expect(host.fileExists(`${home}/.pi/agent/mcp.json`)).toBe(false);
 });
 
 test("dotfiles sync --help documents --dry-run", async () => {

@@ -12,7 +12,7 @@ import {
   parseDotenv,
   resolveStorePath,
 } from "@/utils/environment.ts";
-import { mirrorOpenCodeMcp } from "@/utils/mcp.ts";
+import { mirrorMcp } from "@/utils/mcp.ts";
 import type { DotfilesPreset } from "@/utils/preset.ts";
 import { loadPreset } from "@/utils/preset.ts";
 import { isYes, isZsh } from "@/utils/prompt.ts";
@@ -53,7 +53,7 @@ function initialSteps(preset: DotfilesPreset): ProgressStep[] {
     pending("pi packages", `${preset.piPackages.length} packages`),
     pending(workflowTools.zed.label, "latest"),
     pending("Skills", `${preset.skills.length} skills`),
-    pending("OpenCode MCP", "mcp key"),
+    pending("MCP", "PI + OpenCode"),
     pending("API Keys", "will prompt"),
     pending(workflowTools.ghostty.label, "will prompt"),
     pending("login shell", "zsh"),
@@ -238,9 +238,9 @@ export async function init(host: Host): Promise<RunResult> {
         update(STEPS.SKILLS, "skipped", "present");
       }
     }
-    update(STEPS.MCP, "running", "mirroring XDG mcp");
-    await mirrorOpenCodeMcp(host);
-    update(STEPS.MCP, "done", "mcp key refreshed");
+    update(STEPS.MCP, "running", "translating");
+    await mirrorMcp(host);
+    update(STEPS.MCP, "done", "PI + OpenCode");
 
     if (Object.keys(envVars).length > 0) {
       if (envConfirmed) {

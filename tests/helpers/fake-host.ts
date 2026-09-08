@@ -16,6 +16,15 @@ export function skillDirs(home: string): string[] {
   return skillsList.map((spec) => `${home}/.agents/skills/${spec.split("@")[1] ?? spec}`);
 }
 
+export function mcpSource(
+  repoDir: string,
+  servers: Record<string, { url?: string; command?: string; args?: string[] }>,
+): Record<string, string> {
+  return {
+    [`${repoDir}/src/consts/mcp.json`]: JSON.stringify(servers),
+  };
+}
+
 export type FakeHost = Host & {
   upstreamInstalls: string[];
   packagesRequested: string[];

@@ -26,7 +26,7 @@ One test: `bun test -t "substring"`. oxfmt ignores `home/`. oxlint allows `any`.
 ## Traps
 
 - Linux Package Map + Upstream Installs + Mise Tools. Unknown Distro fails before any install. Ghostty is optional (prompt default no; no zypper mapping — warn, don't abort).
-- Skills live in `src/consts/skills-list.ts` (`owner/repo@skill`) and install through `host.installSkills`. MCP source of truth is `home/.config/mcp/mcp.json`; OpenCode `mcp` key is a generated mirror.
+- Skills live in `src/consts/skills-list.ts` (`owner/repo@skill`) and install through `host.installSkills`. MCP source of truth is `src/consts/mcp.json`; pi `~/.pi/agent/mcp.json` and OpenCode `mcp` key are generated translations.
 - Merge API Keys into `/etc/environment`; leave unrelated lines. Progress Log never contains values. Do not commit keys or `auth.json`.
 - git package only. pi config minus model and extensions. Workflow is CONTEXT.md's list (no nvim/tmux/Android). OpenCode-local skills stay off the `home/` tree.
 - `dotfiles sync` is `git pull --ff-only`, Stow, MCP mirror.

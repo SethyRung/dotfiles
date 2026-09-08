@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/sethyrung/dotfiles/mcp.schema.json",
+  "title": "MCP Server List",
+  "description": "Canonical MCP server list. Each additional property is a server name mapped to a remote url or a local command.",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Relative or absolute URI to the MCP JSON Schema"
+    }
+  },
+  "additionalProperties": {
+    "oneOf": [
+      {
+        "type": "object",
+        "description": "Remote MCP server",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "HTTPS URL of the MCP server"
+          }
+        },
+        "required": ["url"],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "description": "Local stdio MCP server",
+        "properties": {
+          "command": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Executable to launch"
+          },
+          "args": {
+            "type": "array",
+            "description": "Arguments passed to the executable",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["command"],
+        "additionalProperties": false
+      }
+    ]
+  }
+}

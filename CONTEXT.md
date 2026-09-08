@@ -17,11 +17,11 @@ The Linux distribution Bootstrap runs on. Not Ubuntu-only; Bootstrap detects the
 _Avoid_: OS, flavor, platform
 
 **Workflow**:
-The development environment Bootstrap restores: zsh + Oh My Zsh, Mise Tools (bun, Node, herdr, pi, OpenCode), pi's current packages, Zed, global Skills (via skills.sh), XDG MCP, API Keys, optional Ghostty, and git installed with no git config.
+The development environment Bootstrap restores: zsh + Oh My Zsh, Mise Tools (bun, Node, herdr, pi, OpenCode), pi's current packages, Zed, global Skills (via skills.sh), MCP, API Keys, optional Ghostty, and git installed with no git config.
 _Avoid_: using "dotfiles" for the running environment
 
 **Workflow Health**:
-The evaluated health status of the Workflow: presence of required Distro packages, OMZ plugins, Mise Tools, pi packages, Zed, Skills, XDG MCP, login shell, dotfiles symlink, and broken Stow links. Evaluated by `dotfiles doctor` and checked by `dotfiles init` to detect a re-run.
+The evaluated health status of the Workflow: presence of required Distro packages, OMZ plugins, Mise Tools, pi packages, Zed, Skills, MCP, login shell, dotfiles symlink, and broken Stow links. Evaluated by `dotfiles doctor` and checked by `dotfiles init` to detect a re-run.
 _Avoid_: status check, doctor check, system test (when you mean this evaluation)
 
 **Dotfiles**:
@@ -41,7 +41,7 @@ GNU Stow; how `dotfiles` delivers config files from `home/` into `$HOME`. `dotfi
 _Avoid_: copy, symlink (when you mean this delivery), repair
 
 **Sync**:
-Pulling this repo and re-applying config on an already-Bootstrapped machine: `git pull --ff-only`, then Stow, then the OpenCode MCP mirror refresh. Never installs or upgrades Workflow tools. Command is `dotfiles sync`.
+Pulling this repo and re-applying config on an already-Bootstrapped machine: `git pull --ff-only`, then Stow, then the MCP mirror refresh. Never installs or upgrades Workflow tools. Command is `dotfiles sync`.
 _Avoid_: update, upgrade, refresh (when you mean this command), tool update
 
 **Package Map**:
@@ -73,8 +73,8 @@ An agent skill installed globally for pi and other agents to load.
 _Avoid_: plugin, prompt, instruction file
 
 **MCP**:
-A Model Context Protocol server. The Workflow's list is the XDG file; OpenCode is given the same servers via a mirrored `mcp` key.
-_Avoid_: tool server, plugin, pi-private mcp.json as source of truth
+A Model Context Protocol server. The Workflow's list is `src/consts/mcp.json`; each agent gets a translated copy.
+_Avoid_: tool server, plugin, XDG mcp.json as source of truth, hand-maintained per-agent lists
 
 **API Key**:
 A secret environment variable needed by AI tools. Supplied during Bootstrap as `key=value` pairs, written to `/etc/environment`, never stored in the repo.

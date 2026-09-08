@@ -856,7 +856,7 @@
                   8. Skills ➔ Global skills via skills.sh
                 </text>
                 <text x="495" y="255" fill="#f0f6fc" font-size="11" font-family="monospace">
-                  9. OpenCode MCP ➔ Mirror XDG mcp.json
+                  9. MCP ➔ Translate into pi + OpenCode
                 </text>
                 <text x="495" y="280" fill="#f0f6fc" font-size="11" font-family="monospace">
                   10. API Keys ➔ Merge into selected store
@@ -1104,7 +1104,7 @@
                   3. Zed &amp; Skills ➔ Checked only if enabled
                 </text>
                 <text x="550" y="155" fill="#f0f6fc" font-size="11" font-family="monospace">
-                  4. XDG MCP config ➔ ~/.config/mcp/mcp.json
+                  4. MCP ➔ ~/.pi/agent/mcp.json
                 </text>
                 <text x="550" y="180" fill="#f0f6fc" font-size="11" font-family="monospace">
                   5. PATH Symlink ➔ ~/.local/bin/dotfiles
@@ -1143,8 +1143,8 @@
                 </div>
                 <p>
                   <strong>Required Checks</strong>: zsh, Oh My Zsh, git, stow, mise, npm, bun, pi,
-                  herdr, OpenCode, XDG MCP, login shell, and PATH symlink. OMZ plugins, Zed, and
-                  Skills are included only when enabled.<br />
+                  herdr, OpenCode, MCP, login shell, and PATH symlink. OMZ plugins, Zed, and Skills
+                  are included only when enabled.<br />
                   <strong>Optional Check</strong>: Ghostty status (warns if missing; never fails
                   doctor).<br />
                   <strong>Broken Links</strong>: Scans for dangling Stow symlinks in
@@ -1354,7 +1354,7 @@
                   &bull; Relink ~/.local/bin/dotfiles
                 </text>
                 <text x="650" y="110" fill="#f0f6fc" font-size="11" font-family="monospace">
-                  &bull; mirrorOpenCodeMcp()
+                  &bull; mirrorMcp()
                 </text>
                 <text x="650" y="140" fill="#f0f6fc" font-size="11" font-family="monospace">
                   &bull; Generate Stow Report:
@@ -1413,13 +1413,14 @@
 
               <div class="step-item">
                 <div class="step-item-title">
-                  <span>Phase 4: OpenCode MCP Mirror</span>
-                  <span class="code-pill">mirrorOpenCodeMcp()</span>
+                  <span>Phase 4: MCP Translate</span>
+                  <span class="code-pill">mirrorMcp()</span>
                 </div>
                 <p>
                   Unless <code>--dry-run</code> is set, reads servers from
-                  <code>~/.config/mcp/mcp.json</code> and writes them into OpenCode's
-                  <code>mcp</code> key in <code>~/.config/opencode/opencode.json</code>.
+                  <code>src/consts/mcp.json</code> and writes translated copies into pi's
+                  <code>~/.pi/agent/mcp.json</code> and OpenCode's <code>mcp</code> key in
+                  <code>~/.config/opencode/opencode.json</code>.
                 </p>
               </div>
             </div>
@@ -1811,9 +1812,7 @@
                 </text>
                 <text x="715" y="70" fill="#f0f6fc" font-size="11">&bull; Pull succeeds</text>
                 <text x="715" y="95" fill="#f0f6fc" font-size="11">&bull; Re-stow home/</text>
-                <text x="715" y="120" fill="#f0f6fc" font-size="11">
-                  &bull; Refresh OpenCode MCP
-                </text>
+                <text x="715" y="120" fill="#f0f6fc" font-size="11">&bull; Refresh MCP</text>
                 <text x="715" y="145" fill="#f0f6fc" font-size="11">
                   &bull; Report linked &amp; backed
                 </text>
@@ -1862,13 +1861,14 @@
 
               <div class="step-item">
                 <div class="step-item-title">
-                  <span>Phase 4: OpenCode MCP Refresh</span>
-                  <span class="code-pill">mirrorOpenCodeMcp()</span>
+                  <span>Phase 4: MCP Refresh</span>
+                  <span class="code-pill">mirrorMcp()</span>
                 </div>
                 <p>
-                  Reads updated <code>~/.config/mcp/mcp.json</code> and refreshes OpenCode's
-                  <code>mcp</code> key in <code>~/.config/opencode/opencode.json</code>. Prints
-                  complete summary and exits 0.
+                  Reads <code>src/consts/mcp.json</code> and refreshes pi's
+                  <code>~/.pi/agent/mcp.json</code> and OpenCode's <code>mcp</code> key in
+                  <code>~/.config/opencode/opencode.json</code>. Prints complete summary and exits
+                  0.
                 </p>
               </div>
             </div>

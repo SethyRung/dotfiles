@@ -1,7 +1,7 @@
 import { stow } from "@/commands/stow.ts";
 import type { Host } from "@/types/host.ts";
 import type { RunResult, StowOptions } from "@/types/result.ts";
-import { mirrorOpenCodeMcp } from "@/utils/mcp.ts";
+import { mirrorMcp } from "@/utils/mcp.ts";
 
 export async function sync(host: Host, options: StowOptions = {}): Promise<RunResult> {
   if (options.dryRun) {
@@ -24,10 +24,10 @@ export async function sync(host: Host, options: StowOptions = {}): Promise<RunRe
   if (stowed.exitCode !== 0) {
     return stowed;
   }
-  await mirrorOpenCodeMcp(host);
+  await mirrorMcp(host);
   return {
     exitCode: 0,
-    stdout: `${pull}\n${stowed.stdout}Config synced: home/ re-Stowed into $HOME and OpenCode MCP refreshed.\n`,
+    stdout: `${pull}\n${stowed.stdout}Config synced: home/ re-Stowed into $HOME and MCP refreshed.\n`,
     stderr: "",
   };
 }

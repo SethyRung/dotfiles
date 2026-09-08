@@ -78,7 +78,7 @@ A live ASCII dashboard redraws as each step runs:
   [--]   pi packages      8 packages
   [--]   Zed              latest
   [--]   Skills           16 skills
-  [--]   OpenCode MCP     mcp key
+  [--]   MCP              pi + OpenCode
   [--]   API Keys         will prompt
   [--]   Ghostty          will prompt
   [--]   login shell      zsh
@@ -89,14 +89,14 @@ A live ASCII dashboard redraws as each step runs:
 
 ## What Bootstrap installs
 
-| Category            | Contents                                                                                                                                                                                                              |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Distro packages     | zsh, git, stow via the Package Map — no git config                                                                                                                                                                    |
-| Upstream Installs   | mise, Oh My Zsh, OMZ plugins, Zed (always latest, never version-pinned)                                                                                                                                               |
-| Mise Tools          | bun, herdr, pi, OpenCode, grok, codex (`latest`) and Node (`lts`) from the Stowed mise config; npm comes from mise's Node                                                                                             |
-| pi packages         | Current pi plugins, installed only when pi was missing before Mise Tools                                                                                                                                              |
-| Stowed from `home/` | zshrc, mise config.toml, herdr config.toml, XDG mcp.json, OpenCode config + TUI files, pi agent config, Zed settings.json + keymap.json (Zed extensions are declared in `auto_install_extensions`, never snapshotted) |
-| Machine state       | login shell becomes zsh, dotfiles symlinked into `~/.local/bin`, environment variables merged into chosen store location (`/etc/environment`, `~/.zshenv`, etc.)                                                      |
+| Category            | Contents                                                                                                                                                                                                |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Distro packages     | zsh, git, stow via the Package Map — no git config                                                                                                                                                      |
+| Upstream Installs   | mise, Oh My Zsh, OMZ plugins, Zed (always latest, never version-pinned)                                                                                                                                 |
+| Mise Tools          | bun, herdr, pi, OpenCode, grok, codex (`latest`) and Node (`lts`) from the Stowed mise config; npm comes from mise's Node                                                                               |
+| pi packages         | Current pi plugins, installed only when pi was missing before Mise Tools                                                                                                                                |
+| Stowed from `home/` | zshrc, mise config.toml, herdr config.toml, OpenCode config + TUI files, pi agent config, Zed settings.json + keymap.json (Zed extensions are declared in `auto_install_extensions`, never snapshotted) |
+| Machine state       | login shell becomes zsh, dotfiles symlinked into `~/.local/bin`, environment variables merged into chosen store location (`/etc/environment`, `~/.zshenv`, etc.)                                        |
 
 Skills, pi packages, OMZ plugins, and distro packages are configured in `dotfiles.json` and installed via their package mechanisms (skills.sh for skills). Regular files at the destination are timestamp-backed-up then replaced; repo links are left; stale symlinks are replaced.
 
@@ -108,7 +108,7 @@ Usage: `dotfiles <command>` — with no arguments, the CLI prints its help.
 
 Bootstrap the Workflow, guided by the live Progress Log.
 
-Runs all 14 steps: Distro packages, Oh My Zsh + plugins, mise, Stow, Mise Tools, pi packages, Zed, Skills, OpenCode MCP mirror, API Keys, optional Ghostty, login shell, and the `~/.local/bin/dotfiles` symlink.
+Runs all 14 steps: Distro packages, Oh My Zsh + plugins, mise, Stow, Mise Tools, pi packages, Zed, Skills, MCP (pi + OpenCode translations), API Keys, optional Ghostty, login shell, and the `~/.local/bin/dotfiles` symlink.
 
 ```bash
 dotfiles init
@@ -149,7 +149,7 @@ dotfiles clean
 
 ### `dotfiles sync`
 
-Sync config: `git pull --ff-only`, re-Stow `home/`, refresh the OpenCode MCP mirror. Prints the Stow report along with the sync summary.
+Sync config: `git pull --ff-only`, re-Stow `home/`, refresh MCP translations. Prints the Stow report along with the sync summary.
 
 Use `--dry-run` to preview the Stow report without pulling or writing.
 
@@ -229,7 +229,7 @@ The repository includes `dotfiles.json` as the single source of truth for tools,
 - **`piPackages`**: Pi agent extensions installed when pi is set up.
 - **`omzPlugins`**: Oh My Zsh plugins cloned into custom plugins.
 - **`packages`**: Distro packages required by the workflow (distro-agnostic list or per-package-manager mapping).
-- **JSON Schema**: `schema/dotfiles.schema.json` provides validation and auto-completion in modern editors (Zed, VS Code, etc.).
+- **JSON Schema**: `schema/dotfiles.schema.json` provides validation and auto-completion in modern editors (Zed, VS Code, etc.). MCP servers use `schema/mcp.schema.json` via `$schema` in `src/consts/mcp.json`.
 
 ## Re-runs and safety
 
@@ -242,13 +242,13 @@ The repository includes `dotfiles.json` as the single source of truth for tools,
 
 ## Keeping machines in sync
 
-The maintainer edits config in this repo (anything under `home/`, the XDG MCP file), commits, and pushes. On every Bootstrapped machine:
+The maintainer edits config in this repo (anything under `home/`, `src/consts/mcp.json`), commits, and pushes. On every Bootstrapped machine:
 
 ```bash
 dotfiles sync
 ```
 
-pulls the repo fast-forward only, re-Stows `home/` into `$HOME`, and refreshes the OpenCode MCP mirror.
+pulls the repo fast-forward only, re-Stows `home/` into `$HOME`, and refreshes MCP translations into pi and OpenCode.
 
 ## Troubleshooting
 

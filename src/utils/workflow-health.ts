@@ -40,7 +40,7 @@ export async function assessWorkflow(host: Host, preset?: DotfilesPreset): Promi
   const opencode = host.commandExists(workflowTools.opencode.command);
   const zed = host.commandExists(workflowTools.zed.command);
   const skills = activePreset.skills.every((spec) => host.fileExists(skillDir(home, spec)));
-  const mcp = host.fileExists(join(home, ".config/mcp/mcp.json"));
+  const mcp = host.fileExists(join(home, ".pi/agent/mcp.json"));
   const shell = isZsh(host.loginShell());
   const pathOk = host.fileExists(join(home, ".local/bin/dotfiles"));
   const ghostty = host.commandExists(workflowTools.ghostty.command);
@@ -65,7 +65,7 @@ export async function assessWorkflow(host: Host, preset?: DotfilesPreset): Promi
     { label: "OpenCode", ok: opencode },
     ...(checkZed ? [{ label: "Zed", ok: zed }] : []),
     ...(checkSkills ? [{ label: "Skills", ok: skills }] : []),
-    { label: "XDG MCP", ok: mcp },
+    { label: "MCP", ok: mcp },
     { label: "login shell", ok: shell },
     { label: "PATH symlink", ok: pathOk },
   ];

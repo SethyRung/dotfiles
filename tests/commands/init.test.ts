@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { join } from "node:path";
 import { run } from "@/cli.ts";
 import { skillsList } from "@/consts/skills-list.ts";
-import { createFakeHost, skillDirs } from "../helpers/fake-host.ts";
+import { createFakeHost, mcpSource, skillDirs } from "../helpers/fake-host.ts";
 import { finalSteps, frameStep } from "../helpers/progress.ts";
 import { readZshrc } from "../helpers/zshrc.ts";
 
@@ -364,7 +364,7 @@ test("when Workflow is already present, frames say skipped with present details"
         `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
         ...skillDirs(home),
-        `${home}/.config/mcp/mcp.json`,
+        `${home}/.pi/agent/mcp.json`,
         `${home}/.local/bin/dotfiles`,
       ],
       loginShell: "/bin/zsh",
@@ -430,7 +430,7 @@ test("no reboot question when the login shell is already zsh", async () => {
         `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
         ...skillDirs(home),
-        `${home}/.config/mcp/mcp.json`,
+        `${home}/.pi/agent/mcp.json`,
         `${home}/.local/bin/dotfiles`,
       ],
       loginShell: "/bin/zsh",
@@ -601,18 +601,28 @@ test("init requests only the Skills that are missing", async () => {
   expect(host.skillsRequested).toEqual(skillsList.slice(1));
 });
 
-test("XDG MCP config is Stowed", async () => {
+test("MCP is not Stowed; pi gets a translated copy", async () => {
+  const home = "/fake-home";
+  const repo = "/fake-repo";
+  const source = await Bun.file(join(import.meta.dir, "../../src/consts/mcp.json")).json();
   const host = createFakeHost(["bun"], {
+    homeDir: home,
+    repoDir: repo,
     packageManager: "apt",
-    homeTree: [".config/mcp/mcp.json"],
+    fileContents: mcpSource(repo, source),
   });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
-  expect(host.linked).toContain(".config/mcp/mcp.json");
+  expect(host.linked).not.toContain(".config/mcp/mcp.json");
   expect(host.linked).not.toContain(".pi/agent/mcp.json");
-  const mcp = await Bun.file(join(import.meta.dir, "../../home/.config/mcp/mcp.json")).json();
-  expect(mcp.mcpServers).toHaveProperty("mobile-mcp");
-  expect(mcp.mcpServers).toHaveProperty("bun");
+  const pi = JSON.parse(host.fileContents[`${home}/.pi/agent/mcp.json`] ?? "{}");
+  expect(pi.mcpServers).toHaveProperty("mobile-mcp");
+  expect(pi.mcpServers).toHaveProperty("bun");
+  expect(pi.mcpServers.bun).toEqual({ url: "https://bun.com/docs/mcp" });
+  expect(pi.mcpServers["mobile-mcp"]).toEqual({
+    command: "bunx",
+    args: ["--bun", "@mobilenext/mobile-mcp@latest"],
+  });
 });
 
 test("empty API Key CSV skips the /etc/environment write", async () => {
@@ -870,7 +880,7 @@ test("on a re-run, init still offers Ghostty when it is missing", async () => {
         `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
         ...skillDirs(home),
-        `${home}/.config/mcp/mcp.json`,
+        `${home}/.pi/agent/mcp.json`,
         `${home}/.local/bin/dotfiles`,
       ],
       loginShell: "/bin/zsh",
@@ -923,7 +933,7 @@ test("dangling PATH and MCP dests after a repo move still ask continue?", async 
         ...skillDirs(home),
       ],
       loginShell: "/bin/zsh",
-      brokenStowLinks: [`${home}/.config/mcp/mcp.json`, `${home}/.zshrc`],
+      brokenStowLinks: [`${home}/.config/herdr/config.toml`, `${home}/.zshrc`],
     },
   );
   const result = await run(["init"], host);
@@ -946,7 +956,7 @@ test("when Workflow already looks present, init asks continue? before doing work
         `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
         ...skillDirs(home),
-        `${home}/.config/mcp/mcp.json`,
+        `${home}/.pi/agent/mcp.json`,
         `${home}/.local/bin/dotfiles`,
       ],
       loginShell: "/bin/zsh",
@@ -972,7 +982,7 @@ test("declining continue leaves the Host unchanged", async () => {
         `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
         ...skillDirs(home),
-        `${home}/.config/mcp/mcp.json`,
+        `${home}/.pi/agent/mcp.json`,
         `${home}/.local/bin/dotfiles`,
       ],
       loginShell: "/bin/zsh",
@@ -1005,7 +1015,7 @@ test("continue does not re-request tools the Host already has", async () => {
         `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
         ...skillDirs(home),
-        `${home}/.config/mcp/mcp.json`,
+        `${home}/.pi/agent/mcp.json`,
         `${home}/.local/bin/dotfiles`,
       ],
       loginShell: "/bin/zsh",
@@ -1033,7 +1043,7 @@ test("continue still confirms before /etc/environment writes", async () => {
         `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
         ...skillDirs(home),
-        `${home}/.config/mcp/mcp.json`,
+        `${home}/.pi/agent/mcp.json`,
         `${home}/.local/bin/dotfiles`,
       ],
       loginShell: "/bin/zsh",
@@ -1059,7 +1069,7 @@ test("continue still confirms before Stow conflicts", async () => {
         `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
         ...skillDirs(home),
-        `${home}/.config/mcp/mcp.json`,
+        `${home}/.pi/agent/mcp.json`,
         `${home}/.local/bin/dotfiles`,
         `${home}/.zshrc`,
       ],
@@ -1209,20 +1219,22 @@ test("curated zshrc hands tool PATH to mise, keeping only ~/.local/bin", async (
   expect(zshrc).not.toContain("$HOME/.opencode/bin");
 });
 
-test("after init, OpenCode mcp key contains the XDG MCP servers", async () => {
+test("after init, OpenCode mcp key contains the repo MCP servers", async () => {
   const home = "/fake-home";
-  const xdg = await Bun.file(join(import.meta.dir, "../../home/.config/mcp/mcp.json")).text();
+  const repo = "/fake-repo";
+  const source = await Bun.file(join(import.meta.dir, "../../src/consts/mcp.json")).json();
   const snapshot = await Bun.file(
     join(import.meta.dir, "../../home/.config/opencode/opencode.json"),
   ).text();
   const host = createFakeHost(["bun"], {
     homeDir: home,
+    repoDir: repo,
     packageManager: "apt",
-    homeTree: [".config/mcp/mcp.json", ".config/opencode/opencode.json"],
+    homeTree: [".config/opencode/opencode.json"],
     treeContents: {
-      ".config/mcp/mcp.json": xdg,
       ".config/opencode/opencode.json": snapshot,
     },
+    fileContents: mcpSource(repo, source),
   });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
@@ -1253,30 +1265,26 @@ test("after init, OpenCode mcp key contains the XDG MCP servers", async () => {
   expect(repoSnapshot).not.toHaveProperty("mcp");
 });
 
-test("re-running init refreshes OpenCode mcp key from the XDG file", async () => {
+test("re-running init refreshes agent MCP from the repo list", async () => {
   const home = "/fake-home";
+  const repo = "/fake-repo";
   const ocPath = `${home}/.config/opencode/opencode.json`;
-  const treeContents = {
-    ".config/mcp/mcp.json": JSON.stringify({
-      mcpServers: {
-        bun: { command: "npx", args: ["mcp-remote", "https://bun.com/docs/mcp"] },
-      },
-    }),
-    ".config/opencode/opencode.json": JSON.stringify({ permission: "allow" }),
-  };
+  const sourcePath = `${repo}/src/consts/mcp.json`;
   const host = createFakeHost(["bun"], {
     homeDir: home,
+    repoDir: repo,
     packageManager: "apt",
-    homeTree: [".config/mcp/mcp.json", ".config/opencode/opencode.json"],
-    treeContents,
+    homeTree: [".config/opencode/opencode.json"],
+    treeContents: {
+      ".config/opencode/opencode.json": JSON.stringify({ permission: "allow" }),
+    },
+    fileContents: mcpSource(repo, { bun: { url: "https://bun.com/docs/mcp" } }),
   });
   await run(["init"], host);
   expect(Object.keys(JSON.parse(host.fileContents[ocPath] ?? "{}").mcp)).toEqual(["bun"]);
-  treeContents[".config/mcp/mcp.json"] = JSON.stringify({
-    mcpServers: {
-      bun: { command: "npx", args: ["mcp-remote", "https://bun.com/docs/mcp"] },
-      nuxt: { command: "npx", args: ["mcp-remote", "https://nuxt.com/mcp"] },
-    },
+  host.fileContents[sourcePath] = JSON.stringify({
+    bun: { url: "https://bun.com/docs/mcp" },
+    nuxt: { url: "https://nuxt.com/mcp" },
   });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
@@ -1284,6 +1292,8 @@ test("re-running init refreshes OpenCode mcp key from the XDG file", async () =>
     "bun",
     "nuxt",
   ]);
+  const pi = JSON.parse(host.fileContents[`${home}/.pi/agent/mcp.json`] ?? "{}");
+  expect(Object.keys(pi.mcpServers).sort()).toEqual(["bun", "nuxt"]);
 });
 
 test("a Host missing mise is not treated as Workflow already present", async () => {
@@ -1298,7 +1308,7 @@ test("a Host missing mise is not treated as Workflow already present", async () 
         `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
         ...skillDirs(home),
-        `${home}/.config/mcp/mcp.json`,
+        `${home}/.pi/agent/mcp.json`,
         `${home}/.local/bin/dotfiles`,
       ],
       loginShell: "/bin/zsh",
@@ -1320,7 +1330,7 @@ test("a Host missing OpenCode is not treated as Workflow already present", async
       `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
       `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
       `${home}/.agents/skills`,
-      `${home}/.config/mcp/mcp.json`,
+      `${home}/.pi/agent/mcp.json`,
       `${home}/.local/bin/dotfiles`,
     ],
     loginShell: "/bin/zsh",
@@ -1346,7 +1356,7 @@ test("continue still confirms before Stow conflicts for OpenCode config", async 
         `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
         ...skillDirs(home),
-        `${home}/.config/mcp/mcp.json`,
+        `${home}/.pi/agent/mcp.json`,
         `${home}/.local/bin/dotfiles`,
         `${home}/.config/opencode/opencode.json`,
       ],

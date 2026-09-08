@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { run } from "@/cli.ts";
 import { parseDate } from "@/utils/time.ts";
-import { createFakeHost } from "../helpers/fake-host.ts";
+import { createFakeHost, mcpSource } from "../helpers/fake-host.ts";
 
 test("dotfiles stow on a clean fake $HOME links the home/ tree and PATH stub", async () => {
   const home = "/fake-home";
@@ -161,43 +161,48 @@ test("--dry-run on init, doctor, or clean fails closed", async () => {
   }
 });
 
-test("real dotfiles stow writes OpenCode mcp from the XDG file after linking", async () => {
+test("real dotfiles stow writes pi and OpenCode MCP from the repo list after linking", async () => {
   const home = "/fake-home";
+  const repo = "/fake-repo";
   const host = createFakeHost(["bun"], {
     homeDir: home,
-    homeTree: [".config/mcp/mcp.json", ".config/opencode/opencode.json"],
+    repoDir: repo,
+    homeTree: [".config/opencode/opencode.json"],
     treeContents: {
-      ".config/mcp/mcp.json": JSON.stringify({
-        mcpServers: { bun: { command: "bunx", args: ["https://bun.com/mcp"] } },
-      }),
       ".config/opencode/opencode.json": JSON.stringify({ permission: "allow" }),
     },
+    fileContents: mcpSource(repo, { bun: { url: "https://bun.com/mcp" } }),
   });
   const result = await run(["stow"], host);
   expect(result.exitCode).toBe(0);
+  expect(host.linked).not.toContain(".config/mcp/mcp.json");
+  expect(host.linked).not.toContain(".pi/agent/mcp.json");
   const oc = JSON.parse(host.fileContents[`${home}/.config/opencode/opencode.json`] ?? "{}");
   expect(oc.mcp).toBeDefined();
   expect(oc.mcp.bun).toEqual({ type: "remote", url: "https://bun.com/mcp" });
+  const pi = JSON.parse(host.fileContents[`${home}/.pi/agent/mcp.json`] ?? "{}");
+  expect(pi.mcpServers.bun).toEqual({ url: "https://bun.com/mcp" });
 });
 
-test("dotfiles stow --dry-run does not write OpenCode config", async () => {
+test("dotfiles stow --dry-run does not write agent MCP configs", async () => {
   const home = "/fake-home";
+  const repo = "/fake-repo";
   const host = createFakeHost(["bun"], {
     homeDir: home,
-    homeTree: [".config/mcp/mcp.json", ".config/opencode/opencode.json"],
+    repoDir: repo,
+    homeTree: [".config/opencode/opencode.json"],
     treeContents: {
-      ".config/mcp/mcp.json": JSON.stringify({
-        mcpServers: { bun: { command: "bunx", args: ["https://bun.com/mcp"] } },
-      }),
       ".config/opencode/opencode.json": JSON.stringify({ permission: "allow" }),
     },
+    fileContents: mcpSource(repo, { bun: { url: "https://bun.com/mcp" } }),
   });
   const result = await run(["stow", "--dry-run"], host);
   expect(result.exitCode).toBe(0);
   expect(host.fileContents[`${home}/.config/opencode/opencode.json`]).toBeUndefined();
+  expect(host.fileExists(`${home}/.pi/agent/mcp.json`)).toBe(false);
 });
 
-test("missing XDG MCP file skips mirror write and does not invent OpenCode config", async () => {
+test("missing MCP source skips mirror write and does not invent agent configs", async () => {
   const home = "/fake-home";
   const host = createFakeHost(["bun"], {
     homeDir: home,
@@ -206,6 +211,7 @@ test("missing XDG MCP file skips mirror write and does not invent OpenCode confi
   const result = await run(["stow"], host);
   expect(result.exitCode).toBe(0);
   expect(host.fileExists(`${home}/.config/opencode/opencode.json`)).toBe(false);
+  expect(host.fileExists(`${home}/.pi/agent/mcp.json`)).toBe(false);
 });
 
 test("help still has no mcp command and mcp command is rejected as unknown", async () => {

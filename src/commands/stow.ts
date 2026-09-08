@@ -1,6 +1,6 @@
 import type { Host } from "@/types/host.ts";
 import type { RunResult, StowOptions } from "@/types/result.ts";
-import { mirrorOpenCodeMcp } from "@/utils/mcp.ts";
+import { mirrorMcp } from "@/utils/mcp.ts";
 import { formatStowReport } from "@/utils/stow.ts";
 
 export async function stow(host: Host, options: StowOptions = {}): Promise<RunResult> {
@@ -14,7 +14,7 @@ export async function stowCommand(host: Host, options: StowOptions = {}): Promis
   }
   const stowed = await stow(host, options);
   if (!options.dryRun) {
-    await mirrorOpenCodeMcp(host);
+    await mirrorMcp(host);
   }
   let stdout = stowed.stdout;
   if (options.dryRun) {
