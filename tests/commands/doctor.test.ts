@@ -178,3 +178,33 @@ test("invalid dotfiles.json causes doctor to fail with error", async () => {
   expect(result.exitCode).not.toBe(0);
   expect(result.stderr).toContain("Failed to parse dotfiles.json");
 });
+
+test("doctor does not require zed when tools.zed is false", async () => {
+  const home = "/fake-home";
+  const repo = "/fake-repo";
+  const host = createFakeHost(
+    ["zsh", "git", "stow", "mise", "npm", "bun", "pi", "herdr", "opencode"],
+    {
+      homeDir: home,
+      repoDir: repo,
+      files: [
+        `${home}/.oh-my-zsh`,
+        `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
+        `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
+        ...skillDirs(home),
+        `${home}/.config/mcp/mcp.json`,
+        `${home}/.local/bin/dotfiles`,
+        `${repo}/dotfiles.json`,
+      ],
+      fileContents: {
+        [`${repo}/dotfiles.json`]: JSON.stringify({
+          tools: { zed: false },
+        }),
+      },
+      loginShell: "/bin/zsh",
+    },
+  );
+  const result = await run(["doctor"], host);
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).not.toContain("Zed");
+});

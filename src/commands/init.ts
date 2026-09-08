@@ -89,6 +89,70 @@ export async function init(host: Host): Promise<RunResult> {
     }
   }
   const home = host.homeDir();
+
+  let envVars: Record<string, string> = {};
+  let envResolvedPath = "/etc/environment";
+  let envDisplayPath = "/etc/environment";
+  let envConfirmed = false;
+
+  const dotenvPath = join(host.repoDir(), ".env");
+  const dotenvContent = await host.readFile(dotenvPath);
+  const parsedDotenv = dotenvContent !== null ? parseDotenv(dotenvContent) : {};
+  const dotenvKeys = Object.keys(parsedDotenv);
+
+  if (dotenvKeys.length > 0) {
+    const modifyPrompt =
+      `Loaded environment variables from .env:\n  ${dotenvKeys.join(", ")}\n` +
+      "Do you want to modify it? [y/N] ";
+    const wantModify = isYes(await host.prompt(modifyPrompt));
+    if (wantModify) {
+      const mode = (await host.prompt("Override or Append? [o/A] ")).trim().toLowerCase();
+      if (mode === "o" || mode === "override") {
+        const csv = (await host.prompt("API Keys (key=value CSV): ")).trim();
+        envVars = parseApiKeyCsv(csv);
+      } else {
+        const csv = (await host.prompt("API Keys to append (key=value CSV): ")).trim();
+        envVars = { ...parsedDotenv, ...parseApiKeyCsv(csv) };
+      }
+    } else {
+      envVars = parsedDotenv;
+    }
+  } else {
+    const apiKeysCsv = (await host.prompt("API Keys (key=value CSV, empty skips): ")).trim();
+    if (apiKeysCsv !== "") {
+      envVars = parseApiKeyCsv(apiKeysCsv);
+    }
+  }
+
+  if (Object.keys(envVars).length > 0) {
+    const locationMenu =
+      "Store location:\n" +
+      "1) /etc/environment (system-wide) [default]\n" +
+      "2) ~/.zshenv\n" +
+      "3) ~/.profile\n" +
+      "4) Custom path\n" +
+      "Select [1-4, default 1]: ";
+    const choice = (await host.prompt(locationMenu)).trim();
+    let storeTarget = choice;
+    if (choice === "4") {
+      const custom = (await host.prompt("Custom store location: ")).trim();
+      storeTarget = custom !== "" ? custom : "/etc/environment";
+    }
+    envResolvedPath = resolveStorePath(storeTarget, home);
+    envDisplayPath = formatStorePath(envResolvedPath, home);
+    const confirmed = await host.prompt(`Write API Keys to ${envDisplayPath}? [y/N] `);
+    envConfirmed = isYes(confirmed);
+  }
+
+  let wantGhostty = false;
+  const ghosttyConfigured = preset.tools.ghostty !== undefined;
+  const ghosttyMissing = !host.commandExists(workflowTools.ghostty.command);
+  if (ghosttyConfigured) {
+    wantGhostty = preset.tools.ghostty === true && ghosttyMissing;
+  } else if (ghosttyMissing) {
+    wantGhostty = isYes(await host.prompt("Install Ghostty? [y/N] "));
+  }
+
   const session = host.startProgress(`Distro packages: ${pm}`, initialSteps(preset));
   const update = (i: number, state: ProgressState, detail: string) => {
     session.update(i, state, detail);
@@ -109,17 +173,21 @@ export async function init(host: Host): Promise<RunResult> {
     } else {
       update(STEPS.OMZ, "skipped", "present");
     }
-    const missingPlugins = preset.omzPlugins.filter(
-      (plugin) => !host.fileExists(join(home, `.oh-my-zsh/custom/plugins/${plugin}`)),
-    );
-    if (missingPlugins.length > 0) {
-      update(STEPS.OMZ_PLUGINS, "running", missingPlugins.join(", "));
-      for (const plugin of missingPlugins) {
-        await host.runUpstreamInstall(plugin);
-      }
-      update(STEPS.OMZ_PLUGINS, "done", `${preset.omzPlugins.length} plugins`);
+    if (!preset.isToolEnabled("omzPlugins", true)) {
+      update(STEPS.OMZ_PLUGINS, "skipped", "disabled in preset");
     } else {
-      update(STEPS.OMZ_PLUGINS, "skipped", "present");
+      const missingPlugins = preset.omzPlugins.filter(
+        (plugin) => !host.fileExists(join(home, `.oh-my-zsh/custom/plugins/${plugin}`)),
+      );
+      if (missingPlugins.length > 0) {
+        update(STEPS.OMZ_PLUGINS, "running", missingPlugins.join(", "));
+        for (const plugin of missingPlugins) {
+          await host.runUpstreamInstall(plugin);
+        }
+        update(STEPS.OMZ_PLUGINS, "done", `${preset.omzPlugins.length} plugins`);
+      } else {
+        update(STEPS.OMZ_PLUGINS, "skipped", "present");
+      }
     }
     if (!host.commandExists(workflowTools.mise.command)) {
       update(STEPS.MISE, "running", "latest");
@@ -138,83 +206,46 @@ export async function init(host: Host): Promise<RunResult> {
     update(STEPS.MISE_TOOLS, "running", miseToolsDetail);
     await host.installMiseTools();
     update(STEPS.MISE_TOOLS, "done", miseToolsDetail);
-    if (piWasMissing) {
+    if (!preset.isToolEnabled("piPackages", true)) {
+      update(STEPS.PI_PACKAGES, "skipped", "disabled in preset");
+    } else if (piWasMissing) {
       update(STEPS.PI_PACKAGES, "running", `${preset.piPackages.length} packages`);
       await host.installPiPackages(preset.piPackages);
       update(STEPS.PI_PACKAGES, "done", `${preset.piPackages.length} packages`);
     } else {
       update(STEPS.PI_PACKAGES, "skipped", "present");
     }
-    if (!host.commandExists(workflowTools.zed.command)) {
+    if (!preset.isToolEnabled("zed", true)) {
+      update(STEPS.ZED, "skipped", "disabled in preset");
+    } else if (!host.commandExists(workflowTools.zed.command)) {
       update(STEPS.ZED, "running", "latest");
       await host.runUpstreamInstall(workflowTools.zed.upstream);
       update(STEPS.ZED, "done", "latest");
     } else {
       update(STEPS.ZED, "skipped", "present");
     }
-    const missingSkillSpecs = preset.skills.filter(
-      (spec) => !host.fileExists(skillDir(home, spec)),
-    );
-    if (missingSkillSpecs.length > 0) {
-      update(STEPS.SKILLS, "running", `${missingSkillSpecs.length} of ${preset.skills.length}`);
-      await host.installSkills(missingSkillSpecs);
-      update(STEPS.SKILLS, "done", `${preset.skills.length} skills`);
+    if (!preset.isToolEnabled("skills", true)) {
+      update(STEPS.SKILLS, "skipped", "disabled in preset");
     } else {
-      update(STEPS.SKILLS, "skipped", "present");
+      const missingSkillSpecs = preset.skills.filter(
+        (spec) => !host.fileExists(skillDir(home, spec)),
+      );
+      if (missingSkillSpecs.length > 0) {
+        update(STEPS.SKILLS, "running", `${missingSkillSpecs.length} of ${preset.skills.length}`);
+        await host.installSkills(missingSkillSpecs);
+        update(STEPS.SKILLS, "done", `${preset.skills.length} skills`);
+      } else {
+        update(STEPS.SKILLS, "skipped", "present");
+      }
     }
     update(STEPS.MCP, "running", "mirroring XDG mcp");
     await mirrorOpenCodeMcp(host);
     update(STEPS.MCP, "done", "mcp key refreshed");
-    let envVars: Record<string, string> = {};
-    const dotenvPath = join(host.repoDir(), ".env");
-    const dotenvContent = await host.readFile(dotenvPath);
-    const parsedDotenv = dotenvContent !== null ? parseDotenv(dotenvContent) : {};
-    const dotenvKeys = Object.keys(parsedDotenv);
-
-    if (dotenvKeys.length > 0) {
-      const modifyPrompt =
-        `Loaded environment variables from .env:\n  ${dotenvKeys.join(", ")}\n` +
-        "Do you want to modify it? [y/N] ";
-      const wantModify = isYes(await host.prompt(modifyPrompt));
-      if (wantModify) {
-        const mode = (await host.prompt("Override or Append? [o/A] ")).trim().toLowerCase();
-        if (mode === "o" || mode === "override") {
-          const csv = (await host.prompt("API Keys (key=value CSV): ")).trim();
-          envVars = parseApiKeyCsv(csv);
-        } else {
-          const csv = (await host.prompt("API Keys to append (key=value CSV): ")).trim();
-          envVars = { ...parsedDotenv, ...parseApiKeyCsv(csv) };
-        }
-      } else {
-        envVars = parsedDotenv;
-      }
-    } else {
-      const apiKeysCsv = (await host.prompt("API Keys (key=value CSV, empty skips): ")).trim();
-      if (apiKeysCsv !== "") {
-        envVars = parseApiKeyCsv(apiKeysCsv);
-      }
-    }
 
     if (Object.keys(envVars).length > 0) {
-      const locationMenu =
-        "Store location:\n" +
-        "1) /etc/environment (system-wide) [default]\n" +
-        "2) ~/.zshenv\n" +
-        "3) ~/.profile\n" +
-        "4) Custom path\n" +
-        "Select [1-4, default 1]: ";
-      const choice = (await host.prompt(locationMenu)).trim();
-      let storeTarget = choice;
-      if (choice === "4") {
-        const custom = (await host.prompt("Custom store location: ")).trim();
-        storeTarget = custom !== "" ? custom : "/etc/environment";
-      }
-      const resolvedPath = resolveStorePath(storeTarget, home);
-      const displayPath = formatStorePath(resolvedPath, home);
-      const confirmed = await host.prompt(`Write API Keys to ${displayPath}? [y/N] `);
-      if (isYes(confirmed)) {
-        await host.mergeApiKeys(envVars, resolvedPath);
-        update(STEPS.KEYS, "done", `merged into ${displayPath}`);
+      if (envConfirmed) {
+        await host.mergeApiKeys(envVars, envResolvedPath);
+        update(STEPS.KEYS, "done", `merged into ${envDisplayPath}`);
       } else {
         update(STEPS.KEYS, "skipped", "declined");
       }
@@ -222,9 +253,9 @@ export async function init(host: Host): Promise<RunResult> {
       update(STEPS.KEYS, "skipped", "empty");
     }
     let stderr = "";
-    const ghosttyMissing = !host.commandExists(workflowTools.ghostty.command);
-    const wantGhostty = ghosttyMissing && isYes(await host.prompt("Install Ghostty? [y/N] "));
-    if (wantGhostty) {
+    if (preset.tools.ghostty === false) {
+      update(STEPS.GHOSTTY, "skipped", "disabled in preset");
+    } else if (wantGhostty) {
       const ghostty = ghosttyPackageFor(pm);
       if (ghostty) {
         try {

@@ -9,6 +9,33 @@
       "type": "string",
       "description": "Relative or absolute URI to the dotfiles configuration JSON Schema"
     },
+    "tools": {
+      "type": "object",
+      "description": "Enable or disable installation of specific tools and components",
+      "properties": {
+        "ghostty": {
+          "type": "boolean",
+          "description": "Enable or disable Ghostty terminal installation"
+        },
+        "zed": {
+          "type": "boolean",
+          "description": "Enable or disable Zed editor installation"
+        },
+        "skills": {
+          "type": "boolean",
+          "description": "Enable or disable agent skills installation"
+        },
+        "piPackages": {
+          "type": "boolean",
+          "description": "Enable or disable pi extensions installation"
+        },
+        "omzPlugins": {
+          "type": "boolean",
+          "description": "Enable or disable Oh My Zsh plugins cloning"
+        }
+      },
+      "additionalProperties": false
+    },
     "skills": {
       "type": "array",
       "description": "Agent skills to install (e.g. owner/repo@skill)",

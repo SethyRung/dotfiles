@@ -1454,3 +1454,77 @@ test("invalid dotfiles.json causes init to fail with error before doing work", a
   expect(result.stderr).toContain("Failed to parse dotfiles.json");
   expect(host.packagesRequested).toEqual([]);
 });
+
+test("init skips ghostty prompt and installation when tools.ghostty is false", async () => {
+  const repo = "/fake-repo";
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    repoDir: repo,
+    files: [`${repo}/dotfiles.json`],
+    fileContents: {
+      [`${repo}/dotfiles.json`]: JSON.stringify({ tools: { ghostty: false } }),
+    },
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.prompts.some((p) => p.includes("Install Ghostty?"))).toBe(false);
+  expect(host.packagesRequested).not.toContain("ghostty");
+  expect(finalSteps(host).get("Ghostty")).toMatchObject({
+    state: "skipped",
+    detail: "disabled in preset",
+  });
+});
+
+test("init skips ghostty prompt and installs when tools.ghostty is true", async () => {
+  const repo = "/fake-repo";
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    repoDir: repo,
+    files: [`${repo}/dotfiles.json`],
+    fileContents: {
+      [`${repo}/dotfiles.json`]: JSON.stringify({ tools: { ghostty: true } }),
+    },
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.prompts.some((p) => p.includes("Install Ghostty?"))).toBe(false);
+  expect(host.packagesRequested).toContain("ghostty");
+  expect(finalSteps(host).get("Ghostty")).toMatchObject({
+    state: "done",
+    detail: "installed",
+  });
+});
+
+test("init skips zed installation when tools.zed is false", async () => {
+  const repo = "/fake-repo";
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    repoDir: repo,
+    files: [`${repo}/dotfiles.json`],
+    fileContents: {
+      [`${repo}/dotfiles.json`]: JSON.stringify({ tools: { zed: false } }),
+    },
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.upstreamInstalls).not.toContain("zed");
+  expect(finalSteps(host).get("Zed")).toMatchObject({
+    state: "skipped",
+    detail: "disabled in preset",
+  });
+});
+
+test("init asks questions upfront before running installation progress", async () => {
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    promptAnswers: ["TEST_KEY=123", "1", "y", "y"],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.prompts[0]).toContain("key=value");
+  expect(host.prompts[1]).toContain("/etc/environment");
+  expect(host.prompts[2]).toContain("Write API Keys to /etc/environment?");
+  expect(host.prompts[3]).toContain("Install Ghostty?");
+  expect(host.packagesRequested).toContain("ghostty");
+  expect(await host.readEnvironment()).toContain("TEST_KEY=123");
+});

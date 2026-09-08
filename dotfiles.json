@@ -1,5 +1,11 @@
 {
   "$schema": "./schema/dotfiles.schema.json",
+  "tools": {
+    "zed": true,
+    "piPackages": true,
+    "skills": true,
+    "omzPlugins": true
+  },
   "skills": [
     "vercel-labs/skills@find-skills",
     "mattpocock/skills@grill-me",

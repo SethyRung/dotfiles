@@ -205,6 +205,13 @@ The repository includes `dotfiles.json` as the single source of truth for tools,
 ```json
 {
   "$schema": "./schema/dotfiles.schema.json",
+  "tools": {
+    "ghostty": false,
+    "zed": true,
+    "piPackages": true,
+    "skills": true,
+    "omzPlugins": true
+  },
   "skills": ["vercel-labs/skills@find-skills", "mattpocock/skills@implement"],
   "piPackages": ["npm:pi-subagents", "npm:pi-mcp-adapter"],
   "omzPlugins": ["zsh-autosuggestions", "zsh-syntax-highlighting"],
@@ -217,6 +224,7 @@ The repository includes `dotfiles.json` as the single source of truth for tools,
 }
 ```
 
+- **`tools`**: Boolean toggles to enable or disable components (`ghostty`, `zed`, `skills`, `piPackages`, `omzPlugins`). Explicitly configured tools skip interactive prompts; omitted optional tools (such as Ghostty) prompt during setup.
 - **`skills`**: Global agent skills installed via `skills.sh`.
 - **`piPackages`**: Pi agent extensions installed when pi is set up.
 - **`omzPlugins`**: Oh My Zsh plugins cloned into custom plugins.
@@ -225,6 +233,7 @@ The repository includes `dotfiles.json` as the single source of truth for tools,
 
 ## Re-runs and safety
 
+- **Upfront questions**: All interactive questions (workflow continuation, API Keys/.env, unconfigured optional tools) are asked upfront so the installation runs in one continuous shot without intermediate pauses.
 - Workflow already present: one `Continue? [y/N]` prompt. Decline changes nothing; continue skips installed tools quietly (`[skip] ... present`).
 - Stow always re-links `home/`; Mise Tools always run `mise install` after that Stow (idempotent; not an upgrade).
 - Extra prompts appear only before destructive writes: `/etc/environment` and Stow conflicts.

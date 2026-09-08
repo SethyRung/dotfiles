@@ -1,13 +1,16 @@
 import { join } from "node:path";
 import {
+  defaultConfig,
   defaultOmzPlugins,
   defaultPackagesFor,
   defaultPiPackages,
   defaultSkills,
+  type DotfilesToolsConfig,
 } from "@/config.ts";
 import type { Host, PackageManager } from "@/types/host.ts";
 
 export type DotfilesPresetInput = {
+  tools?: DotfilesToolsConfig;
   skills?: string[];
   piPackages?: string[];
   pi_packages?: string[];
@@ -19,10 +22,12 @@ export type DotfilesPresetInput = {
 };
 
 export type DotfilesPreset = {
+  tools: DotfilesToolsConfig;
   skills: string[];
   piPackages: string[];
   omzPlugins: string[];
   distroPackagesFor(pm: PackageManager): string[];
+  isToolEnabled(name: keyof DotfilesToolsConfig, defaultVal?: boolean): boolean;
 };
 
 export function parsePreset(content: string): DotfilesPreset {
@@ -50,8 +55,17 @@ export function parsePreset(content: string): DotfilesPreset {
       : [...defaultOmzPlugins];
 
   const packagesRaw = raw.packages ?? raw.distroPackages ?? raw.distro_packages;
+  const toolsRaw = raw.tools ?? {};
+  const tools: DotfilesToolsConfig = {
+    ghostty: toolsRaw.ghostty,
+    zed: toolsRaw.zed,
+    skills: toolsRaw.skills,
+    piPackages: toolsRaw.piPackages ?? (toolsRaw as { pi_packages?: boolean }).pi_packages,
+    omzPlugins: toolsRaw.omzPlugins ?? (toolsRaw as { omz_plugins?: boolean }).omz_plugins,
+  };
 
   return {
+    tools,
     skills,
     piPackages,
     omzPlugins,
@@ -67,15 +81,31 @@ export function parsePreset(content: string): DotfilesPreset {
       }
       return defaultPackagesFor(pm);
     },
+    isToolEnabled(name: keyof DotfilesToolsConfig, defaultVal = true): boolean {
+      const val = tools[name];
+      return val !== undefined ? val : defaultVal;
+    },
   };
 }
 
 export function defaultPreset(): DotfilesPreset {
+  const tools: DotfilesToolsConfig = {
+    ghostty: defaultConfig.tools?.ghostty,
+    zed: defaultConfig.tools?.zed,
+    skills: defaultConfig.tools?.skills,
+    piPackages: defaultConfig.tools?.piPackages,
+    omzPlugins: defaultConfig.tools?.omzPlugins,
+  };
   return {
+    tools,
     skills: [...defaultSkills],
     piPackages: [...defaultPiPackages],
     omzPlugins: [...defaultOmzPlugins],
     distroPackagesFor: defaultPackagesFor,
+    isToolEnabled(name: keyof DotfilesToolsConfig, defaultVal = true): boolean {
+      const val = tools[name];
+      return val !== undefined ? val : defaultVal;
+    },
   };
 }
 

@@ -1,8 +1,17 @@
 import rawConfig from "../dotfiles.json";
 import type { PackageManager } from "@/types/host.ts";
 
+export type DotfilesToolsConfig = {
+  ghostty?: boolean;
+  zed?: boolean;
+  skills?: boolean;
+  piPackages?: boolean;
+  omzPlugins?: boolean;
+};
+
 export type DotfilesConfig = {
   $schema?: string;
+  tools?: DotfilesToolsConfig;
   skills: string[];
   piPackages: string[];
   omzPlugins: string[];

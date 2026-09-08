@@ -47,10 +47,14 @@ export async function assessWorkflow(host: Host, preset?: DotfilesPreset): Promi
   const keys = await host.listApiKeyNames();
   const brokenStowLinks = host.brokenStowLinks();
 
+  const checkOmzPlugins = activePreset.isToolEnabled("omzPlugins", true);
+  const checkZed = activePreset.isToolEnabled("zed", true);
+  const checkSkills = activePreset.isToolEnabled("skills", true);
+
   const requiredChecks: WorkflowCheck[] = [
     { label: "zsh", ok: zsh },
     { label: "Oh My Zsh", ok: omz },
-    { label: "OMZ plugins", ok: plugins },
+    ...(checkOmzPlugins ? [{ label: "OMZ plugins", ok: plugins }] : []),
     { label: "git", ok: git },
     { label: "stow", ok: stowOk },
     { label: workflowTools.mise.label, ok: mise },
@@ -59,8 +63,8 @@ export async function assessWorkflow(host: Host, preset?: DotfilesPreset): Promi
     { label: "pi", ok: pi },
     { label: "herdr", ok: herdr },
     { label: "OpenCode", ok: opencode },
-    { label: "Zed", ok: zed },
-    { label: "Skills", ok: skills },
+    ...(checkZed ? [{ label: "Zed", ok: zed }] : []),
+    ...(checkSkills ? [{ label: "Skills", ok: skills }] : []),
     { label: "XDG MCP", ok: mcp },
     { label: "login shell", ok: shell },
     { label: "PATH symlink", ok: pathOk },
@@ -70,7 +74,7 @@ export async function assessWorkflow(host: Host, preset?: DotfilesPreset): Promi
   const isBootstrapped = [
     zsh,
     omz,
-    plugins,
+    checkOmzPlugins ? plugins : true,
     git,
     stowOk,
     mise,
@@ -79,8 +83,8 @@ export async function assessWorkflow(host: Host, preset?: DotfilesPreset): Promi
     pi,
     herdr,
     opencode,
-    zed,
-    skills,
+    checkZed ? zed : true,
+    checkSkills ? skills : true,
     shell,
   ].every(Boolean);
 
