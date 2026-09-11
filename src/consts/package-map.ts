@@ -11,6 +11,7 @@ export const ghosttyPackageMap: Partial<Record<PackageManager, string>> = {
   apt: "ghostty",
   pacman: "ghostty",
   dnf: "ghostty",
+  zypper: "ghostty",
 };
 
 export function ghosttyPackageFor(pm: PackageManager): string | undefined {

@@ -4,11 +4,11 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Yes on zypper requests Distro package `ghostty` and Stows Ghostty config
-- [ ] Decline on zypper installs no Ghostty package and does not Stow Ghostty config
-- [ ] apt, pacman, and dnf Ghostty mappings stay `ghostty`
-- [ ] Doctor still treats missing Ghostty as optional, including on zypper
-- [ ] Ghostty prompt default remains no
-- [ ] Behaviour is observed only through the CLI against a fake Host
+- [x] Yes on zypper requests Distro package `ghostty` and Stows Ghostty config
+- [x] Decline on zypper installs no Ghostty package and does not Stow Ghostty config
+- [x] apt, pacman, and dnf Ghostty mappings stay `ghostty`
+- [x] Doctor still treats missing Ghostty as optional, including on zypper
+- [x] Ghostty prompt default remains no
+- [x] Behaviour is observed only through the CLI against a fake Host

@@ -897,7 +897,7 @@ test("on a re-run, init still offers Ghostty when it is missing", async () => {
   });
 });
 
-test("yes on a Distro without a mapping warns and does not abort the rest of init", async () => {
+test("yes on zypper installs Ghostty and Stows its config", async () => {
   const host = createFakeHost(["bun"], {
     packageManager: "zypper",
     homeTree: [".zshrc", ".config/ghostty/config"],
@@ -905,15 +905,26 @@ test("yes on a Distro without a mapping warns and does not abort the rest of ini
   });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
-  expect(result.stderr).toContain("Ghostty");
+  expect(host.packagesRequested).toEqual(["zsh", "git", "stow", "ghostty"]);
+  expect(host.linked).toContain(".config/ghostty/config");
   expect(finalSteps(host).get("Ghostty")).toEqual({
     label: "Ghostty",
-    detail: "not in Package Map for zypper",
-    state: "failed",
+    detail: "installed",
+    state: "done",
   });
+  expect(host.loginShell()).toBe("zsh");
+});
+
+test("decline on zypper skips Ghostty package and config", async () => {
+  const host = createFakeHost(["bun"], {
+    packageManager: "zypper",
+    homeTree: [".zshrc", ".config/ghostty/config"],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.prompts.some((p) => p.includes("Install Ghostty?"))).toBe(true);
   expect(host.packagesRequested).toEqual(["zsh", "git", "stow"]);
   expect(host.linked).not.toContain(".config/ghostty/config");
-  expect(host.loginShell()).toBe("zsh");
 });
 
 test("dangling PATH and MCP dests after a repo move still ask continue?", async () => {
