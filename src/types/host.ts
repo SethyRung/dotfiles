@@ -1,4 +1,4 @@
-import type { ProgressFrame, ProgressSession, ProgressStep } from "@/types/progress.ts";
+import type { ProgressSession, ProgressStep } from "@/types/progress.ts";
 import type { StowOptions, StowReport } from "@/types/result.ts";
 
 export type PackageManager = "apt" | "pacman" | "dnf" | "zypper";
@@ -18,7 +18,6 @@ export type Host = {
   pullRepo(): Promise<string>;
   linkDotfiles(): Promise<void>;
   listApiKeyNames(): Promise<string[]>;
-  brokenStowLinks(): string[];
   stowBackups(): string[];
   homeTree(): string[];
   removeFile(path: string): void;
@@ -27,7 +26,6 @@ export type Host = {
   installSkills(specs: string[]): Promise<void>;
   prompt(message: string): Promise<string>;
   startProgress(title: string, steps: ProgressStep[]): ProgressSession;
-  progress(frame: ProgressFrame): void;
   mergeApiKeys(keys: Record<string, string>, targetPath?: string): Promise<void>;
   readFile(path: string): Promise<string | null>;
   writeFile(path: string, content: string): Promise<void>;

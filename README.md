@@ -131,7 +131,7 @@ Report every Workflow piece present or missing.
 - Reports Preset pi packages present or missing (`~/.pi/agent/npm/node_modules`).
 - MCP is healthy when the Preset `mcp` list is translated into pi, OpenCode, Grok, and Codex — not merely when a dest file exists.
 - Reports Ghostty as an **optional** warning, not a failure.
-- Lists broken Stow links.
+- Lists Stow dests that are not repo links (missing, regular file, or foreign/broken symlink). Ghostty config dests stay optional and are not required.
 
 ```bash
 dotfiles doctor
@@ -164,9 +164,9 @@ dotfiles clean --yes
 
 ### `dotfiles sync`
 
-Sync config: `git pull --ff-only`, re-Stow `home/`, refresh MCP translations. Prints the Stow report along with the sync summary.
+Sync config: `git pull --ff-only`, relink `~/.local/bin/dotfiles`, re-Stow `home/`, refresh MCP translations. Prints the Stow report along with the sync summary.
 
-Use `--dry-run` to preview the Stow report without pulling or writing.
+Use `--dry-run` to preview the Stow report and PATH relink without pulling or writing.
 
 Never installs or upgrades tools — presence is `init`'s job, upgrades belong to each tool (ADR 0014, 0015). A dirty or diverged repo fails fast before anything is Stowed.
 
@@ -273,13 +273,13 @@ pulls the repo fast-forward only, re-Stows `home/` into `$HOME`, and refreshes M
 
 ## Troubleshooting
 
-| Symptom                                                                           | Fix                                                                                                 |
-| --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Stow dests or `~/.local/bin/dotfiles` point at the old path after moving the repo | Run `./dotfiles stow` from the **new** location — it replaces the PATH symlink and re-Stows `home/` |
-| Bootstrap stops with an unknown-Distro error                                      | No apt / pacman / dnf / zypper found; the Distro is unsupported. Nothing was installed              |
-| Login shell did not change                                                        | Log out/in, run `zsh`, or reboot — init offers this with a default of no                            |
-| Broken or missing config links                                                    | Run `dotfiles doctor` to list them, then `dotfiles stow` to re-link                                 |
-| Old backup files cluttering `$HOME`                                               | Run `dotfiles clean` (it lists them and asks first)                                                 |
+| Symptom                                                                           | Fix                                                                                                                |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Stow dests or `~/.local/bin/dotfiles` point at the old path after moving the repo | Run `./dotfiles stow` or `dotfiles sync` from the **new** location — both relink the PATH stub and re-Stow `home/` |
+| Bootstrap stops with an unknown-Distro error                                      | No apt / pacman / dnf / zypper found; the Distro is unsupported. Nothing was installed                             |
+| Login shell did not change                                                        | Log out/in, run `zsh`, or reboot — init offers this with a default of no                                           |
+| Broken or missing config links                                                    | Run `dotfiles doctor` to list them, then `dotfiles stow` to re-link                                                |
+| Old backup files cluttering `$HOME`                                               | Run `dotfiles clean` (it lists them and asks first)                                                                |
 
 ## Scope and limitations
 

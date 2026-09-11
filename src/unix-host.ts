@@ -297,25 +297,6 @@ export const unixHost: Host = {
     }
     return [...names];
   },
-  brokenStowLinks() {
-    const tree = join(import.meta.dir, "..", "home");
-    if (!existsSync(tree)) {
-      return [];
-    }
-    const broken: string[] = [];
-    const glob = new Bun.Glob("**/*");
-    for (const rel of glob.scanSync({ cwd: tree, dot: true })) {
-      const dest = join(homedir(), rel);
-      try {
-        if (lstatSync(dest).isSymbolicLink() && !existsSync(dest)) {
-          broken.push(dest);
-        }
-      } catch {
-        continue;
-      }
-    }
-    return broken;
-  },
   stowBackups() {
     const home = homedir();
     const found: string[] = [];
@@ -438,15 +419,6 @@ export const unixHost: Host = {
     const session = new UnixProgressSession(title, steps);
     activeProgressSession = session;
     return session;
-  },
-  progress(frame) {
-    if (!activeProgressSession) {
-      activeProgressSession = new UnixProgressSession(frame.title, frame.steps);
-      return;
-    }
-    frame.steps.forEach((step, i) => {
-      activeProgressSession?.update(i, step.state, step.detail);
-    });
   },
   async mergeApiKeys(keys, targetPath = "/etc/environment") {
     markNoisy();

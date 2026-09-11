@@ -1068,7 +1068,6 @@ test("dangling PATH and MCP dests after a repo move still ask continue?", async 
       ...piPackageDirs(home),
     ],
     loginShell: "/bin/zsh",
-    brokenStowLinks: [`${home}/.config/herdr/config.toml`, `${home}/.zshrc`],
   });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);

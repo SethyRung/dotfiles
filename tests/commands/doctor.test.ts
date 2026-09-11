@@ -250,12 +250,71 @@ test("a healthy Host with a missing expected API Key exits 1 and is not complete
 });
 
 test("doctor reports broken Stow links", async () => {
+  const home = "/fake-home";
   const host = createFakeHost(["bun"], {
-    brokenStowLinks: ["/fake-home/.zshrc"],
+    homeDir: home,
+    homeTree: [".zshrc"],
+    staleLinks: [`${home}/.zshrc`],
   });
   const result = await run(["doctor"], host);
+  expect(result.exitCode).toBe(1);
   expect(result.stdout).toContain("Stow");
-  expect(result.stdout).toContain("[!!]  /fake-home/.zshrc");
+  expect(result.stdout).toContain(`[!!]  ${home}/.zshrc`);
+});
+
+test("doctor reports missing Stow dests that are not repo links", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(presentWorkflowCommands, {
+    homeDir: home,
+    ...healthyWorkflow(home),
+    loginShell: "/bin/zsh",
+    homeTree: [".zshrc"],
+  });
+  const result = await run(["doctor"], host);
+  expect(result.exitCode).toBe(1);
+  expect(result.stdout).toContain("Stow");
+  expect(result.stdout).toContain(`[!!]  ${home}/.zshrc`);
+});
+
+test("doctor reports regular-file Stow dests that would be backed up", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(presentWorkflowCommands, {
+    homeDir: home,
+    ...healthyWorkflow(home, { files: [`${home}/.zshrc`] }),
+    loginShell: "/bin/zsh",
+    homeTree: [".zshrc"],
+  });
+  const result = await run(["doctor"], host);
+  expect(result.exitCode).toBe(1);
+  expect(result.stdout).toContain(`[!!]  ${home}/.zshrc`);
+});
+
+test("doctor does not report Stow dests that already link into the repo", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(presentWorkflowCommands, {
+    homeDir: home,
+    ...healthyWorkflow(home),
+    loginShell: "/bin/zsh",
+    homeTree: [".zshrc"],
+    repoLinks: [`${home}/.zshrc`],
+  });
+  const result = await run(["doctor"], host);
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).not.toContain("Stow");
+  expect(result.stdout).not.toContain(`${home}/.zshrc`);
+});
+
+test("doctor does not fail on missing Ghostty Stow dests", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(presentWorkflowCommands, {
+    homeDir: home,
+    ...healthyWorkflow(home),
+    loginShell: "/bin/zsh",
+    homeTree: [".config/ghostty/config.ghostty"],
+  });
+  const result = await run(["doctor"], host);
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).not.toContain("ghostty");
 });
 
 test("doctor reports Skills missing when ~/.agents/skills exists without the declared skills", async () => {
@@ -427,7 +486,8 @@ test("doctor --json includes broken Stow links and exits non-zero", async () => 
     homeDir: home,
     ...healthyWorkflow(home),
     loginShell: "/bin/zsh",
-    brokenStowLinks: [`${home}/.zshrc`],
+    homeTree: [".zshrc"],
+    staleLinks: [`${home}/.zshrc`],
   });
   const result = await run(["doctor", "--json"], host);
   expect(result.exitCode).toBe(1);

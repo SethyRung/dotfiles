@@ -16,6 +16,7 @@ test("dotfiles sync backs up only dests that are not already repo links", async 
   expect(result.exitCode).toBe(0);
   expect(result.stdout).toContain("Config synced");
   expect(host.repoPulls).toBe(1);
+  expect(host.dotfilesLinks).toBe(1);
   expect(host.backups).toEqual([`${home}/.config/herdr/config.toml.2026-01-01_10:30:20`]);
   expect(host.linked).toEqual([".zshrc", ".config/herdr/config.toml"]);
 });
@@ -51,6 +52,7 @@ test("dotfiles sync pulls the repo, re-Stows, and refreshes MCP translations", a
   expect(result.stdout).toContain("Config synced");
   expect(result.stdout).toContain("MCP refreshed");
   expect(host.repoPulls).toBe(1);
+  expect(host.dotfilesLinks).toBe(1);
   expect(host.linked).toEqual([
     ".zshrc",
     ".config/opencode/opencode.json",
@@ -85,6 +87,7 @@ test("a failed repo pull exits non-zero and Stows nothing", async () => {
   expect(result.stderr).toContain("divergent branches");
   expect(result.stdout).toBe("");
   expect(host.repoPulls).toBe(1);
+  expect(host.dotfilesLinks).toBe(0);
   expect(host.linked).toEqual([]);
 });
 
@@ -107,7 +110,9 @@ test("dotfiles sync --dry-run prints Stow report, does not pull, and succeeds on
   expect(result.stdout).toContain("linked:");
   expect(result.stdout).toContain(`${home}/.zshrc`);
   expect(result.stdout).not.toContain("Config synced");
+  expect(result.stdout).toContain("would link ~/.local/bin/dotfiles");
   expect(host.repoPulls).toBe(0);
+  expect(host.dotfilesLinks).toBe(0);
   expect(host.linked).toEqual([]);
   expect(host.backups).toEqual([]);
   const ocConfig = JSON.parse(host.fileContents[`${home}/.config/opencode/opencode.json`] ?? "{}");

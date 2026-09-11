@@ -102,7 +102,6 @@ export function createFakeHost(
     repoDir?: string;
     loginShell?: string | null;
     environmentKeys?: Record<string, string>;
-    brokenStowLinks?: string[];
     stowBackups?: string[];
     homeTree?: string[];
     treeContents?: Record<string, string>;
@@ -131,7 +130,6 @@ export function createFakeHost(
   const repoDir = extras.repoDir ?? "/fake-repo";
   let loginShell = extras.loginShell ?? null;
   const environmentKeys = extras.environmentKeys ?? {};
-  const stowLinks = extras.brokenStowLinks ?? [];
   const stowBackupList = extras.stowBackups ?? [];
   const removedFiles: string[] = [];
   const tree = extras.homeTree ?? [];
@@ -272,9 +270,6 @@ export function createFakeHost(
       fileContents[statePath] = `${targetPath}\n`;
       files.add(statePath);
     },
-    brokenStowLinks() {
-      return stowLinks;
-    },
     stowBackups() {
       return [...stowBackupList];
     },
@@ -406,9 +401,6 @@ export function createFakeHost(
         },
         done() {},
       };
-    },
-    progress(frame) {
-      progressFrames.push({ title: frame.title, steps: frame.steps.map((step) => ({ ...step })) });
     },
     get environmentFile() {
       return environmentFile;

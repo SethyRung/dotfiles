@@ -6,7 +6,11 @@ import { mirrorMcp } from "@/utils/mcp.ts";
 export async function sync(host: Host, options: StowOptions = {}): Promise<RunResult> {
   if (options.dryRun) {
     const stowed = await stow(host, { dryRun: true });
-    return { exitCode: 0, stdout: stowed.stdout, stderr: "" };
+    return {
+      exitCode: 0,
+      stdout: `${stowed.stdout}\n(dry run: would link ~/.local/bin/dotfiles)\n`,
+      stderr: "",
+    };
   }
 
   let pull;
@@ -20,6 +24,7 @@ export async function sync(host: Host, options: StowOptions = {}): Promise<RunRe
       stderr: `Repo pull failed: ${message}\ndotfiles sync needs a clean repo that fast-forwards from origin.\n`,
     };
   }
+  await host.linkDotfiles();
   const stowed = await stow(host);
   if (stowed.exitCode !== 0) {
     return stowed;

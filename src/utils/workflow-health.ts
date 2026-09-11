@@ -61,7 +61,8 @@ export async function assessWorkflow(host: Host, preset?: DotfilesPreset): Promi
     name,
     ok: presentKeys.has(name),
   }));
-  const brokenStowLinks = host.brokenStowLinks();
+  const stowReport = await host.stowTree({ dryRun: true, skipGhostty: true });
+  const brokenStowLinks = [...new Set([...stowReport.linked, ...stowReport.backedUp])];
 
   const checkOmzPlugins = activePreset.isToolEnabled("omzPlugins", true);
   const checkPiPackages = activePreset.isToolEnabled("piPackages", true);
