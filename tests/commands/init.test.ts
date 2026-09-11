@@ -604,6 +604,7 @@ test("APPEND_SYSTEM and prompts are restored; extensions, auth, sessions, caches
       ".pi/agent/extensions/moshi-hooks.ts",
       ".pi/agent/keybindings.json",
       ".pi/agent/zentui.json",
+      ".pi/agent/mcp.json",
       ".pi/agent/auth.json",
       ".pi/agent/sessions/x.jsonl",
       ".pi/agent/mcp-cache.json",
@@ -618,6 +619,7 @@ test("APPEND_SYSTEM and prompts are restored; extensions, auth, sessions, caches
   expect(host.linked).not.toContain(".pi/agent/extensions/moshi-hooks.ts");
   expect(host.linked).toContain(".pi/agent/keybindings.json");
   expect(host.linked).toContain(".pi/agent/zentui.json");
+  expect(host.linked).toContain(".pi/agent/mcp.json");
   expect(host.linked).not.toContain(".pi/agent/auth.json");
   expect(host.linked).not.toContain(".pi/agent/sessions/x.jsonl");
   expect(host.linked).not.toContain(".pi/agent/mcp-cache.json");
@@ -663,20 +665,25 @@ test("init requests only the Skills that are missing", async () => {
   expect(host.skillsRequested).toEqual(skillsList.slice(1));
 });
 
-test("MCP is not Stowed; pi gets a translated copy", async () => {
+test("XDG MCP is not Stowed; pi mcp.json is Stowed then filled from the repo list", async () => {
   const home = "/fake-home";
   const repo = "/fake-repo";
   const source = await Bun.file(join(import.meta.dir, "../../src/consts/mcp.json")).json();
+  const piSnapshot = await Bun.file(join(import.meta.dir, "../../home/.pi/agent/mcp.json")).text();
   const host = createFakeHost(["bun"], {
     homeDir: home,
     repoDir: repo,
     packageManager: "apt",
+    homeTree: [".pi/agent/mcp.json"],
+    treeContents: {
+      ".pi/agent/mcp.json": piSnapshot,
+    },
     fileContents: mcpSource(repo, source),
   });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
   expect(host.linked).not.toContain(".config/mcp/mcp.json");
-  expect(host.linked).not.toContain(".pi/agent/mcp.json");
+  expect(host.linked).toContain(".pi/agent/mcp.json");
   const pi = JSON.parse(host.fileContents[`${home}/.pi/agent/mcp.json`] ?? "{}");
   expect(pi.mcpServers).toHaveProperty("mobile-mcp");
   expect(pi.mcpServers).toHaveProperty("bun");
@@ -685,6 +692,8 @@ test("MCP is not Stowed; pi gets a translated copy", async () => {
     command: "bunx",
     args: ["--bun", "@mobilenext/mobile-mcp@latest"],
   });
+  const repoPi = JSON.parse(piSnapshot);
+  expect(repoPi).not.toHaveProperty("mcpServers");
 });
 
 test("empty API Key CSV skips the /etc/environment write", async () => {
@@ -1460,9 +1469,10 @@ test("re-running init refreshes agent MCP from the repo list", async () => {
     homeDir: home,
     repoDir: repo,
     packageManager: "apt",
-    homeTree: [".config/opencode/opencode.json"],
+    homeTree: [".config/opencode/opencode.json", ".pi/agent/mcp.json"],
     treeContents: {
       ".config/opencode/opencode.json": JSON.stringify({ permission: "allow" }),
+      ".pi/agent/mcp.json": "{}\n",
     },
     fileContents: mcpSource(repo, { bun: { url: "https://bun.com/docs/mcp" } }),
   });
