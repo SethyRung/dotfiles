@@ -78,6 +78,9 @@ test("top-level help documents --version and has no version command", async () =
   const versionAsCommand = await run(["version"], host);
   expect(versionAsCommand.exitCode).toBe(1);
   expect(versionAsCommand.stderr).toContain("unknown command: version");
+  const completionsAsCommand = await run(["completions"], host);
+  expect(completionsAsCommand.exitCode).toBe(1);
+  expect(completionsAsCommand.stderr).toContain("unknown command: completions");
 });
 
 test("unknown command exits non-zero with the error and help on stderr", async () => {

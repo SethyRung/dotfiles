@@ -233,6 +233,67 @@ test("a failed installMiseTools fails the command before later steps", async () 
   expect(host.piPackagesRequested).toEqual([]);
 });
 
+test("README documents v2 flags, completions, Grok/Codex snapshot, and Ghostty on zypper", async () => {
+  const readme = await Bun.file(join(import.meta.dir, "../../README.md")).text();
+  expect(readme).toContain("init --yes");
+  expect(readme).toContain("doctor --json");
+  expect(readme).toContain("dotfiles --version");
+  expect(readme).toContain("zsh completions");
+  expect(readme).toContain("Grok config");
+  expect(readme).toContain("Codex config");
+  expect(readme).toContain("zypper");
+  expect(readme).toContain("`ghostty`");
+});
+
+test("zsh completions for the five commands are Stowed and fpath is set before Oh My Zsh", async () => {
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    homeTree: [".zshrc", ".zsh/completions/_dotfiles"],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.linked).toContain(".zshrc");
+  expect(host.linked).toContain(".zsh/completions/_dotfiles");
+  const zshrc = await readZshrc();
+  const fpathAt = zshrc.indexOf('fpath=("$HOME/.zsh/completions" $fpath)');
+  const omzAt = zshrc.indexOf('source "$ZSH/oh-my-zsh.sh"');
+  expect(fpathAt).toBeGreaterThan(-1);
+  expect(fpathAt).toBeLessThan(omzAt);
+  const completion = await Bun.file(
+    join(import.meta.dir, "../../home/.zsh/completions/_dotfiles"),
+  ).text();
+  expect(completion).toContain("#compdef dotfiles");
+  expect(completion).toContain("init");
+  expect(completion).toContain("doctor");
+  expect(completion).toContain("stow");
+  expect(completion).toContain("clean");
+  expect(completion).toContain("sync");
+  expect(completion).toContain("--yes");
+  expect(completion).toContain("--json");
+  expect(completion).toContain("--dry-run");
+  expect(completion).toContain("--version");
+  expect(completion).not.toContain("completions");
+  expect(completion).not.toContain("update");
+  expect(completion).not.toContain("repair");
+  const initFlags = completion.match(/init\)[\s\S]*?;;/)?.[0] ?? "";
+  const doctorFlags = completion.match(/doctor\)[\s\S]*?;;/)?.[0] ?? "";
+  const stowFlags = completion.match(/stow\)[\s\S]*?;;/)?.[0] ?? "";
+  const cleanFlags = completion.match(/clean\)[\s\S]*?;;/)?.[0] ?? "";
+  const syncFlags = completion.match(/sync\)[\s\S]*?;;/)?.[0] ?? "";
+  expect(initFlags).toContain("--yes");
+  expect(initFlags).not.toContain("--json");
+  expect(initFlags).not.toContain("--dry-run");
+  expect(initFlags).not.toContain("--version");
+  expect(doctorFlags).toContain("--json");
+  expect(doctorFlags).not.toContain("--yes");
+  expect(stowFlags).toContain("--dry-run");
+  expect(stowFlags).not.toContain("--yes");
+  expect(cleanFlags).toContain("--yes");
+  expect(cleanFlags).not.toContain("--json");
+  expect(syncFlags).toContain("--dry-run");
+  expect(syncFlags).not.toContain("--json");
+});
+
 test("a curated zshrc is Stowed without Android SDK paths or out-of-scope aliases", async () => {
   const host = createFakeHost(["bun"], {
     packageManager: "apt",
@@ -277,7 +338,8 @@ test("curated OMZ plugins drop nvm but keep npm and node", async () => {
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
   const zshrc = await readZshrc();
-  const plugins = zshrc.slice(zshrc.indexOf("plugins=("), zshrc.indexOf(")"));
+  const pluginsStart = zshrc.indexOf("plugins=(");
+  const plugins = zshrc.slice(pluginsStart, zshrc.indexOf(")", pluginsStart));
   expect(plugins).toContain("npm");
   expect(plugins).toContain("node");
   expect(plugins).not.toContain("nvm");

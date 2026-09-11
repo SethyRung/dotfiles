@@ -1,6 +1,8 @@
 export ZSH="$HOME/.oh-my-zsh"
 ZSH_THEME="alanpeabody"
 
+fpath=("$HOME/.zsh/completions" $fpath)
+
 plugins=(
   git
   docker

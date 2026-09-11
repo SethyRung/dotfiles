@@ -89,30 +89,33 @@ A live ASCII dashboard redraws as each step runs:
 
 ## What Bootstrap installs
 
-| Category            | Contents                                                                                                                                                                                                |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Distro packages     | zsh, git, stow via the Package Map — no git config                                                                                                                                                      |
-| Upstream Installs   | mise, Oh My Zsh, OMZ plugins, Zed (always latest, never version-pinned)                                                                                                                                 |
-| Mise Tools          | agy, bun, Codex, gh, grok, herdr, pi, OpenCode (`latest`) and Node (`lts`) from the Stowed mise config; npm comes from mise's Node                                                                      |
-| pi packages         | Current pi plugins, installed only when pi was missing before Mise Tools                                                                                                                                |
-| Stowed from `home/` | zshrc, mise config.toml, herdr config.toml, OpenCode config + TUI files, pi agent config, Zed settings.json + keymap.json (Zed extensions are declared in `auto_install_extensions`, never snapshotted) |
-| Machine state       | login shell becomes zsh, dotfiles symlinked into `~/.local/bin`, environment variables merged into chosen store location (`/etc/environment`, `~/.zshenv`, etc.)                                        |
+| Category            | Contents                                                                                                                                                                                                                                                          |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Distro packages     | zsh, git, stow via the Package Map — no git config; optional Ghostty as `ghostty` on apt, pacman, dnf, and zypper                                                                                                                                                 |
+| Upstream Installs   | mise, Oh My Zsh, OMZ plugins, Zed (always latest, never version-pinned)                                                                                                                                                                                           |
+| Mise Tools          | agy, bun, Codex, gh, grok, herdr, pi, OpenCode (`latest`) and Node (`lts`) from the Stowed mise config; npm comes from mise's Node                                                                                                                                |
+| pi packages         | Current pi plugins, installed only when pi was missing before Mise Tools                                                                                                                                                                                          |
+| Stowed from `home/` | zshrc, zsh completions, mise config.toml, herdr config.toml, OpenCode config + TUI files, Grok config, Codex config + herdr hooks, pi agent config, Zed settings.json + keymap.json (Zed extensions are declared in `auto_install_extensions`, never snapshotted) |
+| Machine state       | login shell becomes zsh, dotfiles symlinked into `~/.local/bin`, environment variables merged into chosen store location (`/etc/environment`, `~/.zshenv`, etc.)                                                                                                  |
 
 Skills, pi packages, OMZ plugins, and distro packages are configured in `dotfiles.json` and installed via their package mechanisms (skills.sh for skills). Regular files at the destination are timestamp-backed-up then replaced; repo links are left; stale symlinks are replaced.
 
 ## Command reference
 
-Usage: `dotfiles <command>` — with no arguments, the CLI prints its help.
+Usage: `dotfiles <command>` — with no arguments, the CLI prints its help. `dotfiles --version` prints the committed package version.
 
 ### `dotfiles init`
 
 Bootstrap the Workflow, guided by the live Progress Log.
 
-Runs all 14 steps: Distro packages, Oh My Zsh + plugins, mise, Stow, Mise Tools, pi packages, Zed, Skills, MCP (pi + OpenCode translations), API Keys, optional Ghostty, login shell, and the `~/.local/bin/dotfiles` symlink.
+Runs all 14 steps: Distro packages, Oh My Zsh + plugins, mise, Stow, Mise Tools, pi packages, Zed, Skills, MCP (pi, OpenCode, Grok, and Codex translations), API Keys, optional Ghostty, login shell, and the `~/.local/bin/dotfiles` symlink. zsh TAB-completes `dotfiles` after Stow (fpath is set in the curated zshrc before Oh My Zsh).
 
 ```bash
 dotfiles init
+dotfiles init --yes
 ```
+
+`--yes` answers continue, uses `.env` as-is (or skips keys), writes to the default store, skips Ghostty unless the Preset enables it, overwrites Stow conflicts, and does not reboot.
 
 See [Re-runs and safety](#re-runs-and-safety) for repeat-run behavior, and [API Keys](#api-keys) for the key prompt.
 
@@ -126,7 +129,10 @@ Report every Workflow piece present or missing.
 
 ```bash
 dotfiles doctor
+dotfiles doctor --json
 ```
+
+`--json` prints Workflow Health as JSON (same exit code as the dashboard; API Key names only).
 
 ### `dotfiles stow`
 
@@ -145,7 +151,10 @@ Delete the timestamped Stow backups from `$HOME`. Lists them and asks first.
 
 ```bash
 dotfiles clean
+dotfiles clean --yes
 ```
+
+`--yes` deletes Stow backups without a confirm prompt.
 
 ### `dotfiles sync`
 

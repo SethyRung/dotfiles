@@ -1,6 +1,6 @@
 # v2 Grok/Codex snapshot, flags, completions, Ghostty on zypper
 
-Status: ready-for-agent
+Status: done
 
 ## Problem Statement
 

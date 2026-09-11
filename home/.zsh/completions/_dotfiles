@@ -1,0 +1,51 @@
+#compdef dotfiles
+
+local -a commands
+commands=(
+  'init:Bootstrap the Workflow'
+  'doctor:Report what is present or missing'
+  'stow:Re-link home/ and ~/.local/bin/dotfiles'
+  'clean:Delete Stow backup files from $HOME'
+  'sync:Pull the repo and re-Stow config'
+)
+
+_arguments -C \
+  '(-h --help)'{-h,--help}'[Show help]' \
+  '--version[Show version]' \
+  '1: :->command' \
+  '*:: :->args'
+
+case $state in
+  command)
+    _describe -t commands 'command' commands
+    ;;
+  args)
+    case $words[1] in
+      init)
+        _arguments \
+          '--yes[Answer yes to prompts; skip Ghostty unless the Preset enables it]' \
+          '(-h --help)'{-h,--help}'[Show help]'
+        ;;
+      doctor)
+        _arguments \
+          '--json[Print Workflow Health as JSON]' \
+          '(-h --help)'{-h,--help}'[Show help]'
+        ;;
+      stow)
+        _arguments \
+          '--dry-run[Preview changes without modifying the filesystem]' \
+          '(-h --help)'{-h,--help}'[Show help]'
+        ;;
+      clean)
+        _arguments \
+          '--yes[Delete Stow backups without prompting]' \
+          '(-h --help)'{-h,--help}'[Show help]'
+        ;;
+      sync)
+        _arguments \
+          '--dry-run[Preview changes without modifying the filesystem]' \
+          '(-h --help)'{-h,--help}'[Show help]'
+        ;;
+    esac
+    ;;
+esac
