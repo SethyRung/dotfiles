@@ -2,14 +2,13 @@ import type { Host } from "@/types/host.ts";
 import type { RunResult } from "@/types/result.ts";
 import { isYes } from "@/utils/prompt.ts";
 
-export async function clean(host: Host): Promise<RunResult> {
+export async function clean(host: Host, options: { yes?: boolean } = {}): Promise<RunResult> {
   const backups = host.stowBackups();
   if (backups.length === 0) {
     return { exitCode: 0, stdout: "No Stow backups to clean.\n", stderr: "" };
   }
-  const confirmed = isYes(
-    await host.prompt(`Delete ${backups.length} Stow backup file(s)? [y/N] `),
-  );
+  const confirmed =
+    options.yes || isYes(await host.prompt(`Delete ${backups.length} Stow backup file(s)? [y/N] `));
   if (!confirmed) {
     return {
       exitCode: 0,

@@ -12,11 +12,12 @@ Options:
   -h, --help     Show help
 `;
 
-export const initHelpText = `Usage: dotfiles init
+export const initHelpText = `Usage: dotfiles init [options]
 
 Bootstrap the Workflow
 
 Options:
+      --yes   Answer yes to prompts; skip Ghostty unless the Preset enables it
   -h, --help  Show help
 `;
 
@@ -38,11 +39,12 @@ Options:
   -h, --help     Show help
 `;
 
-export const cleanHelpText = `Usage: dotfiles clean
+export const cleanHelpText = `Usage: dotfiles clean [options]
 
 Delete Stow backup files from $HOME
 
 Options:
+      --yes   Delete Stow backups without prompting
   -h, --help  Show help
 `;
 

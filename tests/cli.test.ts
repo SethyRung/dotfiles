@@ -165,6 +165,18 @@ test("--help together with other argv still prints help and does no work", async
   expect(host.repoPulls).toBe(0);
 });
 
+test("--yes on stow, sync, or doctor fails closed", async () => {
+  const host = createFakeHost(["bun"], { packageManager: "apt" });
+  for (const cmd of ["stow", "sync", "doctor"]) {
+    const result = await run([cmd, "--yes"], host);
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("unknown option: --yes");
+    expect(result.stdout).toBe("");
+  }
+  expect(host.linked).toEqual([]);
+  expect(host.repoPulls).toBe(0);
+});
+
 test("an unknown flag or extra positional on any command exits 1, writes nothing, and does not run the command", async () => {
   const home = "/fake-home";
   const host = createFakeHost(["bun"], {

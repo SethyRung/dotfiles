@@ -4,14 +4,14 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `init --yes` issues no prompts: continue-yes, `.env` as-is or skip keys, default store, write confirmed, Ghostty skipped unless Preset enables it, Stow overwrite, no reboot
-- [ ] `init --yes` on an unknown Distro still fails before any install
-- [ ] Preset toggles (Ghostty, Zed, skills, and similar) still apply under `--yes`
-- [ ] `clean --yes` with backups deletes them without a confirm prompt
-- [ ] `clean --yes` with no backups remains a no-op
-- [ ] `-y` on init exits 1 and does no work; `--yes` on stow, sync, or doctor exits 1 and does no work
-- [ ] `init --yes --help` and `clean --yes --help` print help, exit 0, and do no work
-- [ ] Init and clean help document `--yes`
-- [ ] Behaviour is observed only through the CLI against a fake Host
+- [x] `init --yes` issues no prompts: continue-yes, `.env` as-is or skip keys, default store, write confirmed, Ghostty skipped unless Preset enables it, Stow overwrite, no reboot
+- [x] `init --yes` on an unknown Distro still fails before any install
+- [x] Preset toggles (Ghostty, Zed, skills, and similar) still apply under `--yes`
+- [x] `clean --yes` with backups deletes them without a confirm prompt
+- [x] `clean --yes` with no backups remains a no-op
+- [x] `-y` on init exits 1 and does no work; `--yes` on stow, sync, or doctor exits 1 and does no work
+- [x] `init --yes --help` and `clean --yes --help` print help, exit 0, and do no work
+- [x] Init and clean help document `--yes`
+- [x] Behaviour is observed only through the CLI against a fake Host

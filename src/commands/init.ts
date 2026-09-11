@@ -63,7 +63,7 @@ async function workflowLooksPresent(host: Host, preset: DotfilesPreset): Promise
   return (await assessWorkflow(host, preset)).isBootstrapped;
 }
 
-export async function init(host: Host): Promise<RunResult> {
+export async function init(host: Host, options: { yes?: boolean } = {}): Promise<RunResult> {
   const pm = host.packageManager();
   if (!pm) {
     return {
@@ -80,7 +80,7 @@ export async function init(host: Host): Promise<RunResult> {
     return { exitCode: 1, stdout: "", stderr: `${message}\n` };
   }
   const reRun = await workflowLooksPresent(host, preset);
-  if (reRun) {
+  if (reRun && !options.yes) {
     const cont = await host.prompt("Workflow already present. Continue? [y/N] ");
     if (!isYes(cont)) {
       return { exitCode: 0, stdout: "", stderr: "" };
@@ -98,7 +98,10 @@ export async function init(host: Host): Promise<RunResult> {
   const parsedDotenv = dotenvContent !== null ? parseDotenv(dotenvContent) : {};
   const dotenvKeys = Object.keys(parsedDotenv);
 
-  if (dotenvKeys.length > 0) {
+  if (options.yes) {
+    envVars = parsedDotenv;
+    envConfirmed = dotenvKeys.length > 0;
+  } else if (dotenvKeys.length > 0) {
     const modifyPrompt =
       `Loaded environment variables from .env:\n  ${dotenvKeys.join(", ")}\n` +
       "Do you want to modify it? [y/N] ";
@@ -122,7 +125,7 @@ export async function init(host: Host): Promise<RunResult> {
     }
   }
 
-  if (Object.keys(envVars).length > 0) {
+  if (!options.yes && Object.keys(envVars).length > 0) {
     const locationMenu =
       "Store location:\n" +
       "1) /etc/environment (system-wide) [default]\n" +
@@ -147,7 +150,7 @@ export async function init(host: Host): Promise<RunResult> {
   const ghosttyMissing = !host.commandExists(workflowTools.ghostty.command);
   if (ghosttyConfigured) {
     wantGhostty = preset.tools.ghostty === true && ghosttyMissing;
-  } else if (ghosttyMissing) {
+  } else if (ghosttyMissing && !options.yes) {
     wantGhostty = isYes(await host.prompt("Install Ghostty? [y/N] "));
   }
 
@@ -195,7 +198,10 @@ export async function init(host: Host): Promise<RunResult> {
       update(STEPS.MISE, "skipped", "present");
     }
     update(STEPS.STOW, "running", "home/ tree");
-    const stowed = await stow(host, { skipGhostty: true, confirmConflicts: reRun });
+    const stowed = await stow(host, {
+      skipGhostty: true,
+      confirmConflicts: reRun && !options.yes,
+    });
     if (stowed.exitCode !== 0) {
       return stowed;
     }
@@ -286,7 +292,7 @@ export async function init(host: Host): Promise<RunResult> {
     update(STEPS.CLI, "running", "~/.local/bin");
     await host.linkDotfiles();
     update(STEPS.CLI, "done", "~/.local/bin");
-    if (shellChanged) {
+    if (shellChanged && !options.yes) {
       const message =
         "Login shell is now zsh. Run `zsh` or `reboot` to fully apply the change.\n" +
         "Reboot to apply it? [y/N] ";

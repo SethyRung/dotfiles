@@ -1680,6 +1680,103 @@ test("init skips zed installation when tools.zed is false", async () => {
   });
 });
 
+test("init --yes issues no prompts and skips Ghostty", async () => {
+  const host = createFakeHost(["bun"], { packageManager: "apt" });
+  const result = await run(["init", "--yes"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.prompts).toEqual([]);
+  expect(host.packagesRequested).toEqual(["zsh", "git", "stow"]);
+  expect(host.packagesRequested).not.toContain("ghostty");
+  expect(host.reboots).toBe(0);
+  expect(finalSteps(host).get("Ghostty")).toMatchObject({
+    state: "skipped",
+    detail: "declined",
+  });
+});
+
+test("init --yes continues a present Workflow, uses .env as-is, and overwrites Stow conflicts", async () => {
+  const home = "/fake-home";
+  const repo = "/fake-repo";
+  const host = createFakeHost(presentWorkflowCommands, {
+    homeDir: home,
+    repoDir: repo,
+    packageManager: "apt",
+    files: [
+      `${home}/.oh-my-zsh`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
+      ...skillDirs(home),
+      `${home}/.pi/agent/mcp.json`,
+      `${home}/.local/bin/dotfiles`,
+      `${home}/.zshrc`,
+      `${repo}/.env`,
+    ],
+    fileContents: {
+      [`${repo}/.env`]: "OPENROUTER_API_KEY=sk-secret-do-not-leak\n",
+    },
+    loginShell: "/bin/zsh",
+    homeTree: [".zshrc"],
+  });
+  const result = await run(["init", "--yes"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.prompts).toEqual([]);
+  expect(host.linked).toContain(".zshrc");
+  expect(host.backups.length).toBe(1);
+  expect(await host.readEnvironment()).toContain("OPENROUTER_API_KEY=sk-secret-do-not-leak");
+  expect(result.stdout).not.toContain("sk-secret-do-not-leak");
+  expect(result.stderr).not.toContain("sk-secret-do-not-leak");
+});
+
+test("init --yes still fail-fasts on an unknown Distro", async () => {
+  const host = createFakeHost(["bun"]);
+  const result = await run(["init", "--yes"], host);
+  expect(result.exitCode).not.toBe(0);
+  expect(host.packagesRequested).toEqual([]);
+  expect(host.upstreamInstalls).toEqual([]);
+  expect(host.prompts).toEqual([]);
+  expect(result.stderr).toContain("zypper");
+});
+
+test("init --yes still honors Preset Ghostty and Zed toggles", async () => {
+  const repo = "/fake-repo";
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    repoDir: repo,
+    files: [`${repo}/dotfiles.json`],
+    fileContents: {
+      [`${repo}/dotfiles.json`]: JSON.stringify({ tools: { ghostty: true, zed: false } }),
+    },
+  });
+  const result = await run(["init", "--yes"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.prompts).toEqual([]);
+  expect(host.packagesRequested).toContain("ghostty");
+  expect(host.upstreamInstalls).not.toContain("zed");
+  expect(finalSteps(host).get("Zed")).toMatchObject({
+    state: "skipped",
+    detail: "disabled in preset",
+  });
+});
+
+test("init -y is unknown and does no work", async () => {
+  const host = createFakeHost(["bun"], { packageManager: "apt" });
+  const result = await run(["init", "-y"], host);
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr).toContain("unknown option: -y");
+  expect(host.packagesRequested).toEqual([]);
+  expect(host.prompts).toEqual([]);
+});
+
+test("init --yes --help prints init help and does no work", async () => {
+  const host = createFakeHost(["bun"], { packageManager: "apt" });
+  const result = await run(["init", "--yes", "--help"], host);
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("Usage: dotfiles init");
+  expect(result.stdout).toContain("--yes");
+  expect(host.packagesRequested).toEqual([]);
+  expect(host.prompts).toEqual([]);
+});
+
 test("init asks questions upfront before running installation progress", async () => {
   const host = createFakeHost(["bun"], {
     packageManager: "apt",

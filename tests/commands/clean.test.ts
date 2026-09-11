@@ -30,6 +30,42 @@ test("dotfiles clean lists the backups, confirms, then deletes them", async () =
   expect(result.stdout).toContain(`${home}/.config/ghostty/config.2026-01-01_10:30:20`);
 });
 
+test("dotfiles clean --yes deletes backups without prompting", async () => {
+  const home = "/fake-home";
+  const backups = [
+    `${home}/.zshrc.2026-01-01_10:30:20`,
+    `${home}/.config/ghostty/config.2026-01-01_10:30:20`,
+  ];
+  const host = createFakeHost(["bun"], { stowBackups: backups });
+  const result = await run(["clean", "--yes"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.prompts).toEqual([]);
+  expect(host.removedFiles).toEqual(backups);
+  expect(result.stdout).toContain("Deleted 2 Stow backup file(s):");
+});
+
+test("dotfiles clean --yes with no backups is a no-op", async () => {
+  const host = createFakeHost(["bun"]);
+  const result = await run(["clean", "--yes"], host);
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("No Stow backups to clean.");
+  expect(host.prompts).toEqual([]);
+  expect(host.removedFiles).toEqual([]);
+});
+
+test("clean --yes --help prints clean help and does no work", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["bun"], {
+    stowBackups: [`${home}/.zshrc.2026-01-01_10:30:20`],
+  });
+  const result = await run(["clean", "--yes", "--help"], host);
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("Usage: dotfiles clean");
+  expect(result.stdout).toContain("--yes");
+  expect(host.prompts).toEqual([]);
+  expect(host.removedFiles).toEqual([]);
+});
+
 test("dotfiles clean declined keeps the backups", async () => {
   const home = "/fake-home";
   const host = createFakeHost(["bun"], {

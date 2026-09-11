@@ -81,19 +81,28 @@ export async function run(args: string[], host: Host): Promise<RunResult> {
       return await doctor(host, { json: parsed.flags.has("--json") });
     }
 
+    if (command === "init") {
+      const parsed = parseAllowedFlags(rest, help, ["--yes"]);
+      if ("exitCode" in parsed) {
+        return parsed;
+      }
+      return await init(host, { yes: parsed.flags.has("--yes") });
+    }
+
+    if (command === "clean") {
+      const parsed = parseAllowedFlags(rest, help, ["--yes"]);
+      if ("exitCode" in parsed) {
+        return parsed;
+      }
+      return await clean(host, { yes: parsed.flags.has("--yes") });
+    }
+
     if (rest.length > 0) {
       const invalid = rest[0];
       const message = invalid.startsWith("-")
         ? `unknown option: ${invalid}`
         : `unexpected argument: ${invalid}`;
       return { exitCode: 1, stdout: "", stderr: `${message}\n\n${help}` };
-    }
-
-    if (command === "init") {
-      return await init(host);
-    }
-    if (command === "clean") {
-      return await clean(host);
     }
   }
 
