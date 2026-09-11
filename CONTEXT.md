@@ -17,7 +17,7 @@ The Linux distribution Bootstrap runs on. Bootstrap detects the package manager.
 _Avoid_: OS, flavor, platform
 
 **Workflow**:
-The development environment Bootstrap restores: zsh, Oh My Zsh, Mise Tools, pi packages, Zed, Skills, MCP, API Keys, optional Ghostty, and git with no git config. Inventory is `src/consts/` and `home/`.
+The development environment Bootstrap restores: zsh, Oh My Zsh, Mise Tools, pi packages, Zed, Skills, MCP, API Keys, optional Ghostty, and git with no git config. Inventory is `dotfiles.json`, `src/consts/`, and `home/`.
 _Avoid_: using "dotfiles" for the running environment
 
 **Workflow Health**:
@@ -82,7 +82,7 @@ An agent skill installed globally for pi and other agents to load.
 _Avoid_: plugin, prompt, instruction file
 
 **MCP**:
-A Model Context Protocol server. The Workflow list is `src/consts/mcp.json`; each agent gets a translated copy.
+A Model Context Protocol server. The Workflow list is the Preset `mcp` key; each agent gets a translated copy.
 _Avoid_: tool server, plugin, XDG mcp.json as source of truth, hand-maintained per-agent lists
 
 **API Key**:
@@ -90,5 +90,5 @@ A secret environment variable needed by AI tools. Supplied during Bootstrap. Nev
 _Avoid_: token, credential (when you mean these env vars)
 
 **Preset**:
-`dotfiles.json` in the repo root. Defaults and upfront questions for Bootstrap and doctor.
+`dotfiles.json` in the repo root. Defaults and upfront questions for Bootstrap and doctor: tools, skills, pi packages, OMZ plugins, distro packages, and MCP.
 _Avoid_: settings.json (when you mean this file)

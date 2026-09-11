@@ -24,7 +24,7 @@ export function mcpSource(
   servers: Record<string, { url?: string; command?: string; args?: string[] }>,
 ): Record<string, string> {
   return {
-    [`${repoDir}/src/consts/mcp.json`]: JSON.stringify(servers),
+    [`${repoDir}/dotfiles.json`]: JSON.stringify({ mcp: servers }),
   };
 }
 

@@ -1,11 +1,13 @@
 import { join } from "node:path";
 import {
   defaultConfig,
+  defaultMcp,
   defaultOmzPlugins,
   defaultPackagesFor,
   defaultPiPackages,
   defaultSkills,
   type DotfilesToolsConfig,
+  type McpServer,
 } from "@/config.ts";
 import type { Host, PackageManager } from "@/types/host.ts";
 
@@ -19,6 +21,7 @@ export type DotfilesPresetInput = {
   distroPackages?: string[] | Partial<Record<PackageManager, string[]>>;
   distro_packages?: string[] | Partial<Record<PackageManager, string[]>>;
   packages?: string[] | Partial<Record<PackageManager, string[]>>;
+  mcp?: Record<string, McpServer>;
 };
 
 export type DotfilesPreset = {
@@ -26,6 +29,7 @@ export type DotfilesPreset = {
   skills: string[];
   piPackages: string[];
   omzPlugins: string[];
+  mcp: Record<string, McpServer>;
   distroPackagesFor(pm: PackageManager): string[];
   isToolEnabled(name: keyof DotfilesToolsConfig, defaultVal?: boolean): boolean;
 };
@@ -54,6 +58,9 @@ export function parsePreset(content: string): DotfilesPreset {
       ? raw.omz_plugins
       : [...defaultOmzPlugins];
 
+  const mcp =
+    raw.mcp && typeof raw.mcp === "object" && !Array.isArray(raw.mcp) ? raw.mcp : { ...defaultMcp };
+
   const packagesRaw = raw.packages ?? raw.distroPackages ?? raw.distro_packages;
   const toolsRaw = raw.tools ?? {};
   const tools: DotfilesToolsConfig = {
@@ -69,6 +76,7 @@ export function parsePreset(content: string): DotfilesPreset {
     skills,
     piPackages,
     omzPlugins,
+    mcp,
     distroPackagesFor(pm: PackageManager): string[] {
       if (Array.isArray(packagesRaw)) {
         return packagesRaw;
@@ -101,6 +109,7 @@ export function defaultPreset(): DotfilesPreset {
     skills: [...defaultSkills],
     piPackages: [...defaultPiPackages],
     omzPlugins: [...defaultOmzPlugins],
+    mcp: { ...defaultMcp },
     distroPackagesFor: defaultPackagesFor,
     isToolEnabled(name: keyof DotfilesToolsConfig, defaultVal = true): boolean {
       const val = tools[name];

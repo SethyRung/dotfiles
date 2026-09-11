@@ -40,5 +40,23 @@
     "pacman": ["zsh", "git", "stow"],
     "dnf": ["zsh", "git", "stow"],
     "zypper": ["zsh", "git", "stow"]
+  },
+  "mcp": {
+    "bun": {
+      "url": "https://bun.com/docs/mcp"
+    },
+    "nuxt": {
+      "url": "https://nuxt.com/mcp"
+    },
+    "nuxt-ui": {
+      "url": "https://ui.nuxt.com/mcp"
+    },
+    "better-auth": {
+      "url": "https://mcp.better-auth.com/mcp"
+    },
+    "mobile-mcp": {
+      "command": "bunx",
+      "args": ["--bun", "@mobilenext/mobile-mcp@latest"]
+    }
   }
 }

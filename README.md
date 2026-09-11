@@ -98,7 +98,7 @@ A live ASCII dashboard redraws as each step runs:
 | Stowed from `home/` | zshrc, zsh completions, mise config.toml, herdr config.toml, OpenCode config + TUI files, Grok config, Codex config + herdr hooks, pi agent config, Zed settings.json + keymap.json (Zed extensions are declared in `auto_install_extensions`, never snapshotted) |
 | Machine state       | login shell becomes zsh, dotfiles symlinked into `~/.local/bin`, environment variables merged into chosen store location (`/etc/environment`, `~/.zshenv`, etc.)                                                                                                  |
 
-Skills, pi packages, OMZ plugins, and distro packages are configured in `dotfiles.json` and installed via their package mechanisms (skills.sh for skills). Regular files at the destination are timestamp-backed-up then replaced; repo links are left; stale symlinks are replaced.
+Skills, pi packages, OMZ plugins, distro packages, and MCP are configured in `dotfiles.json`. Regular files at the destination are timestamp-backed-up then replaced; repo links are left; stale symlinks are replaced.
 
 ## Command reference
 
@@ -229,6 +229,9 @@ The repository includes `dotfiles.json` as the single source of truth for tools,
     "pacman": ["zsh", "git", "stow"],
     "dnf": ["zsh", "git", "stow"],
     "zypper": ["zsh", "git", "stow"]
+  },
+  "mcp": {
+    "bun": { "url": "https://bun.com/docs/mcp" }
   }
 }
 ```
@@ -238,7 +241,8 @@ The repository includes `dotfiles.json` as the single source of truth for tools,
 - **`piPackages`**: Pi agent extensions installed when pi is set up.
 - **`omzPlugins`**: Oh My Zsh plugins cloned into custom plugins.
 - **`packages`**: Distro packages required by the workflow (distro-agnostic list or per-package-manager mapping).
-- **JSON Schema**: `schema/dotfiles.schema.json` provides validation and auto-completion in modern editors (Zed, VS Code, etc.). MCP servers use `schema/mcp.schema.json` via `$schema` in `src/consts/mcp.json`.
+- **`mcp`**: Canonical MCP servers. Bootstrap, Stow, and Sync translate this map into each agent's shape.
+- **JSON Schema**: `schema/dotfiles.schema.json` provides validation and auto-completion in modern editors (Zed, VS Code, etc.).
 
 ## Re-runs and safety
 
@@ -251,7 +255,7 @@ The repository includes `dotfiles.json` as the single source of truth for tools,
 
 ## Keeping machines in sync
 
-The maintainer edits config in this repo (anything under `home/`, `src/consts/mcp.json`), commits, and pushes. On every Bootstrapped machine:
+The maintainer edits config in this repo (anything under `home/`, `dotfiles.json`), commits, and pushes. On every Bootstrapped machine:
 
 ```bash
 dotfiles sync

@@ -1,20 +1,14 @@
 import { join } from "node:path";
+import type { McpServer } from "@/config.ts";
 import type { Host } from "@/types/host.ts";
-
-export const MCP_SOURCE = "src/consts/mcp.json";
+import { loadPreset } from "@/utils/preset.ts";
 
 const PI_MCP_DEST = ".pi/agent/mcp.json";
 const OPENCODE_CONFIG_DEST = ".config/opencode/opencode.json";
 const GROK_CONFIG_DEST = ".grok/config.toml";
 const CODEX_CONFIG_DEST = ".codex/config.toml";
 
-type CanonicalServer = {
-  url?: string;
-  command?: string;
-  args?: string[];
-};
-
-type CanonicalMcp = Record<string, CanonicalServer>;
+type CanonicalMcp = Record<string, McpServer>;
 
 type OpenCodeMcp = Record<string, { type: string; url?: string; command?: string[] }>;
 
@@ -47,14 +41,8 @@ export function piMcpFromCanonical(servers: CanonicalMcp): PiMcpServers {
   return mcp;
 }
 
-async function loadCanonical(host: Host): Promise<CanonicalMcp | null> {
-  const text = await host.readFile(join(host.repoDir(), MCP_SOURCE));
-  if (text == null) {
-    return null;
-  }
-  const parsed = JSON.parse(text) as CanonicalMcp & { $schema?: unknown };
-  delete parsed.$schema;
-  return parsed;
+async function loadCanonical(host: Host): Promise<CanonicalMcp> {
+  return (await loadPreset(host)).mcp;
 }
 
 async function writePiMcp(host: Host, servers: CanonicalMcp): Promise<void> {
@@ -159,9 +147,6 @@ async function writeTomlMcp(host: Host, rel: string, servers: CanonicalMcp): Pro
 
 export async function mirrorMcp(host: Host): Promise<void> {
   const servers = await loadCanonical(host);
-  if (servers == null) {
-    return;
-  }
   await writePiMcp(host, servers);
   await writeOpenCodeMcp(host, servers);
   await writeTomlMcp(host, GROK_CONFIG_DEST, servers);

@@ -1417,9 +1417,9 @@
                   <span class="code-pill">mirrorMcp()</span>
                 </div>
                 <p>
-                  Unless <code>--dry-run</code> is set, reads servers from
-                  <code>src/consts/mcp.json</code> and writes translated copies into pi's
-                  <code>~/.pi/agent/mcp.json</code> and OpenCode's <code>mcp</code> key in
+                  Unless <code>--dry-run</code> is set, reads servers from the Preset
+                  <code>mcp</code> key in <code>dotfiles.json</code> and writes translated copies
+                  into pi's <code>~/.pi/agent/mcp.json</code> and OpenCode's <code>mcp</code> key in
                   <code>~/.config/opencode/opencode.json</code>.
                 </p>
               </div>
@@ -1865,8 +1865,8 @@
                   <span class="code-pill">mirrorMcp()</span>
                 </div>
                 <p>
-                  Reads <code>src/consts/mcp.json</code> and refreshes pi's
-                  <code>~/.pi/agent/mcp.json</code> and OpenCode's <code>mcp</code> key in
+                  Reads the Preset <code>mcp</code> key in <code>dotfiles.json</code> and refreshes
+                  pi's <code>~/.pi/agent/mcp.json</code> and OpenCode's <code>mcp</code> key in
                   <code>~/.config/opencode/opencode.json</code>. Prints complete summary and exits
                   0.
                 </p>

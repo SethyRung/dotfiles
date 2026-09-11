@@ -668,15 +668,14 @@ test("init requests only the Skills that are missing", async () => {
 test("XDG MCP is not Stowed; pi mcp.json is Stowed then filled from the repo list", async () => {
   const home = "/fake-home";
   const repo = "/fake-repo";
-  const source = await Bun.file(join(import.meta.dir, "../../src/consts/mcp.json")).json();
-  const piSnapshot = await Bun.file(join(import.meta.dir, "../../home/.pi/agent/mcp.json")).text();
+  const source = (await Bun.file(join(import.meta.dir, "../../dotfiles.json")).json()).mcp;
   const host = createFakeHost(["bun"], {
     homeDir: home,
     repoDir: repo,
     packageManager: "apt",
     homeTree: [".pi/agent/mcp.json"],
     treeContents: {
-      ".pi/agent/mcp.json": piSnapshot,
+      ".pi/agent/mcp.json": "{}\n",
     },
     fileContents: mcpSource(repo, source),
   });
@@ -692,8 +691,6 @@ test("XDG MCP is not Stowed; pi mcp.json is Stowed then filled from the repo lis
     command: "bunx",
     args: ["--bun", "@mobilenext/mobile-mcp@latest"],
   });
-  const repoPi = JSON.parse(piSnapshot);
-  expect(repoPi).not.toHaveProperty("mcpServers");
 });
 
 test("empty API Key CSV skips the /etc/environment write", async () => {
@@ -1362,7 +1359,7 @@ test("curated zshrc hands tool PATH to mise, keeping only ~/.local/bin", async (
 test("after init, Grok and Codex MCP views contain the repo MCP servers", async () => {
   const home = "/fake-home";
   const repo = "/fake-repo";
-  const source = await Bun.file(join(import.meta.dir, "../../src/consts/mcp.json")).json();
+  const source = (await Bun.file(join(import.meta.dir, "../../dotfiles.json")).json()).mcp;
   const grokSnapshot = await Bun.file(join(import.meta.dir, "../../home/.grok/config.toml")).text();
   const codexSnapshot = await Bun.file(
     join(import.meta.dir, "../../home/.codex/config.toml"),
@@ -1417,7 +1414,7 @@ test("after init, Grok and Codex MCP views contain the repo MCP servers", async 
 test("after init, OpenCode mcp key contains the repo MCP servers", async () => {
   const home = "/fake-home";
   const repo = "/fake-repo";
-  const source = await Bun.file(join(import.meta.dir, "../../src/consts/mcp.json")).json();
+  const source = (await Bun.file(join(import.meta.dir, "../../dotfiles.json")).json()).mcp;
   const snapshot = await Bun.file(
     join(import.meta.dir, "../../home/.config/opencode/opencode.json"),
   ).text();
@@ -1464,7 +1461,7 @@ test("re-running init refreshes agent MCP from the repo list", async () => {
   const home = "/fake-home";
   const repo = "/fake-repo";
   const ocPath = `${home}/.config/opencode/opencode.json`;
-  const sourcePath = `${repo}/src/consts/mcp.json`;
+  const sourcePath = `${repo}/dotfiles.json`;
   const host = createFakeHost(["bun"], {
     homeDir: home,
     repoDir: repo,
@@ -1479,8 +1476,10 @@ test("re-running init refreshes agent MCP from the repo list", async () => {
   await run(["init"], host);
   expect(Object.keys(JSON.parse(host.fileContents[ocPath] ?? "{}").mcp)).toEqual(["bun"]);
   host.fileContents[sourcePath] = JSON.stringify({
-    bun: { url: "https://bun.com/docs/mcp" },
-    nuxt: { url: "https://nuxt.com/mcp" },
+    mcp: {
+      bun: { url: "https://bun.com/docs/mcp" },
+      nuxt: { url: "https://nuxt.com/mcp" },
+    },
   });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
@@ -1659,6 +1658,29 @@ test("init uses preset omz plugins from dotfiles.json to override default omz pl
     state: "done",
     detail: "1 plugins",
   });
+});
+
+test("init uses preset mcp from dotfiles.json to override default mcp", async () => {
+  const home = "/fake-home";
+  const repo = "/fake-repo";
+  const host = createFakeHost(["bun"], {
+    homeDir: home,
+    repoDir: repo,
+    packageManager: "apt",
+    homeTree: [".pi/agent/mcp.json"],
+    treeContents: {
+      ".pi/agent/mcp.json": "{}\n",
+    },
+    fileContents: {
+      [`${repo}/dotfiles.json`]: JSON.stringify({
+        mcp: { custom: { url: "https://example.com/mcp" } },
+      }),
+    },
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  const pi = JSON.parse(host.fileContents[`${home}/.pi/agent/mcp.json`] ?? "{}");
+  expect(pi.mcpServers).toEqual({ custom: { url: "https://example.com/mcp" } });
 });
 
 test("init uses preset distro packages from dotfiles.json to override default packages", async () => {
