@@ -4,11 +4,11 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `dotfiles --version` prints the committed package version, exits 0, and performs no Host writes or installs
-- [ ] Top-level `--help` / `-h` together with `--version` prints help and does no work
-- [ ] `--version` after a command exits 1 as an unknown option and does no work
-- [ ] Top-level help documents `--version` and still does not list `update`, `repair`, `package`, `link`, or `completions`
-- [ ] There is no `version` command
-- [ ] Behaviour is observed only through the CLI against a fake Host
+- [x] `dotfiles --version` prints the committed package version, exits 0, and performs no Host writes or installs
+- [x] Top-level `--help` / `-h` together with `--version` prints help and does no work
+- [x] `--version` after a command exits 1 as an unknown option and does no work
+- [x] Top-level help documents `--version` and still does not list `update`, `repair`, `package`, `link`, or `completions`
+- [x] There is no `version` command
+- [x] Behaviour is observed only through the CLI against a fake Host

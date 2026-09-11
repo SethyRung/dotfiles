@@ -6,6 +6,7 @@ import { sync } from "@/commands/sync.ts";
 import { commandHelpTexts, helpText } from "@/consts/help.ts";
 import type { Host } from "@/types/host.ts";
 import type { RunResult } from "@/types/result.ts";
+import packageJson from "../package.json" with { type: "json" };
 
 export type { RunResult };
 
@@ -29,6 +30,13 @@ export async function run(args: string[], host: Host): Promise<RunResult> {
 
   if (command === undefined || command === "-h" || command === "--help") {
     return { exitCode: 0, stdout: helpText, stderr: "" };
+  }
+
+  if (command === "--version") {
+    if (args.includes("-h") || args.includes("--help")) {
+      return { exitCode: 0, stdout: helpText, stderr: "" };
+    }
+    return { exitCode: 0, stdout: `${packageJson.version}\n`, stderr: "" };
   }
 
   const help = commandHelpTexts[command];

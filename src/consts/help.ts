@@ -6,6 +6,10 @@ Commands:
   stow    Re-link home/ and ~/.local/bin/dotfiles
   clean   Delete Stow backup files from $HOME
   sync    Pull the repo and re-Stow config
+
+Options:
+      --version  Show version
+  -h, --help     Show help
 `;
 
 export const initHelpText = `Usage: dotfiles init

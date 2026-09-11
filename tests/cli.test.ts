@@ -25,6 +25,61 @@ test("no arguments and --help print help and exit zero", async () => {
   expect(helpFlag.stdout).toContain("init");
 });
 
+test("dotfiles --version prints the package version, exits zero, and does no Host work", async () => {
+  const host = createFakeHost();
+  const result = await run(["--version"], host);
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toBe("2.0.0\n");
+  expect(result.stderr).toBe("");
+  expect(host.upstreamInstalls).toEqual([]);
+  expect(host.packagesRequested).toEqual([]);
+  expect(host.linked).toEqual([]);
+  expect(host.prompts).toEqual([]);
+});
+
+test("top-level --help with --version prints help and does no work", async () => {
+  const host = createFakeHost();
+  for (const args of [
+    ["--help", "--version"],
+    ["--version", "--help"],
+    ["-h", "--version"],
+  ]) {
+    const result = await run(args, host);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("Usage: dotfiles");
+    expect(result.stdout).toContain("init");
+    expect(result.stderr).toBe("");
+  }
+  expect(host.upstreamInstalls).toEqual([]);
+  expect(host.packagesRequested).toEqual([]);
+});
+
+test("dotfiles --version after a command is an unknown option and does no work", async () => {
+  const host = createFakeHost(["bun"], { packageManager: "apt" });
+  const result = await run(["init", "--version"], host);
+  expect(result.exitCode).toBe(1);
+  expect(result.stdout).toBe("");
+  expect(result.stderr).toContain("unknown option: --version");
+  expect(host.packagesRequested).toEqual([]);
+  expect(host.upstreamInstalls).toEqual([]);
+  expect(host.linked).toEqual([]);
+  expect(host.prompts).toEqual([]);
+});
+
+test("top-level help documents --version and has no version command", async () => {
+  const host = createFakeHost();
+  const result = await run(["--help"], host);
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("--version");
+  expect(result.stdout).not.toContain("update");
+  expect(result.stdout).not.toContain("repair");
+  expect(result.stdout).not.toContain("completions");
+  expect(result.stdout).not.toMatch(/\n  (package|link|version) /);
+  const versionAsCommand = await run(["version"], host);
+  expect(versionAsCommand.exitCode).toBe(1);
+  expect(versionAsCommand.stderr).toContain("unknown command: version");
+});
+
 test("unknown command exits non-zero with the error and help on stderr", async () => {
   const host = createFakeHost(["bun"]);
   const result = await run(["bogus"], host);
