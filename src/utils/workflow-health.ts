@@ -38,6 +38,10 @@ export async function assessWorkflow(host: Host, preset?: DotfilesPreset): Promi
   const pi = host.commandExists(workflowTools.pi.command);
   const herdr = host.commandExists(workflowTools.herdr.command);
   const opencode = host.commandExists(workflowTools.opencode.command);
+  const grok = host.commandExists(workflowTools.grok.command);
+  const codex = host.commandExists(workflowTools.codex.command);
+  const gh = host.commandExists(workflowTools.gh.command);
+  const agy = host.commandExists(workflowTools.agy.command);
   const zed = host.commandExists(workflowTools.zed.command);
   const skills = activePreset.skills.every((spec) => host.fileExists(skillDir(home, spec)));
   const mcp = host.fileExists(join(home, ".pi/agent/mcp.json"));
@@ -63,6 +67,10 @@ export async function assessWorkflow(host: Host, preset?: DotfilesPreset): Promi
     { label: "pi", ok: pi },
     { label: "herdr", ok: herdr },
     { label: "OpenCode", ok: opencode },
+    { label: workflowTools.grok.label, ok: grok },
+    { label: workflowTools.codex.label, ok: codex },
+    { label: workflowTools.gh.label, ok: gh },
+    { label: workflowTools.agy.label, ok: agy },
     ...(checkZed ? [{ label: "Zed", ok: zed }] : []),
     ...(checkSkills ? [{ label: "Skills", ok: skills }] : []),
     { label: "MCP", ok: mcp },
@@ -83,6 +91,10 @@ export async function assessWorkflow(host: Host, preset?: DotfilesPreset): Promi
     pi,
     herdr,
     opencode,
+    grok,
+    codex,
+    gh,
+    agy,
     checkZed ? zed : true,
     checkSkills ? skills : true,
     shell,

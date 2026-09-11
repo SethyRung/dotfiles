@@ -12,6 +12,10 @@ export const workflowTools = {
   pi: { command: "pi", label: "pi" },
   herdr: { command: "herdr", label: "herdr" },
   opencode: { command: "opencode", label: "OpenCode" },
+  grok: { command: "grok", label: "Grok" },
+  codex: { command: "codex", label: "Codex" },
+  gh: { command: "gh", label: "gh" },
+  agy: { command: "agy", label: "agy" },
   zed: { command: "zed", label: "Zed", upstream: "zed" },
   ghostty: { command: "ghostty", label: "Ghostty" },
 } as const satisfies Record<string, { command: string; label: string; upstream?: UpstreamKey }>;
@@ -29,5 +33,15 @@ export const requiredWorkflowTools: readonly WorkflowTool[] = [
   workflowTools.pi,
   workflowTools.herdr,
   workflowTools.opencode,
+  workflowTools.grok,
+  workflowTools.codex,
+  workflowTools.gh,
+  workflowTools.agy,
   workflowTools.zed,
 ];
+
+export const requiredWorkflowCommands: readonly string[] = requiredWorkflowTools.map(
+  (tool) => tool.command,
+);
+
+export const miseToolsProgressDetail = "agy, bun, codex, gh, grok, herdr, node, opencode, pi";

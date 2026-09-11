@@ -1,4 +1,5 @@
 import { skillsList } from "@/consts/skills-list.ts";
+import { requiredWorkflowCommands } from "@/consts/workflow-tools.ts";
 import type { Host, PackageManager } from "@/types/host.ts";
 import type {
   ProgressFrame,
@@ -11,6 +12,8 @@ import { mergeEnvironment } from "@/utils/environment.ts";
 import { isYes } from "@/utils/prompt.ts";
 import { isGhosttyConfig, isStowJunk } from "@/utils/stow.ts";
 import { backupStamp, parseDate } from "@/utils/time.ts";
+
+export const presentWorkflowCommands: string[] = [...requiredWorkflowCommands];
 
 export function skillDirs(home: string): string[] {
   return skillsList.map((spec) => `${home}/.agents/skills/${spec.split("@")[1] ?? spec}`);

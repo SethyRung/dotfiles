@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { stow } from "@/commands/stow.ts";
 import { ghosttyPackageFor } from "@/consts/package-map.ts";
 import { skillDir } from "@/consts/skills-list.ts";
-import { workflowTools } from "@/consts/workflow-tools.ts";
+import { miseToolsProgressDetail, workflowTools } from "@/consts/workflow-tools.ts";
 import type { Host } from "@/types/host.ts";
 import type { ProgressState, ProgressStep } from "@/types/progress.ts";
 import type { RunResult } from "@/types/result.ts";
@@ -35,8 +35,6 @@ const STEPS = {
   CLI: 13,
 } as const;
 
-const miseToolsDetail = "bun, herdr, node, opencode, pi";
-
 function initialSteps(preset: DotfilesPreset): ProgressStep[] {
   const pending = (label: string, detail: string): ProgressStep => ({
     label,
@@ -49,7 +47,7 @@ function initialSteps(preset: DotfilesPreset): ProgressStep[] {
     pending("OMZ plugins", "autosuggestions, syntax-highlighting"),
     pending(workflowTools.mise.label, "latest"),
     pending("Stow", "home/ tree"),
-    pending("Mise Tools", miseToolsDetail),
+    pending("Mise Tools", miseToolsProgressDetail),
     pending("pi packages", `${preset.piPackages.length} packages`),
     pending(workflowTools.zed.label, "latest"),
     pending("Skills", `${preset.skills.length} skills`),
@@ -203,9 +201,9 @@ export async function init(host: Host): Promise<RunResult> {
     }
     update(STEPS.STOW, "done", "linked");
     const piWasMissing = !host.commandExists(workflowTools.pi.command);
-    update(STEPS.MISE_TOOLS, "running", miseToolsDetail);
+    update(STEPS.MISE_TOOLS, "running", miseToolsProgressDetail);
     await host.installMiseTools();
-    update(STEPS.MISE_TOOLS, "done", miseToolsDetail);
+    update(STEPS.MISE_TOOLS, "done", miseToolsProgressDetail);
     if (!preset.isToolEnabled("piPackages", true)) {
       update(STEPS.PI_PACKAGES, "skipped", "disabled in preset");
     } else if (piWasMissing) {

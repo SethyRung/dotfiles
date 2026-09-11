@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { run } from "@/cli.ts";
-import { createFakeHost, skillDirs } from "../helpers/fake-host.ts";
+import { createFakeHost, presentWorkflowCommands, skillDirs } from "../helpers/fake-host.ts";
 
 test("on an empty Host, doctor reports required Workflow pieces missing and exits non-zero", async () => {
   const host = createFakeHost();
@@ -18,6 +18,10 @@ test("on an empty Host, doctor reports required Workflow pieces missing and exit
     "pi",
     "herdr",
     "OpenCode",
+    "Grok",
+    "Codex",
+    "gh",
+    "agy",
     "Zed",
     "Skills",
     "MCP",
@@ -27,7 +31,7 @@ test("on an empty Host, doctor reports required Workflow pieces missing and exit
     expect(result.stdout).toContain(`[!!]  ${piece}`);
   }
   expect(result.stdout).toContain("Workflow");
-  expect(result.stdout).toContain("0/16 required ok");
+  expect(result.stdout).toContain("0/20 required ok");
 });
 
 test("doctor reports mise missing as a required failure", async () => {
@@ -47,28 +51,25 @@ test("doctor does not mention nvm", async () => {
 
 test("Ghostty missing is a warning, not a required failure", async () => {
   const home = "/fake-home";
-  const host = createFakeHost(
-    ["zsh", "git", "stow", "mise", "npm", "bun", "pi", "herdr", "opencode", "zed"],
-    {
-      homeDir: home,
-      files: [
-        `${home}/.oh-my-zsh`,
-        `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
-        `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
-        ...skillDirs(home),
-        `${home}/.pi/agent/mcp.json`,
-        `${home}/.local/bin/dotfiles`,
-      ],
-      loginShell: "/bin/zsh",
-    },
-  );
+  const host = createFakeHost(presentWorkflowCommands, {
+    homeDir: home,
+    files: [
+      `${home}/.oh-my-zsh`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
+      ...skillDirs(home),
+      `${home}/.pi/agent/mcp.json`,
+      `${home}/.local/bin/dotfiles`,
+    ],
+    loginShell: "/bin/zsh",
+  });
   const result = await run(["doctor"], host);
   expect(result.exitCode).toBe(0);
   expect(result.stdout).toContain("[skip] Ghostty");
   expect(result.stdout).not.toContain("[!!]  Ghostty");
   expect(result.stdout).toContain("Optional");
   expect(result.stdout).toContain("[ok]  mise");
-  expect(result.stdout).toContain("16 required ok");
+  expect(result.stdout).toContain("20 required ok");
 });
 
 test("doctor never prints API Key values", async () => {
@@ -102,6 +103,17 @@ test("doctor reports Skills missing when ~/.agents/skills exists without the dec
   expect(result.stdout).toContain("[!!]  Skills");
 });
 
+test("doctor reports Grok, Codex, gh, and agy missing as required failures", async () => {
+  const host = createFakeHost();
+  const result = await run(["doctor"], host);
+  expect(result.exitCode).not.toBe(0);
+  expect(result.stdout).toContain("[!!]  Grok");
+  expect(result.stdout).toContain("[!!]  Codex");
+  expect(result.stdout).toContain("[!!]  gh");
+  expect(result.stdout).toContain("[!!]  agy");
+  expect(result.stdout).not.toMatch(/Grok.*optional/);
+});
+
 test("doctor reports OpenCode missing as a required failure", async () => {
   const host = createFakeHost();
   const result = await run(["doctor"], host);
@@ -112,25 +124,26 @@ test("doctor reports OpenCode missing as a required failure", async () => {
 
 test("doctor reports OpenCode and Zed present without treating them as optional", async () => {
   const home = "/fake-home";
-  const host = createFakeHost(
-    ["zsh", "git", "stow", "mise", "npm", "bun", "pi", "herdr", "opencode", "zed"],
-    {
-      homeDir: home,
-      files: [
-        `${home}/.oh-my-zsh`,
-        `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
-        `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
-        ...skillDirs(home),
-        `${home}/.pi/agent/mcp.json`,
-        `${home}/.local/bin/dotfiles`,
-      ],
-      loginShell: "/bin/zsh",
-    },
-  );
+  const host = createFakeHost(presentWorkflowCommands, {
+    homeDir: home,
+    files: [
+      `${home}/.oh-my-zsh`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
+      ...skillDirs(home),
+      `${home}/.pi/agent/mcp.json`,
+      `${home}/.local/bin/dotfiles`,
+    ],
+    loginShell: "/bin/zsh",
+  });
   const result = await run(["doctor"], host);
   expect(result.exitCode).toBe(0);
   expect(result.stdout).toContain("[ok]  OpenCode");
   expect(result.stdout).not.toMatch(/OpenCode.*optional/);
+  expect(result.stdout).toContain("[ok]  Grok");
+  expect(result.stdout).toContain("[ok]  Codex");
+  expect(result.stdout).toContain("[ok]  gh");
+  expect(result.stdout).toContain("[ok]  agy");
   expect(result.stdout).toContain("[ok]  Zed");
   expect(result.stdout).not.toMatch(/Zed.*optional/);
 });
@@ -138,28 +151,25 @@ test("doctor reports OpenCode and Zed present without treating them as optional"
 test("doctor respects preset skills override in dotfiles.json", async () => {
   const home = "/fake-home";
   const repo = "/fake-repo";
-  const host = createFakeHost(
-    ["zsh", "git", "stow", "mise", "npm", "bun", "pi", "herdr", "opencode", "zed"],
-    {
-      homeDir: home,
-      repoDir: repo,
-      files: [
-        `${home}/.oh-my-zsh`,
-        `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
-        `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
-        `${home}/.agents/skills/custom-skill`,
-        `${home}/.pi/agent/mcp.json`,
-        `${home}/.local/bin/dotfiles`,
-        `${repo}/dotfiles.json`,
-      ],
-      fileContents: {
-        [`${repo}/dotfiles.json`]: JSON.stringify({
-          skills: ["custom/repo@custom-skill"],
-        }),
-      },
-      loginShell: "/bin/zsh",
+  const host = createFakeHost(presentWorkflowCommands, {
+    homeDir: home,
+    repoDir: repo,
+    files: [
+      `${home}/.oh-my-zsh`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
+      `${home}/.agents/skills/custom-skill`,
+      `${home}/.pi/agent/mcp.json`,
+      `${home}/.local/bin/dotfiles`,
+      `${repo}/dotfiles.json`,
+    ],
+    fileContents: {
+      [`${repo}/dotfiles.json`]: JSON.stringify({
+        skills: ["custom/repo@custom-skill"],
+      }),
     },
-  );
+    loginShell: "/bin/zsh",
+  });
   const result = await run(["doctor"], host);
   expect(result.exitCode).toBe(0);
   expect(result.stdout).toContain("[ok]  Skills");
@@ -183,7 +193,7 @@ test("doctor does not require zed when tools.zed is false", async () => {
   const home = "/fake-home";
   const repo = "/fake-repo";
   const host = createFakeHost(
-    ["zsh", "git", "stow", "mise", "npm", "bun", "pi", "herdr", "opencode"],
+    presentWorkflowCommands.filter((command) => command !== "zed"),
     {
       homeDir: home,
       repoDir: repo,

@@ -2,7 +2,12 @@ import { expect, test } from "bun:test";
 import { join } from "node:path";
 import { run } from "@/cli.ts";
 import { skillsList } from "@/consts/skills-list.ts";
-import { createFakeHost, mcpSource, skillDirs } from "../helpers/fake-host.ts";
+import {
+  createFakeHost,
+  mcpSource,
+  presentWorkflowCommands,
+  skillDirs,
+} from "../helpers/fake-host.ts";
 import { finalSteps, frameStep } from "../helpers/progress.ts";
 import { readZshrc } from "../helpers/zshrc.ts";
 
@@ -132,6 +137,7 @@ test("the committed mise config declares the Workflow Mise Tools with auto_updat
   expect(toml).toContain("auto_update = true");
   expect(toml).toContain('gh = "latest"');
   expect(toml).toContain('"npm:@xai-official/grok" = "latest"');
+  expect(toml).toContain('agy = "latest"');
 });
 
 test("init always requests installMiseTools even when the Mise Tool commands already exist", async () => {
@@ -193,7 +199,7 @@ test("the Progress Log replaces the nvm, herdr, and OpenCode rows with mise, Mis
   expect(final.get("mise")).toEqual({ label: "mise", detail: "latest", state: "done" });
   expect(final.get("Mise Tools")).toEqual({
     label: "Mise Tools",
-    detail: "bun, herdr, node, opencode, pi",
+    detail: "agy, bun, codex, gh, grok, herdr, node, opencode, pi",
     state: "done",
   });
   expect(final.get("pi packages")).toEqual({
@@ -354,23 +360,20 @@ test("init reports live progress frames for each step", async () => {
 
 test("when Workflow is already present, frames say skipped with present details", async () => {
   const home = "/fake-home";
-  const host = createFakeHost(
-    ["zsh", "git", "stow", "mise", "npm", "bun", "pi", "herdr", "opencode", "zed"],
-    {
-      homeDir: home,
-      packageManager: "apt",
-      files: [
-        `${home}/.oh-my-zsh`,
-        `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
-        `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
-        ...skillDirs(home),
-        `${home}/.pi/agent/mcp.json`,
-        `${home}/.local/bin/dotfiles`,
-      ],
-      loginShell: "/bin/zsh",
-      promptAnswers: ["y", ""],
-    },
-  );
+  const host = createFakeHost(presentWorkflowCommands, {
+    homeDir: home,
+    packageManager: "apt",
+    files: [
+      `${home}/.oh-my-zsh`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
+      ...skillDirs(home),
+      `${home}/.pi/agent/mcp.json`,
+      `${home}/.local/bin/dotfiles`,
+    ],
+    loginShell: "/bin/zsh",
+    promptAnswers: ["y", ""],
+  });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
   const final = finalSteps(host);
@@ -380,7 +383,7 @@ test("when Workflow is already present, frames say skipped with present details"
   expect(final.get("mise")).toMatchObject({ state: "skipped", detail: "present" });
   expect(final.get("Mise Tools")).toMatchObject({
     state: "done",
-    detail: "bun, herdr, node, opencode, pi",
+    detail: "agy, bun, codex, gh, grok, herdr, node, opencode, pi",
   });
   expect(final.get("pi packages")).toMatchObject({ state: "skipped", detail: "present" });
   expect(final.get("Zed")).toMatchObject({ state: "skipped", detail: "present" });
@@ -420,23 +423,20 @@ test("answering yes reboots after the rest of init has finished", async () => {
 
 test("no reboot question when the login shell is already zsh", async () => {
   const home = "/fake-home";
-  const host = createFakeHost(
-    ["zsh", "git", "stow", "mise", "npm", "bun", "pi", "herdr", "opencode", "zed"],
-    {
-      homeDir: home,
-      packageManager: "apt",
-      files: [
-        `${home}/.oh-my-zsh`,
-        `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
-        `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
-        ...skillDirs(home),
-        `${home}/.pi/agent/mcp.json`,
-        `${home}/.local/bin/dotfiles`,
-      ],
-      loginShell: "/bin/zsh",
-      promptAnswers: ["y", ""],
-    },
-  );
+  const host = createFakeHost(presentWorkflowCommands, {
+    homeDir: home,
+    packageManager: "apt",
+    files: [
+      `${home}/.oh-my-zsh`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
+      ...skillDirs(home),
+      `${home}/.pi/agent/mcp.json`,
+      `${home}/.local/bin/dotfiles`,
+    ],
+    loginShell: "/bin/zsh",
+    promptAnswers: ["y", ""],
+  });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
   expect(host.prompts.some((p) => p.includes("Reboot"))).toBe(false);
@@ -870,24 +870,21 @@ test("already-installed Ghostty is not offered again but its config is still Sto
 
 test("on a re-run, init still offers Ghostty when it is missing", async () => {
   const home = "/fake-home";
-  const host = createFakeHost(
-    ["zsh", "git", "stow", "mise", "npm", "bun", "pi", "herdr", "opencode", "zed"],
-    {
-      homeDir: home,
-      packageManager: "apt",
-      files: [
-        `${home}/.oh-my-zsh`,
-        `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
-        `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
-        ...skillDirs(home),
-        `${home}/.pi/agent/mcp.json`,
-        `${home}/.local/bin/dotfiles`,
-      ],
-      loginShell: "/bin/zsh",
-      homeTree: [".zshrc", ".config/ghostty/config"],
-      promptAnswers: ["y", "", "y"],
-    },
-  );
+  const host = createFakeHost(presentWorkflowCommands, {
+    homeDir: home,
+    packageManager: "apt",
+    files: [
+      `${home}/.oh-my-zsh`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
+      ...skillDirs(home),
+      `${home}/.pi/agent/mcp.json`,
+      `${home}/.local/bin/dotfiles`,
+    ],
+    loginShell: "/bin/zsh",
+    homeTree: [".zshrc", ".config/ghostty/config"],
+    promptAnswers: ["y", "", "y"],
+  });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
   expect(host.prompts.some((p) => p.includes("Install Ghostty?"))).toBe(true);
@@ -921,21 +918,18 @@ test("yes on a Distro without a mapping warns and does not abort the rest of ini
 
 test("dangling PATH and MCP dests after a repo move still ask continue?", async () => {
   const home = "/fake-home";
-  const host = createFakeHost(
-    ["zsh", "git", "stow", "mise", "npm", "bun", "pi", "herdr", "opencode", "zed"],
-    {
-      homeDir: home,
-      packageManager: "apt",
-      files: [
-        `${home}/.oh-my-zsh`,
-        `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
-        `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
-        ...skillDirs(home),
-      ],
-      loginShell: "/bin/zsh",
-      brokenStowLinks: [`${home}/.config/herdr/config.toml`, `${home}/.zshrc`],
-    },
-  );
+  const host = createFakeHost(presentWorkflowCommands, {
+    homeDir: home,
+    packageManager: "apt",
+    files: [
+      `${home}/.oh-my-zsh`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
+      ...skillDirs(home),
+    ],
+    loginShell: "/bin/zsh",
+    brokenStowLinks: [`${home}/.config/herdr/config.toml`, `${home}/.zshrc`],
+  });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
   expect(host.prompts[0]?.toLowerCase()).toContain("continue?");
@@ -946,22 +940,19 @@ test("dangling PATH and MCP dests after a repo move still ask continue?", async 
 
 test("when Workflow already looks present, init asks continue? before doing work", async () => {
   const home = "/fake-home";
-  const host = createFakeHost(
-    ["zsh", "git", "stow", "mise", "npm", "bun", "pi", "herdr", "opencode", "zed"],
-    {
-      homeDir: home,
-      packageManager: "apt",
-      files: [
-        `${home}/.oh-my-zsh`,
-        `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
-        `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
-        ...skillDirs(home),
-        `${home}/.pi/agent/mcp.json`,
-        `${home}/.local/bin/dotfiles`,
-      ],
-      loginShell: "/bin/zsh",
-    },
-  );
+  const host = createFakeHost(presentWorkflowCommands, {
+    homeDir: home,
+    packageManager: "apt",
+    files: [
+      `${home}/.oh-my-zsh`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
+      ...skillDirs(home),
+      `${home}/.pi/agent/mcp.json`,
+      `${home}/.local/bin/dotfiles`,
+    ],
+    loginShell: "/bin/zsh",
+  });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
   expect(host.prompts[0]?.toLowerCase()).toContain("continue?");
@@ -972,25 +963,22 @@ test("when Workflow already looks present, init asks continue? before doing work
 test("declining continue leaves the Host unchanged", async () => {
   const home = "/fake-home";
   const existing = 'PATH="/usr/bin"\n';
-  const host = createFakeHost(
-    ["zsh", "git", "stow", "mise", "npm", "bun", "pi", "herdr", "opencode", "zed"],
-    {
-      homeDir: home,
-      packageManager: "apt",
-      files: [
-        `${home}/.oh-my-zsh`,
-        `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
-        `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
-        ...skillDirs(home),
-        `${home}/.pi/agent/mcp.json`,
-        `${home}/.local/bin/dotfiles`,
-      ],
-      loginShell: "/bin/zsh",
-      homeTree: [".zshrc"],
-      environmentFile: existing,
-      promptAnswers: ["n"],
-    },
-  );
+  const host = createFakeHost(presentWorkflowCommands, {
+    homeDir: home,
+    packageManager: "apt",
+    files: [
+      `${home}/.oh-my-zsh`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
+      ...skillDirs(home),
+      `${home}/.pi/agent/mcp.json`,
+      `${home}/.local/bin/dotfiles`,
+    ],
+    loginShell: "/bin/zsh",
+    homeTree: [".zshrc"],
+    environmentFile: existing,
+    promptAnswers: ["n"],
+  });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
   expect(host.packagesRequested).toEqual([]);
@@ -1005,23 +993,20 @@ test("declining continue leaves the Host unchanged", async () => {
 
 test("continue does not re-request tools the Host already has", async () => {
   const home = "/fake-home";
-  const host = createFakeHost(
-    ["zsh", "git", "stow", "mise", "npm", "bun", "pi", "herdr", "opencode", "zed"],
-    {
-      homeDir: home,
-      packageManager: "apt",
-      files: [
-        `${home}/.oh-my-zsh`,
-        `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
-        `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
-        ...skillDirs(home),
-        `${home}/.pi/agent/mcp.json`,
-        `${home}/.local/bin/dotfiles`,
-      ],
-      loginShell: "/bin/zsh",
-      promptAnswers: ["y"],
-    },
-  );
+  const host = createFakeHost(presentWorkflowCommands, {
+    homeDir: home,
+    packageManager: "apt",
+    files: [
+      `${home}/.oh-my-zsh`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
+      ...skillDirs(home),
+      `${home}/.pi/agent/mcp.json`,
+      `${home}/.local/bin/dotfiles`,
+    ],
+    loginShell: "/bin/zsh",
+    promptAnswers: ["y"],
+  });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
   expect(host.packagesRequested).toEqual([]);
@@ -1033,24 +1018,21 @@ test("continue does not re-request tools the Host already has", async () => {
 test("continue still confirms before /etc/environment writes", async () => {
   const home = "/fake-home";
   const existing = 'PATH="/usr/bin"\n';
-  const host = createFakeHost(
-    ["zsh", "git", "stow", "mise", "npm", "bun", "pi", "herdr", "opencode", "zed"],
-    {
-      homeDir: home,
-      packageManager: "apt",
-      files: [
-        `${home}/.oh-my-zsh`,
-        `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
-        `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
-        ...skillDirs(home),
-        `${home}/.pi/agent/mcp.json`,
-        `${home}/.local/bin/dotfiles`,
-      ],
-      loginShell: "/bin/zsh",
-      environmentFile: existing,
-      promptAnswers: ["y", "OPENROUTER_API_KEY=sk-secret", "1", "n"],
-    },
-  );
+  const host = createFakeHost(presentWorkflowCommands, {
+    homeDir: home,
+    packageManager: "apt",
+    files: [
+      `${home}/.oh-my-zsh`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
+      ...skillDirs(home),
+      `${home}/.pi/agent/mcp.json`,
+      `${home}/.local/bin/dotfiles`,
+    ],
+    loginShell: "/bin/zsh",
+    environmentFile: existing,
+    promptAnswers: ["y", "OPENROUTER_API_KEY=sk-secret", "1", "n"],
+  });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
   expect(host.prompts.some((p) => p.includes("/etc/environment"))).toBe(true);
@@ -1059,25 +1041,22 @@ test("continue still confirms before /etc/environment writes", async () => {
 
 test("continue still confirms before Stow conflicts", async () => {
   const home = "/fake-home";
-  const host = createFakeHost(
-    ["zsh", "git", "stow", "mise", "npm", "bun", "pi", "herdr", "opencode", "zed"],
-    {
-      homeDir: home,
-      packageManager: "apt",
-      files: [
-        `${home}/.oh-my-zsh`,
-        `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
-        `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
-        ...skillDirs(home),
-        `${home}/.pi/agent/mcp.json`,
-        `${home}/.local/bin/dotfiles`,
-        `${home}/.zshrc`,
-      ],
-      loginShell: "/bin/zsh",
-      homeTree: [".zshrc"],
-      promptAnswers: ["y", "n"],
-    },
-  );
+  const host = createFakeHost(presentWorkflowCommands, {
+    homeDir: home,
+    packageManager: "apt",
+    files: [
+      `${home}/.oh-my-zsh`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
+      ...skillDirs(home),
+      `${home}/.pi/agent/mcp.json`,
+      `${home}/.local/bin/dotfiles`,
+      `${home}/.zshrc`,
+    ],
+    loginShell: "/bin/zsh",
+    homeTree: [".zshrc"],
+    promptAnswers: ["y", "n"],
+  });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
   expect(host.prompts.some((p) => p.toLowerCase().includes("stow"))).toBe(true);
@@ -1320,6 +1299,30 @@ test("a Host missing mise is not treated as Workflow already present", async () 
   expect(host.upstreamInstalls).toContain("mise");
 });
 
+test("a Host missing Grok is not treated as Workflow already present", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(
+    presentWorkflowCommands.filter((command) => command !== "grok"),
+    {
+      homeDir: home,
+      packageManager: "apt",
+      files: [
+        `${home}/.oh-my-zsh`,
+        `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
+        `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
+        ...skillDirs(home),
+        `${home}/.pi/agent/mcp.json`,
+        `${home}/.local/bin/dotfiles`,
+      ],
+      loginShell: "/bin/zsh",
+    },
+  );
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.prompts[0]?.toLowerCase()).not.toContain("continue?");
+  expect(host.miseToolsCalls).toBe(1);
+});
+
 test("a Host missing OpenCode is not treated as Workflow already present", async () => {
   const home = "/fake-home";
   const host = createFakeHost(["zsh", "git", "stow", "npm", "bun", "pi", "herdr"], {
@@ -1346,25 +1349,22 @@ test("a Host missing OpenCode is not treated as Workflow already present", async
 
 test("continue still confirms before Stow conflicts for OpenCode config", async () => {
   const home = "/fake-home";
-  const host = createFakeHost(
-    ["zsh", "git", "stow", "mise", "npm", "bun", "pi", "herdr", "opencode", "zed"],
-    {
-      homeDir: home,
-      packageManager: "apt",
-      files: [
-        `${home}/.oh-my-zsh`,
-        `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
-        `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
-        ...skillDirs(home),
-        `${home}/.pi/agent/mcp.json`,
-        `${home}/.local/bin/dotfiles`,
-        `${home}/.config/opencode/opencode.json`,
-      ],
-      loginShell: "/bin/zsh",
-      homeTree: [".config/opencode/opencode.json"],
-      promptAnswers: ["y", "n"],
-    },
-  );
+  const host = createFakeHost(presentWorkflowCommands, {
+    homeDir: home,
+    packageManager: "apt",
+    files: [
+      `${home}/.oh-my-zsh`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
+      ...skillDirs(home),
+      `${home}/.pi/agent/mcp.json`,
+      `${home}/.local/bin/dotfiles`,
+      `${home}/.config/opencode/opencode.json`,
+    ],
+    loginShell: "/bin/zsh",
+    homeTree: [".config/opencode/opencode.json"],
+    promptAnswers: ["y", "n"],
+  });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
   expect(host.prompts.some((p) => p.toLowerCase().includes("stow"))).toBe(true);

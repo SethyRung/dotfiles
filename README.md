@@ -74,7 +74,7 @@ A live ASCII dashboard redraws as each step runs:
   [ok]   OMZ plugins      autosuggestions, syntax-highlighting
   [ok]   mise             latest
   [ok]   Stow             linked
-  [\]    Mise Tools       bun, herdr, node, opencode, pi
+  [\]    Mise Tools       agy, bun, codex, gh, grok, herdr, node, opencode, pi
   [--]   pi packages      8 packages
   [--]   Zed              latest
   [--]   Skills           16 skills
@@ -93,7 +93,7 @@ A live ASCII dashboard redraws as each step runs:
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Distro packages     | zsh, git, stow via the Package Map — no git config                                                                                                                                                      |
 | Upstream Installs   | mise, Oh My Zsh, OMZ plugins, Zed (always latest, never version-pinned)                                                                                                                                 |
-| Mise Tools          | bun, herdr, pi, OpenCode, grok, codex (`latest`) and Node (`lts`) from the Stowed mise config; npm comes from mise's Node                                                                               |
+| Mise Tools          | agy, bun, Codex, gh, grok, herdr, pi, OpenCode (`latest`) and Node (`lts`) from the Stowed mise config; npm comes from mise's Node                                                                      |
 | pi packages         | Current pi plugins, installed only when pi was missing before Mise Tools                                                                                                                                |
 | Stowed from `home/` | zshrc, mise config.toml, herdr config.toml, OpenCode config + TUI files, pi agent config, Zed settings.json + keymap.json (Zed extensions are declared in `auto_install_extensions`, never snapshotted) |
 | Machine state       | login shell becomes zsh, dotfiles symlinked into `~/.local/bin`, environment variables merged into chosen store location (`/etc/environment`, `~/.zshenv`, etc.)                                        |
