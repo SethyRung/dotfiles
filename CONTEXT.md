@@ -90,5 +90,5 @@ A secret environment variable needed by AI tools. Supplied during Bootstrap. Nev
 _Avoid_: token, credential (when you mean these env vars)
 
 **Preset**:
-`dotfiles.json` in the repo root. Defaults and upfront questions for Bootstrap and doctor: tools, skills, pi packages, OMZ plugins, distro packages, and MCP.
+`dotfiles.json` in the repo root. Defaults and upfront questions for Bootstrap and doctor: tools, skills, pi packages, OMZ plugins, distro packages, MCP, and API Key names.
 _Avoid_: settings.json (when you mean this file)

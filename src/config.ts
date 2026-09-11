@@ -23,6 +23,7 @@ export type DotfilesConfig = {
   omzPlugins: string[];
   packages: Record<PackageManager, string[]>;
   mcp: Record<string, McpServer>;
+  apiKeys: string[];
 };
 
 export const defaultConfig: DotfilesConfig = rawConfig as DotfilesConfig;
@@ -32,6 +33,7 @@ export const defaultPiPackages = defaultConfig.piPackages;
 export const defaultOmzPlugins = defaultConfig.omzPlugins;
 export const defaultPackages = defaultConfig.packages;
 export const defaultMcp = defaultConfig.mcp;
+export const defaultApiKeys = defaultConfig.apiKeys ?? [];
 
 export function defaultPackagesFor(pm: PackageManager): string[] {
   return defaultConfig.packages[pm] ?? [];

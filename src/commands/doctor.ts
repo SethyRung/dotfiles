@@ -17,7 +17,9 @@ export async function doctor(host: Host, options: { json?: boolean } = {}): Prom
   }
   const requiredOk = health.requiredChecks.filter((check) => check.ok).length;
   const totalRequired = health.requiredChecks.length;
-  const exitCode = requiredOk === totalRequired && health.brokenStowLinks.length === 0 ? 0 : 1;
+  const keysOk = health.keys.every((check) => check.ok);
+  const exitCode =
+    requiredOk === totalRequired && health.brokenStowLinks.length === 0 && keysOk ? 0 : 1;
   if (options.json) {
     return { exitCode, stdout: `${JSON.stringify(health)}\n`, stderr: "" };
   }
@@ -31,7 +33,7 @@ export async function doctor(host: Host, options: { json?: boolean } = {}): Prom
     health.optional.ghostty ? "  [ok]  Ghostty" : "  [skip] Ghostty",
   ];
   if (health.keys.length > 0) {
-    lines.push("", "API Keys", ...health.keys.map((name) => `  [ok]  ${name}`));
+    lines.push("", "API Keys", ...health.keys.map((check) => doctorRow(check.name, check.ok)));
   }
   if (health.brokenStowLinks.length > 0) {
     lines.push("", "Stow", ...health.brokenStowLinks.map((link) => `  [!!]  ${link}`));

@@ -1,6 +1,6 @@
 # Doctor expected API Keys and MCP vs Preset
 
-Status: ready-for-agent
+Status: done
 
 ## Problem Statement
 

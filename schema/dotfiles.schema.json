@@ -100,6 +100,13 @@
         }
       ]
     },
+    "apiKeys": {
+      "type": "array",
+      "description": "Expected API Key names (identifiers only, never values)",
+      "items": {
+        "type": "string"
+      }
+    },
     "mcp": {
       "type": "object",
       "description": "Canonical MCP server list. Each additional property is a server name mapped to a remote url or a local command.",

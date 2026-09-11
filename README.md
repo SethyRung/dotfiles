@@ -45,6 +45,7 @@ An unknown Distro — no apt, pacman, dnf, or zypper — fails **before** instal
 
 ```bash
 git clone <this-repo>
+cd dotfiles
 ./dotfiles init
 ```
 
@@ -123,7 +124,8 @@ See [Re-runs and safety](#re-runs-and-safety) for repeat-run behavior, and [API 
 
 Report every Workflow piece present or missing.
 
-- Never prints API Key values.
+- Reports expected API Key **names** from the Preset (`apiKeys`) as present or missing. Never prints values. Extra env-store names including `PATH` are not listed.
+- MCP is healthy when the Preset `mcp` list is translated into pi, OpenCode, Grok, and Codex — not merely when a dest file exists.
 - Reports Ghostty as an **optional** warning, not a failure.
 - Lists broken Stow links.
 
@@ -132,7 +134,7 @@ dotfiles doctor
 dotfiles doctor --json
 ```
 
-`--json` prints Workflow Health as JSON (same exit code as the dashboard; API Key names only).
+`--json` prints Workflow Health as JSON (same exit code as the dashboard; API Key names and ok flags only).
 
 ### `dotfiles stow`
 
@@ -223,6 +225,7 @@ The repository includes `dotfiles.json` as the single source of truth for tools,
   },
   "skills": ["vercel-labs/skills@find-skills", "mattpocock/skills@implement"],
   "piPackages": ["npm:pi-subagents", "npm:pi-mcp-adapter"],
+  "apiKeys": ["OPENROUTER_API_KEY"],
   "omzPlugins": ["zsh-autosuggestions", "zsh-syntax-highlighting"],
   "packages": {
     "apt": ["zsh", "git", "stow"],
@@ -240,6 +243,7 @@ The repository includes `dotfiles.json` as the single source of truth for tools,
 - **`skills`**: Global agent skills installed via `skills.sh`.
 - **`piPackages`**: Pi agent extensions installed when pi is set up.
 - **`omzPlugins`**: Oh My Zsh plugins cloned into custom plugins.
+- **`apiKeys`**: Expected API Key names (identifiers only). Doctor reports these as present or missing and never prints values.
 - **`packages`**: Distro packages required by the workflow (distro-agnostic list or per-package-manager mapping).
 - **`mcp`**: Canonical MCP servers. Bootstrap, Stow, and Sync translate this map into each agent's shape.
 - **JSON Schema**: `schema/dotfiles.schema.json` provides validation and auto-completion in modern editors (Zed, VS Code, etc.).

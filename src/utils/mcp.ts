@@ -145,6 +145,53 @@ async function writeTomlMcp(host: Host, rel: string, servers: CanonicalMcp): Pro
   await host.writeFile(path, `${stringifyToml(existing)}\n`);
 }
 
+function sortValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(sortValue);
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([k, v]) => [k, sortValue(v)]),
+    );
+  }
+  return value;
+}
+
+async function destMcpMatches(
+  host: Host,
+  rel: string,
+  key: string,
+  expected: unknown,
+  parse: (text: string) => Record<string, unknown>,
+): Promise<boolean> {
+  const text = await host.readFile(join(host.homeDir(), rel));
+  if (text == null) {
+    return false;
+  }
+  try {
+    const parsed = parse(text);
+    return JSON.stringify(sortValue(parsed[key])) === JSON.stringify(sortValue(expected));
+  } catch {
+    return false;
+  }
+}
+
+export async function mcpMatchesPreset(host: Host, servers: CanonicalMcp): Promise<boolean> {
+  const pi = piMcpFromCanonical(servers);
+  const openCode = openCodeMcpFromCanonical(servers);
+  const json = (text: string) => JSON.parse(text) as Record<string, unknown>;
+  const toml = (text: string) => Bun.TOML.parse(text) as Record<string, unknown>;
+  const matches = await Promise.all([
+    destMcpMatches(host, PI_MCP_DEST, "mcpServers", pi, json),
+    destMcpMatches(host, OPENCODE_CONFIG_DEST, "mcp", openCode, json),
+    destMcpMatches(host, GROK_CONFIG_DEST, "mcp_servers", pi, toml),
+    destMcpMatches(host, CODEX_CONFIG_DEST, "mcp_servers", pi, toml),
+  ]);
+  return matches.every(Boolean);
+}
+
 export async function mirrorMcp(host: Host): Promise<void> {
   const servers = await loadCanonical(host);
   await writePiMcp(host, servers);

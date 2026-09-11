@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import {
+  defaultApiKeys,
   defaultConfig,
   defaultMcp,
   defaultOmzPlugins,
@@ -22,6 +23,7 @@ export type DotfilesPresetInput = {
   distro_packages?: string[] | Partial<Record<PackageManager, string[]>>;
   packages?: string[] | Partial<Record<PackageManager, string[]>>;
   mcp?: Record<string, McpServer>;
+  apiKeys?: string[];
 };
 
 export type DotfilesPreset = {
@@ -30,6 +32,7 @@ export type DotfilesPreset = {
   piPackages: string[];
   omzPlugins: string[];
   mcp: Record<string, McpServer>;
+  apiKeys: string[];
   distroPackagesFor(pm: PackageManager): string[];
   isToolEnabled(name: keyof DotfilesToolsConfig, defaultVal?: boolean): boolean;
 };
@@ -60,6 +63,7 @@ export function parsePreset(content: string): DotfilesPreset {
 
   const mcp =
     raw.mcp && typeof raw.mcp === "object" && !Array.isArray(raw.mcp) ? raw.mcp : { ...defaultMcp };
+  const apiKeys = Array.isArray(raw.apiKeys) ? raw.apiKeys : [...defaultApiKeys];
 
   const packagesRaw = raw.packages ?? raw.distroPackages ?? raw.distro_packages;
   const toolsRaw = raw.tools ?? {};
@@ -77,6 +81,7 @@ export function parsePreset(content: string): DotfilesPreset {
     piPackages,
     omzPlugins,
     mcp,
+    apiKeys,
     distroPackagesFor(pm: PackageManager): string[] {
       if (Array.isArray(packagesRaw)) {
         return packagesRaw;
@@ -110,6 +115,7 @@ export function defaultPreset(): DotfilesPreset {
     piPackages: [...defaultPiPackages],
     omzPlugins: [...defaultOmzPlugins],
     mcp: { ...defaultMcp },
+    apiKeys: [...defaultApiKeys],
     distroPackagesFor: defaultPackagesFor,
     isToolEnabled(name: keyof DotfilesToolsConfig, defaultVal = true): boolean {
       const val = tools[name];

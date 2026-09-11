@@ -1,3 +1,4 @@
+import { defaultMcp, type McpServer } from "@/config.ts";
 import { skillsList } from "@/consts/skills-list.ts";
 import { requiredWorkflowCommands } from "@/consts/workflow-tools.ts";
 import type { Host, PackageManager } from "@/types/host.ts";
@@ -9,6 +10,7 @@ import type {
 } from "@/types/progress.ts";
 import type { StowOptions, StowReport } from "@/types/result.ts";
 import { mergeEnvironment } from "@/utils/environment.ts";
+import { openCodeMcpFromCanonical, piMcpFromCanonical } from "@/utils/mcp.ts";
 import { isYes } from "@/utils/prompt.ts";
 import { isGhosttyConfig, isStowJunk } from "@/utils/stow.ts";
 import { backupStamp, parseDate } from "@/utils/time.ts";
@@ -17,6 +19,44 @@ export const presentWorkflowCommands: string[] = [...requiredWorkflowCommands];
 
 export function skillDirs(home: string): string[] {
   return skillsList.map((spec) => `${home}/.agents/skills/${spec.split("@")[1] ?? spec}`);
+}
+
+function tomlMcpServers(servers: Record<string, McpServer>): string {
+  const translated = piMcpFromCanonical(servers);
+  const lines: string[] = [];
+  for (const [name, spec] of Object.entries(translated)) {
+    lines.push(`[mcp_servers.${name}]`);
+    if (spec.url != null) {
+      lines.push(`url = ${JSON.stringify(spec.url)}`);
+    }
+    if (spec.command != null) {
+      lines.push(`command = ${JSON.stringify(spec.command)}`);
+    }
+    if (spec.args != null) {
+      lines.push(`args = [${spec.args.map((arg) => JSON.stringify(arg)).join(", ")}]`);
+    }
+    lines.push("");
+  }
+  return lines.join("\n");
+}
+
+export function mcpAgentFiles(
+  home: string,
+  servers: Record<string, McpServer> = defaultMcp,
+): { files: string[]; fileContents: Record<string, string> } {
+  const files = [
+    `${home}/.pi/agent/mcp.json`,
+    `${home}/.config/opencode/opencode.json`,
+    `${home}/.grok/config.toml`,
+    `${home}/.codex/config.toml`,
+  ];
+  const fileContents = {
+    [`${home}/.pi/agent/mcp.json`]: `${JSON.stringify({ mcpServers: piMcpFromCanonical(servers) }, null, 2)}\n`,
+    [`${home}/.config/opencode/opencode.json`]: `${JSON.stringify({ mcp: openCodeMcpFromCanonical(servers) }, null, 2)}\n`,
+    [`${home}/.grok/config.toml`]: tomlMcpServers(servers),
+    [`${home}/.codex/config.toml`]: tomlMcpServers(servers),
+  };
+  return { files, fileContents };
 }
 
 export function mcpSource(

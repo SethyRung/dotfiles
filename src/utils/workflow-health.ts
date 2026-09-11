@@ -3,11 +3,17 @@ import { skillDir } from "@/consts/skills-list.ts";
 import { workflowTools } from "@/consts/workflow-tools.ts";
 import type { Host } from "@/types/host.ts";
 import type { DotfilesPreset } from "@/utils/preset.ts";
+import { mcpMatchesPreset } from "@/utils/mcp.ts";
 import { loadPreset } from "@/utils/preset.ts";
 import { isZsh } from "@/utils/prompt.ts";
 
 export type WorkflowCheck = {
   label: string;
+  ok: boolean;
+};
+
+export type ApiKeyCheck = {
+  name: string;
   ok: boolean;
 };
 
@@ -18,7 +24,7 @@ export type WorkflowHealth = {
   optional: {
     ghostty: boolean;
   };
-  keys: string[];
+  keys: ApiKeyCheck[];
   brokenStowLinks: string[];
 };
 
@@ -44,11 +50,15 @@ export async function assessWorkflow(host: Host, preset?: DotfilesPreset): Promi
   const agy = host.commandExists(workflowTools.agy.command);
   const zed = host.commandExists(workflowTools.zed.command);
   const skills = activePreset.skills.every((spec) => host.fileExists(skillDir(home, spec)));
-  const mcp = host.fileExists(join(home, ".pi/agent/mcp.json"));
+  const mcp = await mcpMatchesPreset(host, activePreset.mcp);
   const shell = isZsh(host.loginShell());
   const pathOk = host.fileExists(join(home, ".local/bin/dotfiles"));
   const ghostty = host.commandExists(workflowTools.ghostty.command);
-  const keys = await host.listApiKeyNames();
+  const presentKeys = new Set(await host.listApiKeyNames());
+  const keys: ApiKeyCheck[] = activePreset.apiKeys.map((name) => ({
+    name,
+    ok: presentKeys.has(name),
+  }));
   const brokenStowLinks = host.brokenStowLinks();
 
   const checkOmzPlugins = activePreset.isToolEnabled("omzPlugins", true);
@@ -78,7 +88,7 @@ export async function assessWorkflow(host: Host, preset?: DotfilesPreset): Promi
     { label: "PATH symlink", ok: pathOk },
   ];
 
-  const isComplete = requiredChecks.every((check) => check.ok);
+  const isComplete = requiredChecks.every((check) => check.ok) && keys.every((check) => check.ok);
   const isBootstrapped = [
     zsh,
     omz,

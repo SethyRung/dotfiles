@@ -4,13 +4,13 @@
 
 **Blocked by:** 01: Doctor expected API Key names
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] All four agent dests exist and match Preset translations → `[ok]  MCP` and a otherwise-healthy Host can exit 0
-- [ ] Any dest missing → `[!!]  MCP`, required fail, exit 1
-- [ ] Dest present but servers differ from Preset (stale, extra, or missing servers) → `[!!]  MCP`, required fail, exit 1
-- [ ] Doctor does not create or rewrite agent MCP configs
-- [ ] Init continue? (`isBootstrapped`) still ignores MCP dests and the PATH symlink
-- [ ] Init/stow/sync MCP writes are unchanged
-- [ ] README doctor copy mentions MCP vs Preset
-- [ ] Behaviour is observed only through the CLI against a fake Host
+- [x] All four agent dests exist and match Preset translations → `[ok]  MCP` and a otherwise-healthy Host can exit 0
+- [x] Any dest missing → `[!!]  MCP`, required fail, exit 1
+- [x] Dest present but servers differ from Preset (stale, extra, or missing servers) → `[!!]  MCP`, required fail, exit 1
+- [x] Doctor does not create or rewrite agent MCP configs
+- [x] Init continue? (`isBootstrapped`) still ignores MCP dests and the PATH symlink
+- [x] Init/stow/sync MCP writes are unchanged
+- [x] README doctor copy mentions MCP vs Preset
+- [x] Behaviour is observed only through the CLI against a fake Host
