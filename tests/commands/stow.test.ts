@@ -152,9 +152,9 @@ test("dotfiles stow --help documents --dry-run", async () => {
   expect(result.stdout).toContain("--dry-run");
 });
 
-test("--dry-run on init, doctor, or clean fails closed", async () => {
+test("--dry-run on doctor or clean fails closed", async () => {
   const host = createFakeHost(["bun"], { packageManager: "apt" });
-  for (const cmd of ["init", "doctor", "clean"]) {
+  for (const cmd of ["doctor", "clean"]) {
     const result = await run([cmd, "--dry-run"], host);
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain("unknown option: --dry-run");

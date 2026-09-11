@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import { piPackageDir } from "@/consts/pi-packages.ts";
 import { skillDir } from "@/consts/skills-list.ts";
 import { workflowTools } from "@/consts/workflow-tools.ts";
 import type { Host } from "@/types/host.ts";
@@ -42,6 +43,7 @@ export async function assessWorkflow(host: Host, preset?: DotfilesPreset): Promi
   const npm = host.commandExists(workflowTools.npm.command);
   const bun = host.commandExists(workflowTools.bun.command);
   const pi = host.commandExists(workflowTools.pi.command);
+  const piPkgs = activePreset.piPackages.every((pkg) => host.fileExists(piPackageDir(home, pkg)));
   const herdr = host.commandExists(workflowTools.herdr.command);
   const opencode = host.commandExists(workflowTools.opencode.command);
   const grok = host.commandExists(workflowTools.grok.command);
@@ -62,6 +64,7 @@ export async function assessWorkflow(host: Host, preset?: DotfilesPreset): Promi
   const brokenStowLinks = host.brokenStowLinks();
 
   const checkOmzPlugins = activePreset.isToolEnabled("omzPlugins", true);
+  const checkPiPackages = activePreset.isToolEnabled("piPackages", true);
   const checkZed = activePreset.isToolEnabled("zed", true);
   const checkSkills = activePreset.isToolEnabled("skills", true);
 
@@ -75,6 +78,7 @@ export async function assessWorkflow(host: Host, preset?: DotfilesPreset): Promi
     { label: "npm", ok: npm },
     { label: "bun", ok: bun },
     { label: "pi", ok: pi },
+    ...(checkPiPackages ? [{ label: "pi packages", ok: piPkgs }] : []),
     { label: "herdr", ok: herdr },
     { label: "OpenCode", ok: opencode },
     { label: workflowTools.grok.label, ok: grok },
@@ -99,6 +103,7 @@ export async function assessWorkflow(host: Host, preset?: DotfilesPreset): Promi
     npm,
     bun,
     pi,
+    checkPiPackages ? piPkgs : true,
     herdr,
     opencode,
     grok,

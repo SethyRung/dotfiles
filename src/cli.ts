@@ -82,11 +82,14 @@ export async function run(args: string[], host: Host): Promise<RunResult> {
     }
 
     if (command === "init") {
-      const parsed = parseAllowedFlags(rest, help, ["--yes"]);
+      const parsed = parseAllowedFlags(rest, help, ["--yes", "--dry-run"]);
       if ("exitCode" in parsed) {
         return parsed;
       }
-      return await init(host, { yes: parsed.flags.has("--yes") });
+      return await init(host, {
+        yes: parsed.flags.has("--yes"),
+        dryRun: parsed.flags.has("--dry-run"),
+      });
     }
 
     if (command === "clean") {

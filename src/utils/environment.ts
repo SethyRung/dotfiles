@@ -1,3 +1,26 @@
+export function envStoreStatePath(home: string): string {
+  return `${home}/.local/state/dotfiles/env-store`;
+}
+
+export function apiKeyNamesFrom(text: string): string[] {
+  const names: string[] = [];
+  for (const line of text.split("\n")) {
+    let trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) {
+      continue;
+    }
+    if (trimmed.startsWith("export ")) {
+      trimmed = trimmed.slice(7).trim();
+    }
+    const eq = trimmed.indexOf("=");
+    if (eq <= 0) {
+      continue;
+    }
+    names.push(trimmed.slice(0, eq));
+  }
+  return names;
+}
+
 export function parseApiKeyCsv(csv: string): Record<string, string> {
   const keys: Record<string, string> = {};
   for (const part of csv.split(",")) {

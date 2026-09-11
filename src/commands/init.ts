@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { stow } from "@/commands/stow.ts";
 import { ghosttyPackageFor } from "@/consts/package-map.ts";
+import { piPackageDir } from "@/consts/pi-packages.ts";
 import { skillDir } from "@/consts/skills-list.ts";
 import { miseToolsProgressDetail, workflowTools } from "@/consts/workflow-tools.ts";
 import type { Host } from "@/types/host.ts";
@@ -63,7 +64,10 @@ async function workflowLooksPresent(host: Host, preset: DotfilesPreset): Promise
   return (await assessWorkflow(host, preset)).isBootstrapped;
 }
 
-export async function init(host: Host, options: { yes?: boolean } = {}): Promise<RunResult> {
+export async function init(
+  host: Host,
+  options: { yes?: boolean; dryRun?: boolean } = {},
+): Promise<RunResult> {
   const pm = host.packageManager();
   if (!pm) {
     return {
@@ -79,8 +83,10 @@ export async function init(host: Host, options: { yes?: boolean } = {}): Promise
     const message = error instanceof Error ? error.message : "failed to load preset";
     return { exitCode: 1, stdout: "", stderr: `${message}\n` };
   }
+  const dryRun = options.dryRun === true;
+  const write = !dryRun;
   const reRun = await workflowLooksPresent(host, preset);
-  if (reRun && !options.yes) {
+  if (reRun && !options.yes && !dryRun) {
     const cont = await host.prompt("Workflow already present. Continue? [y/N] ");
     if (!isYes(cont)) {
       return { exitCode: 0, stdout: "", stderr: "" };
@@ -98,7 +104,9 @@ export async function init(host: Host, options: { yes?: boolean } = {}): Promise
   const parsedDotenv = dotenvContent !== null ? parseDotenv(dotenvContent) : {};
   const dotenvKeys = Object.keys(parsedDotenv);
 
-  if (options.yes) {
+  if (dryRun) {
+    envVars = {};
+  } else if (options.yes) {
     envVars = parsedDotenv;
     envConfirmed = dotenvKeys.length > 0;
   } else if (dotenvKeys.length > 0) {
@@ -125,7 +133,7 @@ export async function init(host: Host, options: { yes?: boolean } = {}): Promise
     }
   }
 
-  if (!options.yes && Object.keys(envVars).length > 0) {
+  if (!options.yes && !dryRun && Object.keys(envVars).length > 0) {
     const locationMenu =
       "Store location:\n" +
       "1) /etc/environment (system-wide) [default]\n" +
@@ -150,7 +158,7 @@ export async function init(host: Host, options: { yes?: boolean } = {}): Promise
   const ghosttyMissing = !host.commandExists(workflowTools.ghostty.command);
   if (ghosttyConfigured) {
     wantGhostty = preset.tools.ghostty === true && ghosttyMissing;
-  } else if (ghosttyMissing && !options.yes) {
+  } else if (ghosttyMissing && !options.yes && !dryRun) {
     wantGhostty = isYes(await host.prompt("Install Ghostty? [y/N] "));
   }
 
@@ -162,14 +170,18 @@ export async function init(host: Host, options: { yes?: boolean } = {}): Promise
     const pkgs = preset.distroPackagesFor(pm).filter((name) => !host.commandExists(name));
     if (pkgs.length > 0) {
       update(STEPS.DISTRO, "running", pkgs.join(", "));
-      await host.installPackages(pkgs);
+      if (write) {
+        await host.installPackages(pkgs);
+      }
       update(STEPS.DISTRO, "done", pkgs.join(", "));
     } else {
       update(STEPS.DISTRO, "skipped", "present");
     }
     if (!host.fileExists(join(home, ".oh-my-zsh"))) {
       update(STEPS.OMZ, "running", "latest");
-      await host.runUpstreamInstall("oh-my-zsh");
+      if (write) {
+        await host.runUpstreamInstall("oh-my-zsh");
+      }
       update(STEPS.OMZ, "done", "latest");
     } else {
       update(STEPS.OMZ, "skipped", "present");
@@ -182,8 +194,10 @@ export async function init(host: Host, options: { yes?: boolean } = {}): Promise
       );
       if (missingPlugins.length > 0) {
         update(STEPS.OMZ_PLUGINS, "running", missingPlugins.join(", "));
-        for (const plugin of missingPlugins) {
-          await host.runUpstreamInstall(plugin);
+        if (write) {
+          for (const plugin of missingPlugins) {
+            await host.runUpstreamInstall(plugin);
+          }
         }
         update(STEPS.OMZ_PLUGINS, "done", `${preset.omzPlugins.length} plugins`);
       } else {
@@ -192,7 +206,9 @@ export async function init(host: Host, options: { yes?: boolean } = {}): Promise
     }
     if (!host.commandExists(workflowTools.mise.command)) {
       update(STEPS.MISE, "running", "latest");
-      await host.runUpstreamInstall(workflowTools.mise.upstream);
+      if (write) {
+        await host.runUpstreamInstall(workflowTools.mise.upstream);
+      }
       update(STEPS.MISE, "done", "latest");
     } else {
       update(STEPS.MISE, "skipped", "present");
@@ -200,30 +216,45 @@ export async function init(host: Host, options: { yes?: boolean } = {}): Promise
     update(STEPS.STOW, "running", "home/ tree");
     const stowed = await stow(host, {
       skipGhostty: true,
-      confirmConflicts: reRun && !options.yes,
+      confirmConflicts: reRun && !options.yes && write,
+      dryRun,
     });
     if (stowed.exitCode !== 0) {
       return stowed;
     }
     update(STEPS.STOW, "done", "linked");
-    const piWasMissing = !host.commandExists(workflowTools.pi.command);
     update(STEPS.MISE_TOOLS, "running", miseToolsProgressDetail);
-    await host.installMiseTools();
+    if (write) {
+      await host.installMiseTools();
+    }
     update(STEPS.MISE_TOOLS, "done", miseToolsProgressDetail);
     if (!preset.isToolEnabled("piPackages", true)) {
       update(STEPS.PI_PACKAGES, "skipped", "disabled in preset");
-    } else if (piWasMissing) {
-      update(STEPS.PI_PACKAGES, "running", `${preset.piPackages.length} packages`);
-      await host.installPiPackages(preset.piPackages);
-      update(STEPS.PI_PACKAGES, "done", `${preset.piPackages.length} packages`);
     } else {
-      update(STEPS.PI_PACKAGES, "skipped", "present");
+      const missingPiPackages = preset.piPackages.filter(
+        (pkg) => !host.fileExists(piPackageDir(home, pkg)),
+      );
+      if (missingPiPackages.length > 0) {
+        update(
+          STEPS.PI_PACKAGES,
+          "running",
+          `${missingPiPackages.length} of ${preset.piPackages.length}`,
+        );
+        if (write) {
+          await host.installPiPackages(missingPiPackages);
+        }
+        update(STEPS.PI_PACKAGES, "done", `${preset.piPackages.length} packages`);
+      } else {
+        update(STEPS.PI_PACKAGES, "skipped", "present");
+      }
     }
     if (!preset.isToolEnabled("zed", true)) {
       update(STEPS.ZED, "skipped", "disabled in preset");
     } else if (!host.commandExists(workflowTools.zed.command)) {
       update(STEPS.ZED, "running", "latest");
-      await host.runUpstreamInstall(workflowTools.zed.upstream);
+      if (write) {
+        await host.runUpstreamInstall(workflowTools.zed.upstream);
+      }
       update(STEPS.ZED, "done", "latest");
     } else {
       update(STEPS.ZED, "skipped", "present");
@@ -236,25 +267,31 @@ export async function init(host: Host, options: { yes?: boolean } = {}): Promise
       );
       if (missingSkillSpecs.length > 0) {
         update(STEPS.SKILLS, "running", `${missingSkillSpecs.length} of ${preset.skills.length}`);
-        await host.installSkills(missingSkillSpecs);
+        if (write) {
+          await host.installSkills(missingSkillSpecs);
+        }
         update(STEPS.SKILLS, "done", `${preset.skills.length} skills`);
       } else {
         update(STEPS.SKILLS, "skipped", "present");
       }
     }
     update(STEPS.MCP, "running", "translating");
-    await mirrorMcp(host);
+    if (write) {
+      await mirrorMcp(host);
+    }
     update(STEPS.MCP, "done", "pi, OpenCode, Grok, Codex");
 
     if (Object.keys(envVars).length > 0) {
       if (envConfirmed) {
-        await host.mergeApiKeys(envVars, envResolvedPath);
+        if (write) {
+          await host.mergeApiKeys(envVars, envResolvedPath);
+        }
         update(STEPS.KEYS, "done", `merged into ${envDisplayPath}`);
       } else {
         update(STEPS.KEYS, "skipped", "declined");
       }
     } else {
-      update(STEPS.KEYS, "skipped", "empty");
+      update(STEPS.KEYS, "skipped", dryRun ? "dry run" : "empty");
     }
     let stderr = "";
     if (preset.tools.ghostty === false) {
@@ -264,7 +301,9 @@ export async function init(host: Host, options: { yes?: boolean } = {}): Promise
       if (ghostty) {
         try {
           update(STEPS.GHOSTTY, "running", "installing");
-          await host.installPackages([ghostty]);
+          if (write) {
+            await host.installPackages([ghostty]);
+          }
           update(STEPS.GHOSTTY, "done", "installed");
         } catch {
           update(STEPS.GHOSTTY, "failed", "install failed");
@@ -275,24 +314,32 @@ export async function init(host: Host, options: { yes?: boolean } = {}): Promise
         stderr = `Ghostty is not in the Package Map for ${pm}.\n`;
       }
     } else {
-      update(STEPS.GHOSTTY, "skipped", ghosttyMissing ? "declined" : "present");
+      update(
+        STEPS.GHOSTTY,
+        "skipped",
+        ghosttyMissing ? (dryRun ? "dry run" : "declined") : "present",
+      );
     }
     if (host.commandExists(workflowTools.ghostty.command)) {
-      await stow(host, { onlyGhostty: true });
+      await stow(host, { onlyGhostty: true, dryRun });
     }
     let shellChanged = false;
     if (!isZsh(host.loginShell())) {
       update(STEPS.SHELL, "running", "zsh");
-      await host.changeLoginShell(workflowTools.zsh.command);
-      shellChanged = true;
+      if (write) {
+        await host.changeLoginShell(workflowTools.zsh.command);
+        shellChanged = true;
+      }
       update(STEPS.SHELL, "done", "zsh");
     } else {
       update(STEPS.SHELL, "skipped", "already zsh");
     }
     update(STEPS.CLI, "running", "~/.local/bin");
-    await host.linkDotfiles();
+    if (write) {
+      await host.linkDotfiles();
+    }
     update(STEPS.CLI, "done", "~/.local/bin");
-    if (shellChanged && !options.yes) {
+    if (shellChanged && !options.yes && !dryRun) {
       const message =
         "Login shell is now zsh. Run `zsh` or `reboot` to fully apply the change.\n" +
         "Reboot to apply it? [y/N] ";

@@ -1,4 +1,5 @@
 import { defaultMcp, type McpServer } from "@/config.ts";
+import { piPackageDir, piPackages } from "@/consts/pi-packages.ts";
 import { skillsList } from "@/consts/skills-list.ts";
 import { requiredWorkflowCommands } from "@/consts/workflow-tools.ts";
 import type { Host, PackageManager } from "@/types/host.ts";
@@ -9,7 +10,7 @@ import type {
   ProgressStep,
 } from "@/types/progress.ts";
 import type { StowOptions, StowReport } from "@/types/result.ts";
-import { mergeEnvironment } from "@/utils/environment.ts";
+import { apiKeyNamesFrom, envStoreStatePath, mergeEnvironment } from "@/utils/environment.ts";
 import { openCodeMcpFromCanonical, piMcpFromCanonical } from "@/utils/mcp.ts";
 import { isYes } from "@/utils/prompt.ts";
 import { isGhosttyConfig, isStowJunk } from "@/utils/stow.ts";
@@ -19,6 +20,10 @@ export const presentWorkflowCommands: string[] = [...requiredWorkflowCommands];
 
 export function skillDirs(home: string): string[] {
   return skillsList.map((spec) => `${home}/.agents/skills/${spec.split("@")[1] ?? spec}`);
+}
+
+export function piPackageDirs(home: string): string[] {
+  return piPackages.map((spec) => piPackageDir(home, spec));
 }
 
 function tomlMcpServers(servers: Record<string, McpServer>): string {
@@ -243,20 +248,13 @@ export function createFakeHost(
         fileContents[`${homeDir}/.zshenv`] ?? "",
         fileContents[`${homeDir}/.profile`] ?? "",
       ];
+      const recorded = fileContents[envStoreStatePath(homeDir)]?.trim();
+      if (recorded && recorded !== "/etc/environment") {
+        sources.push(fileContents[recorded] ?? "");
+      }
       for (const text of sources) {
-        for (const line of text.split("\n")) {
-          let trimmed = line.trim();
-          if (!trimmed || trimmed.startsWith("#")) {
-            continue;
-          }
-          if (trimmed.startsWith("export ")) {
-            trimmed = trimmed.slice(7).trim();
-          }
-          const eq = trimmed.indexOf("=");
-          if (eq <= 0) {
-            continue;
-          }
-          names.add(trimmed.slice(0, eq));
+        for (const name of apiKeyNamesFrom(text)) {
+          names.add(name);
         }
       }
       return [...names];
@@ -270,6 +268,9 @@ export function createFakeHost(
         fileContents[targetPath] = mergeEnvironment(existing, keys);
         files.add(targetPath);
       }
+      const statePath = envStoreStatePath(homeDir);
+      fileContents[statePath] = `${targetPath}\n`;
+      files.add(statePath);
     },
     brokenStowLinks() {
       return stowLinks;
@@ -369,6 +370,9 @@ export function createFakeHost(
     async installPiPackages(packages) {
       actions.push("pi-packages");
       piPackagesRequested.push(...packages);
+      for (const pkg of packages) {
+        files.add(piPackageDir(homeDir, pkg));
+      }
     },
     async installSkills(specs) {
       actions.push("skills");

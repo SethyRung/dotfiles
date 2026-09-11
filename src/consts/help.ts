@@ -17,8 +17,9 @@ export const initHelpText = `Usage: dotfiles init [options]
 Bootstrap the Workflow
 
 Options:
-      --yes   Answer yes to prompts; skip Ghostty unless the Preset enables it
-  -h, --help  Show help
+      --yes      Answer yes to prompts; skip Ghostty unless the Preset enables it
+      --dry-run  Preview Bootstrap without modifying the machine
+  -h, --help     Show help
 `;
 
 export const doctorHelpText = `Usage: dotfiles doctor [options]

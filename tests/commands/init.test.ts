@@ -5,6 +5,7 @@ import { skillsList } from "@/consts/skills-list.ts";
 import {
   createFakeHost,
   mcpSource,
+  piPackageDirs,
   presentWorkflowCommands,
   skillDirs,
 } from "../helpers/fake-host.ts";
@@ -172,15 +173,59 @@ test("pi packages are requested when pi was missing before installMiseTools", as
     "npm:pi-zentui",
     "npm:@ogulcancelik/pi-herdr",
     "npm:@ollama/pi-web-search",
+    "npm:pi-antigravity",
   ]);
 });
 
-test("pi packages are skipped when pi was already present before installMiseTools", async () => {
+test("pi packages are requested when pi is present but package dirs are missing", async () => {
   const host = createFakeHost(["bun", "pi"], { packageManager: "apt" });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
   expect(host.miseToolsCalls).toBe(1);
+  expect(host.piPackagesRequested).toEqual([
+    "npm:pi-subagents",
+    "npm:pi-mcp-adapter",
+    "npm:@juicesharp/rpiv-ask-user-question",
+    "npm:@juicesharp/rpiv-todo",
+    "npm:@narumitw/pi-retry",
+    "npm:pi-zentui",
+    "npm:@ogulcancelik/pi-herdr",
+    "npm:@ollama/pi-web-search",
+    "npm:pi-antigravity",
+  ]);
+});
+
+test("pi packages are skipped when every Preset package dir is present", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["bun", "pi"], {
+    homeDir: home,
+    packageManager: "apt",
+    files: piPackageDirs(home),
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
   expect(host.piPackagesRequested).toEqual([]);
+});
+
+test("init installs only missing pi packages", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["bun", "pi"], {
+    homeDir: home,
+    packageManager: "apt",
+    files: [piPackageDirs(home)[0]!],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.piPackagesRequested).toEqual([
+    "npm:pi-mcp-adapter",
+    "npm:@juicesharp/rpiv-ask-user-question",
+    "npm:@juicesharp/rpiv-todo",
+    "npm:@narumitw/pi-retry",
+    "npm:pi-zentui",
+    "npm:@ogulcancelik/pi-herdr",
+    "npm:@ollama/pi-web-search",
+    "npm:pi-antigravity",
+  ]);
 });
 
 test("the Progress Log replaces the nvm, herdr, and OpenCode rows with mise, Mise Tools, and pi packages", async () => {
@@ -204,7 +249,7 @@ test("the Progress Log replaces the nvm, herdr, and OpenCode rows with mise, Mis
   });
   expect(final.get("pi packages")).toEqual({
     label: "pi packages",
-    detail: "8 packages",
+    detail: "9 packages",
     state: "done",
   });
 });
@@ -243,6 +288,7 @@ test("README documents v2 flags, completions, Grok/Codex snapshot, and Ghostty o
   expect(readme).toContain("Codex config");
   expect(readme).toContain("zypper");
   expect(readme).toContain("`ghostty`");
+  expect(readme).toContain("init --dry-run");
 });
 
 test("zsh completions for the five commands are Stowed and fpath is set before Oh My Zsh", async () => {
@@ -281,8 +327,8 @@ test("zsh completions for the five commands are Stowed and fpath is set before O
   const cleanFlags = completion.match(/clean\)[\s\S]*?;;/)?.[0] ?? "";
   const syncFlags = completion.match(/sync\)[\s\S]*?;;/)?.[0] ?? "";
   expect(initFlags).toContain("--yes");
+  expect(initFlags).toContain("--dry-run");
   expect(initFlags).not.toContain("--json");
-  expect(initFlags).not.toContain("--dry-run");
   expect(initFlags).not.toContain("--version");
   expect(doctorFlags).toContain("--json");
   expect(doctorFlags).not.toContain("--yes");
@@ -404,7 +450,7 @@ test("init reports live progress frames for each step", async () => {
   });
   expect(final.get("pi packages")).toEqual({
     label: "pi packages",
-    detail: "8 packages",
+    detail: "9 packages",
     state: "done",
   });
   expect(final.get("API Keys")).toEqual({ label: "API Keys", detail: "empty", state: "skipped" });
@@ -430,6 +476,7 @@ test("when Workflow is already present, frames say skipped with present details"
       `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
       `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
       ...skillDirs(home),
+      ...piPackageDirs(home),
       `${home}/.pi/agent/mcp.json`,
       `${home}/.local/bin/dotfiles`,
     ],
@@ -493,6 +540,7 @@ test("no reboot question when the login shell is already zsh", async () => {
       `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
       `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
       ...skillDirs(home),
+      ...piPackageDirs(home),
       `${home}/.pi/agent/mcp.json`,
       `${home}/.local/bin/dotfiles`,
     ],
@@ -591,7 +639,18 @@ test("restored pi settings do not include default model or provider", async () =
   expect(settings).not.toHaveProperty("defaultProvider");
   expect(settings).not.toHaveProperty("model");
   expect(settings).not.toHaveProperty("provider");
-  expect(settings.packages).toContain("npm:pi-subagents");
+  expect(settings).not.toHaveProperty("lastChangelogVersion");
+  expect(settings.packages).toEqual([
+    "npm:pi-subagents",
+    "npm:pi-mcp-adapter",
+    "npm:@juicesharp/rpiv-ask-user-question",
+    "npm:@juicesharp/rpiv-todo",
+    "npm:@narumitw/pi-retry",
+    "npm:pi-zentui",
+    "npm:@ogulcancelik/pi-herdr",
+    "npm:@ollama/pi-web-search",
+    "npm:pi-antigravity",
+  ]);
 });
 
 test("APPEND_SYSTEM and prompts are restored; extensions, auth, sessions, caches, and model stores are not", async () => {
@@ -946,6 +1005,7 @@ test("on a re-run, init still offers Ghostty when it is missing", async () => {
       `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
       `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
       ...skillDirs(home),
+      ...piPackageDirs(home),
       `${home}/.pi/agent/mcp.json`,
       `${home}/.local/bin/dotfiles`,
     ],
@@ -1005,6 +1065,7 @@ test("dangling PATH and MCP dests after a repo move still ask continue?", async 
       `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
       `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
       ...skillDirs(home),
+      ...piPackageDirs(home),
     ],
     loginShell: "/bin/zsh",
     brokenStowLinks: [`${home}/.config/herdr/config.toml`, `${home}/.zshrc`],
@@ -1027,6 +1088,7 @@ test("when Workflow already looks present, init asks continue? before doing work
       `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
       `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
       ...skillDirs(home),
+      ...piPackageDirs(home),
       `${home}/.pi/agent/mcp.json`,
       `${home}/.local/bin/dotfiles`,
     ],
@@ -1050,6 +1112,7 @@ test("declining continue leaves the Host unchanged", async () => {
       `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
       `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
       ...skillDirs(home),
+      ...piPackageDirs(home),
       `${home}/.pi/agent/mcp.json`,
       `${home}/.local/bin/dotfiles`,
     ],
@@ -1080,6 +1143,7 @@ test("continue does not re-request tools the Host already has", async () => {
       `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
       `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
       ...skillDirs(home),
+      ...piPackageDirs(home),
       `${home}/.pi/agent/mcp.json`,
       `${home}/.local/bin/dotfiles`,
     ],
@@ -1105,6 +1169,7 @@ test("continue still confirms before /etc/environment writes", async () => {
       `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
       `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
       ...skillDirs(home),
+      ...piPackageDirs(home),
       `${home}/.pi/agent/mcp.json`,
       `${home}/.local/bin/dotfiles`,
     ],
@@ -1128,6 +1193,7 @@ test("continue still confirms before Stow conflicts", async () => {
       `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
       `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
       ...skillDirs(home),
+      ...piPackageDirs(home),
       `${home}/.pi/agent/mcp.json`,
       `${home}/.local/bin/dotfiles`,
       `${home}/.zshrc`,
@@ -1514,6 +1580,7 @@ test("a Host missing mise is not treated as Workflow already present", async () 
         `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
         ...skillDirs(home),
+        ...piPackageDirs(home),
         `${home}/.pi/agent/mcp.json`,
         `${home}/.local/bin/dotfiles`,
       ],
@@ -1538,6 +1605,7 @@ test("a Host missing Grok is not treated as Workflow already present", async () 
         `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
         `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
         ...skillDirs(home),
+        ...piPackageDirs(home),
         `${home}/.pi/agent/mcp.json`,
         `${home}/.local/bin/dotfiles`,
       ],
@@ -1584,6 +1652,7 @@ test("continue still confirms before Stow conflicts for OpenCode config", async 
       `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
       `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
       ...skillDirs(home),
+      ...piPackageDirs(home),
       `${home}/.pi/agent/mcp.json`,
       `${home}/.local/bin/dotfiles`,
       `${home}/.config/opencode/opencode.json`,
@@ -1800,6 +1869,7 @@ test("init --yes continues a present Workflow, uses .env as-is, and overwrites S
       `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
       `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
       ...skillDirs(home),
+      ...piPackageDirs(home),
       `${home}/.pi/agent/mcp.json`,
       `${home}/.local/bin/dotfiles`,
       `${home}/.zshrc`,
@@ -1884,4 +1954,85 @@ test("init asks questions upfront before running installation progress", async (
   expect(host.prompts[3]).toContain("Install Ghostty?");
   expect(host.packagesRequested).toContain("ghostty");
   expect(await host.readEnvironment()).toContain("TEST_KEY=123");
+});
+
+test("init records a custom env store path so doctor can find those API Keys", async () => {
+  const home = "/fake-home";
+  const repo = "/fake-repo";
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    homeDir: home,
+    repoDir: repo,
+    files: [`${repo}/dotfiles.json`],
+    fileContents: {
+      [`${repo}/dotfiles.json`]: JSON.stringify({ apiKeys: ["CUSTOM_KEY"] }),
+    },
+    promptAnswers: ["CUSTOM_KEY=secret-value", "4", "~/.custom_env", "y"],
+  });
+  const initResult = await run(["init"], host);
+  expect(initResult.exitCode).toBe(0);
+  expect(await host.readFile(`${home}/.local/state/dotfiles/env-store`)).toBe(
+    `${home}/.custom_env\n`,
+  );
+  expect(initResult.stdout).not.toContain("secret-value");
+  const doctorResult = await run(["doctor"], host);
+  expect(doctorResult.stdout).toContain("[ok]  CUSTOM_KEY");
+  expect(doctorResult.stdout).not.toContain("secret-value");
+});
+
+test("init --dry-run previews Bootstrap and writes nothing", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    homeDir: home,
+    homeTree: [".zshrc"],
+  });
+  const before = { ...host.fileContents };
+  const result = await run(["init", "--dry-run"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.prompts).toEqual([]);
+  expect(host.packagesRequested).toEqual([]);
+  expect(host.upstreamInstalls).toEqual([]);
+  expect(host.miseToolsCalls).toBe(0);
+  expect(host.piPackagesRequested).toEqual([]);
+  expect(host.skillsRequested).toEqual([]);
+  expect(host.linked).toEqual([]);
+  expect(host.dotfilesLinks).toBe(0);
+  expect(host.reboots).toBe(0);
+  expect(host.fileContents).toEqual(before);
+  expect(host.loginShell()).toBeNull();
+  expect(finalSteps(host).get("Distro packages")).toMatchObject({
+    state: "done",
+    detail: "zsh, git, stow",
+  });
+  expect(finalSteps(host).get("API Keys")).toMatchObject({ state: "skipped", detail: "dry run" });
+});
+
+test("init --dry-run still fail-fasts on an unknown Distro", async () => {
+  const host = createFakeHost(["bun"]);
+  const result = await run(["init", "--dry-run"], host);
+  expect(result.exitCode).not.toBe(0);
+  expect(host.packagesRequested).toEqual([]);
+  expect(host.upstreamInstalls).toEqual([]);
+  expect(host.prompts).toEqual([]);
+  expect(result.stderr).toContain("zypper");
+});
+
+test("init --dry-run --yes still writes nothing", async () => {
+  const host = createFakeHost(["bun"], { packageManager: "apt" });
+  const result = await run(["init", "--dry-run", "--yes"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.packagesRequested).toEqual([]);
+  expect(host.upstreamInstalls).toEqual([]);
+  expect(host.miseToolsCalls).toBe(0);
+  expect(host.linked).toEqual([]);
+  expect(host.prompts).toEqual([]);
+});
+
+test("init --help documents --dry-run", async () => {
+  const host = createFakeHost(["bun"], { packageManager: "apt" });
+  const result = await run(["init", "--help"], host);
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("--dry-run");
+  expect(host.packagesRequested).toEqual([]);
 });

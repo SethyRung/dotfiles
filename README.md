@@ -76,10 +76,10 @@ A live ASCII dashboard redraws as each step runs:
   [ok]   mise             latest
   [ok]   Stow             linked
   [\]    Mise Tools       agy, bun, codex, gh, grok, herdr, node, opencode, pi
-  [--]   pi packages      8 packages
+  [--]   pi packages      9 packages
   [--]   Zed              latest
   [--]   Skills           16 skills
-  [--]   MCP              pi + OpenCode
+  [--]   MCP              pi, OpenCode, Grok, Codex
   [--]   API Keys         will prompt
   [--]   Ghostty          will prompt
   [--]   login shell      zsh
@@ -95,7 +95,7 @@ A live ASCII dashboard redraws as each step runs:
 | Distro packages     | zsh, git, stow via the Package Map — no git config; optional Ghostty as `ghostty` on apt, pacman, dnf, and zypper                                                                                                                                                 |
 | Upstream Installs   | mise, Oh My Zsh, OMZ plugins, Zed (always latest, never version-pinned)                                                                                                                                                                                           |
 | Mise Tools          | agy, bun, Codex, gh, grok, herdr, pi, OpenCode (`latest`) and Node (`lts`) from the Stowed mise config; npm comes from mise's Node                                                                                                                                |
-| pi packages         | Current pi plugins, installed only when pi was missing before Mise Tools                                                                                                                                                                                          |
+| pi packages         | Current pi plugins from the Preset; missing packages are installed on every init, even when pi is already present                                                                                                                                                 |
 | Stowed from `home/` | zshrc, zsh completions, mise config.toml, herdr config.toml, OpenCode config + TUI files, Grok config, Codex config + herdr hooks, pi agent config, Zed settings.json + keymap.json (Zed extensions are declared in `auto_install_extensions`, never snapshotted) |
 | Machine state       | login shell becomes zsh, dotfiles symlinked into `~/.local/bin`, environment variables merged into chosen store location (`/etc/environment`, `~/.zshenv`, etc.)                                                                                                  |
 
@@ -114,9 +114,12 @@ Runs all 14 steps: Distro packages, Oh My Zsh + plugins, mise, Stow, Mise Tools,
 ```bash
 dotfiles init
 dotfiles init --yes
+dotfiles init --dry-run
 ```
 
 `--yes` answers continue, uses `.env` as-is (or skips keys), writes to the default store, skips Ghostty unless the Preset enables it, overwrites Stow conflicts, and does not reboot.
+
+`--dry-run` previews Bootstrap without installing, Stowing, writing MCP, merging API Keys, changing the login shell, or linking `~/.local/bin/dotfiles`.
 
 See [Re-runs and safety](#re-runs-and-safety) for repeat-run behavior, and [API Keys](#api-keys) for the key prompt.
 
@@ -124,7 +127,8 @@ See [Re-runs and safety](#re-runs-and-safety) for repeat-run behavior, and [API 
 
 Report every Workflow piece present or missing.
 
-- Reports expected API Key **names** from the Preset (`apiKeys`) as present or missing. Never prints values. Extra env-store names including `PATH` are not listed.
+- Reports expected API Key **names** from the Preset (`apiKeys`) as present or missing. Never prints values. Extra env-store names including `PATH` are not listed. Scans `/etc/environment`, `~/.zshenv`, `~/.profile`, and the store path last written by init (including a custom path).
+- Reports Preset pi packages present or missing (`~/.pi/agent/npm/node_modules`).
 - MCP is healthy when the Preset `mcp` list is translated into pi, OpenCode, Grok, and Codex — not merely when a dest file exists.
 - Reports Ghostty as an **optional** warning, not a failure.
 - Lists broken Stow links.
@@ -251,7 +255,7 @@ The repository includes `dotfiles.json` as the single source of truth for tools,
 ## Re-runs and safety
 
 - **Upfront questions**: All interactive questions (workflow continuation, API Keys/.env, unconfigured optional tools) are asked upfront so the installation runs in one continuous shot without intermediate pauses.
-- Workflow already present: one `Continue? [y/N]` prompt. Decline changes nothing; continue skips installed tools quietly (`[skip] ... present`).
+- Workflow already present: one `Continue? [y/N]` prompt. Decline changes nothing; continue skips installed tools quietly (`[skip] ... present`). Missing pi packages are installed on continue, same as missing Skills.
 - Stow always re-links `home/`; Mise Tools always run `mise install` after that Stow (idempotent; not an upgrade).
 - Extra prompts appear only before destructive writes: `/etc/environment` and Stow conflicts.
 - Fail fast on required steps; Ghostty failure is a warning, not a crash.
@@ -265,7 +269,7 @@ The maintainer edits config in this repo (anything under `home/`, `dotfiles.json
 dotfiles sync
 ```
 
-pulls the repo fast-forward only, re-Stows `home/` into `$HOME`, and refreshes MCP translations into pi and OpenCode.
+pulls the repo fast-forward only, re-Stows `home/` into `$HOME`, and refreshes MCP translations into pi, OpenCode, Grok, and Codex. Never installs missing pi packages — that stays `init`.
 
 ## Troubleshooting
 

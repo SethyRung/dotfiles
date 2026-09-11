@@ -3,6 +3,7 @@ import { run } from "@/cli.ts";
 import {
   createFakeHost,
   mcpAgentFiles,
+  piPackageDirs,
   presentWorkflowCommands,
   skillDirs,
 } from "../helpers/fake-host.ts";
@@ -18,6 +19,7 @@ function healthyWorkflow(
       `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
       `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
       ...skillDirs(home),
+      ...piPackageDirs(home),
       `${home}/.local/bin/dotfiles`,
       ...mcp.files,
       ...(extra.files ?? []),
@@ -40,6 +42,7 @@ test("on an empty Host, doctor reports required Workflow pieces missing and exit
     "npm",
     "bun",
     "pi",
+    "pi packages",
     "herdr",
     "OpenCode",
     "Grok",
@@ -55,7 +58,7 @@ test("on an empty Host, doctor reports required Workflow pieces missing and exit
     expect(result.stdout).toContain(`[!!]  ${piece}`);
   }
   expect(result.stdout).toContain("Workflow");
-  expect(result.stdout).toContain("0/20 required ok");
+  expect(result.stdout).toContain("0/21 required ok");
 });
 
 test("doctor reports mise missing as a required failure", async () => {
@@ -85,6 +88,7 @@ test("doctor MCP fails when agent dests are stale versus the Preset", async () =
       `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
       `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
       ...skillDirs(home),
+      ...piPackageDirs(home),
       `${home}/.local/bin/dotfiles`,
       ...mcp.files,
       `${repo}/dotfiles.json`,
@@ -113,6 +117,7 @@ test("doctor MCP fails when only the pi dest exists", async () => {
       `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
       `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
       ...skillDirs(home),
+      ...piPackageDirs(home),
       `${home}/.pi/agent/mcp.json`,
       `${home}/.local/bin/dotfiles`,
     ],
@@ -137,7 +142,7 @@ test("Ghostty missing is a warning, not a required failure", async () => {
   expect(result.stdout).not.toContain("[!!]  Ghostty");
   expect(result.stdout).toContain("Optional");
   expect(result.stdout).toContain("[ok]  mise");
-  expect(result.stdout).toContain("20 required ok");
+  expect(result.stdout).toContain("21 required ok");
 });
 
 test("doctor never prints API Key values", async () => {
@@ -171,7 +176,7 @@ test("doctor reports missing expected API Key names as failures without extra re
   expect(result.stdout).toContain("API Keys");
   expect(result.stdout).toContain("[!!]  OPENROUTER_API_KEY");
   expect(result.stdout).not.toContain("[ok]  OPENROUTER_API_KEY");
-  expect(result.stdout).toContain("1/20 required ok");
+  expect(result.stdout).toContain("1/21 required ok");
 });
 
 test("doctor lists only expected API Key names and ignores PATH", async () => {
@@ -233,7 +238,7 @@ test("a healthy Host with a missing expected API Key exits 1 and is not complete
   expect(human.exitCode).toBe(1);
   expect(json.exitCode).toBe(1);
   expect(human.stdout).toContain("[!!]  OPENROUTER_API_KEY");
-  expect(human.stdout).toContain("20 required ok");
+  expect(human.stdout).toContain("21 required ok");
   const body = JSON.parse(json.stdout) as {
     isComplete: boolean;
     isBootstrapped: boolean;
@@ -438,6 +443,64 @@ test("doctor --json --help prints doctor help and does no work", async () => {
   expect(result.stdout).toContain("Usage: dotfiles doctor");
   expect(result.stdout).toContain("--json");
   expect(result.stderr).toBe("");
+});
+
+test("doctor reports pi packages missing when the command exists but dirs do not", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(presentWorkflowCommands, {
+    homeDir: home,
+    ...healthyWorkflow(home),
+    loginShell: "/bin/zsh",
+    files: healthyWorkflow(home).files.filter((path) => !path.includes("node_modules")),
+  });
+  const result = await run(["doctor"], host);
+  expect(result.exitCode).toBe(1);
+  expect(result.stdout).toContain("[!!]  pi packages");
+});
+
+test("doctor does not require pi packages when tools.piPackages is false", async () => {
+  const home = "/fake-home";
+  const repo = "/fake-repo";
+  const healthy = healthyWorkflow(home, {
+    files: [`${repo}/dotfiles.json`],
+    fileContents: {
+      [`${repo}/dotfiles.json`]: JSON.stringify({ tools: { piPackages: false } }),
+    },
+  });
+  const host = createFakeHost(presentWorkflowCommands, {
+    homeDir: home,
+    repoDir: repo,
+    files: healthy.files.filter((path) => !path.includes("node_modules")),
+    fileContents: healthy.fileContents,
+    loginShell: "/bin/zsh",
+  });
+  const result = await run(["doctor"], host);
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).not.toContain("pi packages");
+});
+
+test("doctor finds expected API Keys in a recorded custom env store and never prints values", async () => {
+  const home = "/fake-home";
+  const repo = "/fake-repo";
+  const custom = `${home}/.custom_env`;
+  const host = createFakeHost(presentWorkflowCommands, {
+    homeDir: home,
+    repoDir: repo,
+    ...healthyWorkflow(home, {
+      files: [`${repo}/dotfiles.json`, custom, `${home}/.local/state/dotfiles/env-store`],
+      fileContents: {
+        [`${repo}/dotfiles.json`]: JSON.stringify({ apiKeys: ["CUSTOM_KEY"] }),
+        [custom]: "CUSTOM_KEY=secret-value\n",
+        [`${home}/.local/state/dotfiles/env-store`]: `${custom}\n`,
+      },
+    }),
+    loginShell: "/bin/zsh",
+  });
+  const result = await run(["doctor"], host);
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("[ok]  CUSTOM_KEY");
+  expect(result.stdout).not.toContain("secret-value");
+  expect(result.stderr).not.toContain("secret-value");
 });
 
 test("--json on init, stow, clean, or sync fails closed", async () => {

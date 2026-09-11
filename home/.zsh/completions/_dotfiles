@@ -24,6 +24,7 @@ case $state in
       init)
         _arguments \
           '--yes[Answer yes to prompts; skip Ghostty unless the Preset enables it]' \
+          '--dry-run[Preview Bootstrap without modifying the machine]' \
           '(-h --help)'{-h,--help}'[Show help]'
         ;;
       doctor)

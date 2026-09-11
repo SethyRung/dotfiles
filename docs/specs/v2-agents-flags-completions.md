@@ -113,7 +113,6 @@ Grow the existing five commands and the Host Stow/MCP path in place. Stow curate
 
 ## Further Notes
 
-- Conversation cut: v2 features first, bugs later. This spec is that feature cut. Membership of grok/Codex/gh/agy already shipped (ADR 0020).
 - Grill: Host only; five commands; MCP translators not new lists; `--yes` long flag; completions Stowed not a command; zypper Ghostty is `ghostty`.
 - Glossary: Bootstrap, Distro, Workflow, Stow, Sync, Package Map, Upstream Install, Mise Tool, Skill, MCP, API Key, Progress Log, Preset, Grok, Codex, Host.
 - Tracker for this repo is `docs/specs/` (no `docs/agents/issue-tracker.md`). Status `ready-for-agent` is the triage label. `/to-tickets` can split next.

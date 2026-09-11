@@ -22,7 +22,7 @@ import type {
   ProgressStep,
 } from "@/types/progress.ts";
 import type { StowOptions, StowReport } from "@/types/result.ts";
-import { mergeEnvironment } from "@/utils/environment.ts";
+import { apiKeyNamesFrom, envStoreStatePath, mergeEnvironment } from "@/utils/environment.ts";
 import { renderBanner, renderPanel, spinnerFrames } from "@/utils/panel.ts";
 import { isYes } from "@/utils/prompt.ts";
 import { isGhosttyConfig, isStowJunk } from "@/utils/stow.ts";
@@ -279,27 +279,20 @@ export const unixHost: Host = {
     chmodSync(dest, 0o755);
   },
   async listApiKeyNames() {
-    const locations = ["/etc/environment", join(homedir(), ".zshenv"), join(homedir(), ".profile")];
+    const home = homedir();
+    const locations = ["/etc/environment", join(home, ".zshenv"), join(home, ".profile")];
+    const recorded = (await unixHost.readFile(envStoreStatePath(home)))?.trim();
+    if (recorded) {
+      locations.push(recorded);
+    }
     const names = new Set<string>();
     for (const loc of locations) {
       const file = Bun.file(loc);
       if (!(await file.exists())) {
         continue;
       }
-      const text = await file.text();
-      for (const line of text.split("\n")) {
-        let trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith("#")) {
-          continue;
-        }
-        if (trimmed.startsWith("export ")) {
-          trimmed = trimmed.slice(7).trim();
-        }
-        const eq = trimmed.indexOf("=");
-        if (eq <= 0) {
-          continue;
-        }
-        names.add(trimmed.slice(0, eq));
+      for (const name of apiKeyNamesFrom(await file.text())) {
+        names.add(name);
       }
     }
     return [...names];
@@ -472,6 +465,7 @@ export const unixHost: Host = {
     } else {
       await unixHost.writeFile(targetPath, content);
     }
+    await unixHost.writeFile(envStoreStatePath(homedir()), `${targetPath}\n`);
   },
   async readFile(path) {
     const file = Bun.file(path);
