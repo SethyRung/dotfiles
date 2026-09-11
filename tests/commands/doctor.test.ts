@@ -218,3 +218,103 @@ test("doctor does not require zed when tools.zed is false", async () => {
   expect(result.exitCode).toBe(0);
   expect(result.stdout).not.toContain("Zed");
 });
+
+test("doctor --json prints Workflow Health JSON and exits non-zero on an empty Host", async () => {
+  const host = createFakeHost();
+  const result = await run(["doctor", "--json"], host);
+  expect(result.exitCode).not.toBe(0);
+  const body = JSON.parse(result.stdout) as {
+    requiredChecks: { label: string; ok: boolean }[];
+    optional: { ghostty: boolean };
+    keys: string[];
+    brokenStowLinks: string[];
+    isComplete: boolean;
+  };
+  expect(body.isComplete).toBe(false);
+  expect(body.optional.ghostty).toBe(false);
+  expect(body.keys).toEqual([]);
+  expect(body.brokenStowLinks).toEqual([]);
+  expect(body.requiredChecks.some((check) => check.label === "mise" && check.ok === false)).toBe(
+    true,
+  );
+  expect(result.stdout).not.toContain("DOTFILES  doctor");
+});
+
+test("doctor --json on a healthy Host exits zero and matches human doctor exit code", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(presentWorkflowCommands, {
+    homeDir: home,
+    files: [
+      `${home}/.oh-my-zsh`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
+      ...skillDirs(home),
+      `${home}/.pi/agent/mcp.json`,
+      `${home}/.local/bin/dotfiles`,
+    ],
+    loginShell: "/bin/zsh",
+  });
+  const human = await run(["doctor"], host);
+  const json = await run(["doctor", "--json"], host);
+  expect(human.exitCode).toBe(0);
+  expect(json.exitCode).toBe(0);
+  expect(human.stdout).toContain("DOTFILES  doctor");
+  const body = JSON.parse(json.stdout) as { isComplete: boolean; optional: { ghostty: boolean } };
+  expect(body.isComplete).toBe(true);
+  expect(body.optional.ghostty).toBe(false);
+});
+
+test("doctor --json never contains API Key values", async () => {
+  const host = createFakeHost(["bun"], {
+    environmentKeys: { OPENROUTER_API_KEY: "sk-secret-do-not-leak" },
+  });
+  const result = await run(["doctor", "--json"], host);
+  const body = JSON.parse(result.stdout) as { keys: string[] };
+  expect(body.keys).toContain("OPENROUTER_API_KEY");
+  expect(result.stdout).not.toContain("sk-secret-do-not-leak");
+  expect(result.stderr).not.toContain("sk-secret-do-not-leak");
+});
+
+test("doctor --json includes broken Stow links and exits non-zero", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(presentWorkflowCommands, {
+    homeDir: home,
+    files: [
+      `${home}/.oh-my-zsh`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
+      `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
+      ...skillDirs(home),
+      `${home}/.pi/agent/mcp.json`,
+      `${home}/.local/bin/dotfiles`,
+    ],
+    loginShell: "/bin/zsh",
+    brokenStowLinks: [`${home}/.zshrc`],
+  });
+  const result = await run(["doctor", "--json"], host);
+  expect(result.exitCode).toBe(1);
+  const body = JSON.parse(result.stdout) as { brokenStowLinks: string[]; isComplete: boolean };
+  expect(body.brokenStowLinks).toEqual([`${home}/.zshrc`]);
+  expect(body.isComplete).toBe(true);
+});
+
+test("doctor --json --help prints doctor help and does no work", async () => {
+  const host = createFakeHost();
+  const result = await run(["doctor", "--json", "--help"], host);
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("Usage: dotfiles doctor");
+  expect(result.stdout).toContain("--json");
+  expect(result.stderr).toBe("");
+});
+
+test("--json on init, stow, clean, or sync fails closed", async () => {
+  const host = createFakeHost(["bun"], { packageManager: "apt" });
+  for (const cmd of ["init", "stow", "clean", "sync"]) {
+    const result = await run([cmd, "--json"], host);
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("unknown option: --json");
+    expect(result.stdout).toBe("");
+  }
+  expect(host.packagesRequested).toEqual([]);
+  expect(host.linked).toEqual([]);
+  expect(host.repoPulls).toBe(0);
+});

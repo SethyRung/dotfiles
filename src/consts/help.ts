@@ -20,11 +20,12 @@ Options:
   -h, --help  Show help
 `;
 
-export const doctorHelpText = `Usage: dotfiles doctor
+export const doctorHelpText = `Usage: dotfiles doctor [options]
 
 Report what is present or missing
 
 Options:
+      --json  Print Workflow Health as JSON
   -h, --help  Show help
 `;
 

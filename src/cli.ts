@@ -10,11 +10,15 @@ import packageJson from "../package.json" with { type: "json" };
 
 export type { RunResult };
 
-function parseDryRun(rest: string[], help: string): { dryRun: boolean } | RunResult {
-  let dryRun = false;
+function parseAllowedFlags(
+  rest: string[],
+  help: string,
+  allowed: readonly string[],
+): { flags: Set<string> } | RunResult {
+  const flags = new Set<string>();
   for (const arg of rest) {
-    if (arg === "--dry-run") {
-      dryRun = true;
+    if (allowed.includes(arg)) {
+      flags.add(arg);
     } else {
       const message = arg.startsWith("-")
         ? `unknown option: ${arg}`
@@ -22,7 +26,15 @@ function parseDryRun(rest: string[], help: string): { dryRun: boolean } | RunRes
       return { exitCode: 1, stdout: "", stderr: `${message}\n\n${help}` };
     }
   }
-  return { dryRun };
+  return { flags };
+}
+
+function parseDryRun(rest: string[], help: string): { dryRun: boolean } | RunResult {
+  const parsed = parseAllowedFlags(rest, help, ["--dry-run"]);
+  if ("exitCode" in parsed) {
+    return parsed;
+  }
+  return { dryRun: parsed.flags.has("--dry-run") };
 }
 
 export async function run(args: string[], host: Host): Promise<RunResult> {
@@ -61,6 +73,14 @@ export async function run(args: string[], host: Host): Promise<RunResult> {
       return await sync(host, parsed);
     }
 
+    if (command === "doctor") {
+      const parsed = parseAllowedFlags(rest, help, ["--json"]);
+      if ("exitCode" in parsed) {
+        return parsed;
+      }
+      return await doctor(host, { json: parsed.flags.has("--json") });
+    }
+
     if (rest.length > 0) {
       const invalid = rest[0];
       const message = invalid.startsWith("-")
@@ -71,9 +91,6 @@ export async function run(args: string[], host: Host): Promise<RunResult> {
 
     if (command === "init") {
       return await init(host);
-    }
-    if (command === "doctor") {
-      return await doctor(host);
     }
     if (command === "clean") {
       return await clean(host);

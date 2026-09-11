@@ -7,7 +7,7 @@ function doctorRow(label: string, ok: boolean): string {
   return `  ${statusCell(ok)}${label}`;
 }
 
-export async function doctor(host: Host): Promise<RunResult> {
+export async function doctor(host: Host, options: { json?: boolean } = {}): Promise<RunResult> {
   let health: Awaited<ReturnType<typeof assessWorkflow>>;
   try {
     health = await assessWorkflow(host);
@@ -17,6 +17,10 @@ export async function doctor(host: Host): Promise<RunResult> {
   }
   const requiredOk = health.requiredChecks.filter((check) => check.ok).length;
   const totalRequired = health.requiredChecks.length;
+  const exitCode = requiredOk === totalRequired && health.brokenStowLinks.length === 0 ? 0 : 1;
+  if (options.json) {
+    return { exitCode, stdout: `${JSON.stringify(health)}\n`, stderr: "" };
+  }
   const lines = [
     "DOTFILES  doctor",
     "",
@@ -39,7 +43,7 @@ export async function doctor(host: Host): Promise<RunResult> {
       : `${requiredOk}/${totalRequired} required ok`,
   );
   return {
-    exitCode: requiredOk === totalRequired && health.brokenStowLinks.length === 0 ? 0 : 1,
+    exitCode,
     stdout: `${lines.join("\n")}\n`,
     stderr: "",
   };
