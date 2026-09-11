@@ -60,7 +60,10 @@ async function loadCanonical(host: Host): Promise<CanonicalMcp | null> {
 async function writePiMcp(host: Host, servers: CanonicalMcp): Promise<void> {
   const path = join(host.homeDir(), PI_MCP_DEST);
   const existingText = await host.readFile(path);
-  const existing = existingText ? JSON.parse(existingText) : {};
+  if (existingText == null) {
+    return;
+  }
+  const existing = JSON.parse(existingText);
   existing.mcpServers = piMcpFromCanonical(servers);
   await host.writeFile(path, `${JSON.stringify(existing, null, 2)}\n`);
 }

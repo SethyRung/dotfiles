@@ -29,11 +29,13 @@ test("dotfiles sync pulls the repo, re-Stows, and refreshes MCP translations", a
     homeTree: [
       ".zshrc",
       ".config/opencode/opencode.json",
+      ".pi/agent/mcp.json",
       ".grok/config.toml",
       ".codex/config.toml",
     ],
     treeContents: {
       ".config/opencode/opencode.json": JSON.stringify({ permission: "allow" }),
+      ".pi/agent/mcp.json": "{}\n",
       ".grok/config.toml": 'theme = "groknight"\n',
       ".codex/config.toml": "[features]\nhooks = true\n",
     },
@@ -52,6 +54,7 @@ test("dotfiles sync pulls the repo, re-Stows, and refreshes MCP translations", a
   expect(host.linked).toEqual([
     ".zshrc",
     ".config/opencode/opencode.json",
+    ".pi/agent/mcp.json",
     ".grok/config.toml",
     ".codex/config.toml",
   ]);
