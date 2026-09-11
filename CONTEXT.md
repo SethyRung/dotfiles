@@ -68,10 +68,10 @@ A coding agent in the Workflow: Mise Tool plus Stowed config.
 _Avoid_: opencode dotfiles, SST OpenCode
 
 **Grok**:
-A coding agent in the Workflow: Mise Tool (`npm:@xai-official/grok`).
+A coding agent in the Workflow: Mise Tool (`npm:@xai-official/grok`) plus Stowed config.
 
 **Codex**:
-A coding agent in the Workflow: Mise Tool.
+A coding agent in the Workflow: Mise Tool plus Stowed config and herdr hooks.
 
 **Zed**:
 The IDE in the Workflow: Upstream Install plus Stowed settings and keymap. Extensions are declared in `auto_install_extensions`.

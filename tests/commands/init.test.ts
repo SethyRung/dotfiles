@@ -1121,6 +1121,85 @@ test("Zed settings and keymap are Stowed with extensions declared for auto-insta
   expect(JSON.stringify(keymap)).toContain("editor::DuplicateLineUp");
 });
 
+test("Codex config and herdr hooks are Stowed", async () => {
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    homeTree: [".codex/config.toml", ".codex/hooks.json", ".codex/herdr-agent-state.sh"],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.linked).toContain(".codex/config.toml");
+  expect(host.linked).toContain(".codex/hooks.json");
+  expect(host.linked).toContain(".codex/herdr-agent-state.sh");
+  const cfg = await Bun.file(join(import.meta.dir, "../../home/.codex/config.toml")).text();
+  expect(cfg).toContain("hooks = true");
+  expect(cfg).not.toContain("[models]");
+  const hooks = await Bun.file(join(import.meta.dir, "../../home/.codex/hooks.json")).text();
+  expect(hooks).toContain("herdr-agent-state.sh");
+  expect(hooks).not.toContain("/home/sethyrung/");
+  const herdr = await Bun.file(
+    join(import.meta.dir, "../../home/.codex/herdr-agent-state.sh"),
+  ).text();
+  expect(herdr).toContain("HERDR_INTEGRATION_ID=codex");
+});
+
+test("Grok and Codex secrets, sessions, sqlite, and local skills are not Stowed", async () => {
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    homeTree: [
+      ".grok/config.toml",
+      ".grok/auth.json",
+      ".grok/sessions/x.json",
+      ".grok/logs/unified.jsonl",
+      ".grok/bin/grok-1.0.25",
+      ".grok/models_cache.json",
+      ".grok/auth.json.lock",
+      ".grok/agent_id",
+      ".grok/trusted_folders.toml",
+      ".codex/config.toml",
+      ".codex/hooks.json",
+      ".codex/herdr-agent-state.sh",
+      ".codex/state_5.sqlite",
+      ".codex/installation_id",
+      ".codex/skills/.system/SKILL.md",
+      ".codex/tmp/arg0/x",
+    ],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.linked).toEqual([
+    ".grok/config.toml",
+    ".codex/config.toml",
+    ".codex/hooks.json",
+    ".codex/herdr-agent-state.sh",
+  ]);
+});
+
+test("gh and agy have no Stowed config in the home tree", async () => {
+  expect(await Bun.file(join(import.meta.dir, "../../home/.config/gh/config.yml")).exists()).toBe(
+    false,
+  );
+  expect(await Bun.file(join(import.meta.dir, "../../home/.agy")).exists()).toBe(false);
+});
+
+test("Grok config is Stowed without privacy banner or default model", async () => {
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    homeTree: [".grok/config.toml"],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.linked).toContain(".grok/config.toml");
+  const cfg = await Bun.file(join(import.meta.dir, "../../home/.grok/config.toml")).text();
+  expect(cfg).toContain('theme = "groknight"');
+  expect(cfg).toContain('permission_mode = "always-approve"');
+  expect(cfg).toContain('installer = "npm"');
+  expect(cfg).toContain("xAI Official");
+  expect(cfg).not.toContain("privacy_banner_acked");
+  expect(cfg).not.toContain("fork_secondary_model");
+  expect(cfg).not.toContain("[models]");
+});
+
 test("OpenCode global config and TUI config are Stowed", async () => {
   const host = createFakeHost(["bun"], {
     packageManager: "apt",

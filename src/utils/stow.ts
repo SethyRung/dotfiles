@@ -11,12 +11,23 @@ export function isStowJunk(rel: string): boolean {
     parts.includes("cache") ||
     rel.startsWith(".config/opencode/skills/") ||
     rel.startsWith(".pi/agent/extensions/") ||
+    rel.startsWith(".grok/bin/") ||
+    rel.startsWith(".codex/skills/") ||
+    rel.startsWith(".codex/tmp/") ||
+    rel.startsWith(".codex/.tmp/") ||
     rel.endsWith(".log") ||
     rel.endsWith(".sock") ||
     rel.endsWith(".db") ||
     rel.endsWith(".db-shm") ||
     rel.endsWith(".db-wal") ||
+    rel.endsWith(".sqlite") ||
+    rel.endsWith(".sqlite-shm") ||
+    rel.endsWith(".sqlite-wal") ||
+    rel.endsWith(".lock") ||
     base === "auth.json" ||
+    base === "installation_id" ||
+    base === "agent_id" ||
+    base === "trusted_folders.toml" ||
     base.includes("cache") ||
     base.startsWith("models")
   );

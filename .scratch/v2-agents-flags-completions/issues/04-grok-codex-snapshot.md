@@ -4,13 +4,13 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Init/Stow links curated Grok config into `$HOME`
-- [ ] Init/Stow links curated Codex config and herdr hooks into `$HOME`
-- [ ] Grok auth, sessions, logs, caches, binaries, sqlite, locks, and privacy-banner timestamps are not Stowed
-- [ ] Codex sqlite, tmp, `installation_id`, and local skills are not Stowed
-- [ ] Grok and Codex default model/provider are not restored
-- [ ] gh and agy have no Stowed config
-- [ ] An ADR records Grok/Codex snapshot (config and Codex herdr hooks, not auth/sessions/skills/model)
-- [ ] Behaviour is observed only through the CLI against a fake Host
+- [x] Init/Stow links curated Grok config into `$HOME`
+- [x] Init/Stow links curated Codex config and herdr hooks into `$HOME`
+- [x] Grok auth, sessions, logs, caches, binaries, sqlite, locks, and privacy-banner timestamps are not Stowed
+- [x] Codex sqlite, tmp, `installation_id`, and local skills are not Stowed
+- [x] Grok and Codex default model/provider are not restored
+- [x] gh and agy have no Stowed config
+- [x] An ADR records Grok/Codex snapshot (config and Codex herdr hooks, not auth/sessions/skills/model)
+- [x] Behaviour is observed only through the CLI against a fake Host

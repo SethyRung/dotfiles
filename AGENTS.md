@@ -3,7 +3,7 @@
 Extend `src/cli.ts` + Host. Commands: `init`, `doctor`, `stow`, `clean`, `sync`.
 
 - `CONTEXT.md` — Language: Bootstrap, Workflow, Distro, Stow, Sync, Package Map, Upstream Install, Mise Tool, Skill, MCP, API Key, Preset.
-- `docs/adr/` — binding; later number wins. Distro, Package Map, Upstream Install, Mise Tool, API Key, Skill, MCP, Sync, pi snapshot, OpenCode snapshot, Preset, repo location, CLI name, stub.
+- `docs/adr/` — binding; later number wins. Distro, Package Map, Upstream Install, Mise Tool, API Key, Skill, MCP, Sync, pi snapshot, OpenCode snapshot, Grok snapshot, Codex snapshot, Preset, repo location, CLI name, stub.
 - `docs/specs/` — ready-for-agent. Status done and `.scratch/` are historical.
 
 ## Verify
