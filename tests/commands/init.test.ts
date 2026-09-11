@@ -1288,6 +1288,61 @@ test("curated zshrc hands tool PATH to mise, keeping only ~/.local/bin", async (
   expect(zshrc).not.toContain("$HOME/.opencode/bin");
 });
 
+test("after init, Grok and Codex MCP views contain the repo MCP servers", async () => {
+  const home = "/fake-home";
+  const repo = "/fake-repo";
+  const source = await Bun.file(join(import.meta.dir, "../../src/consts/mcp.json")).json();
+  const grokSnapshot = await Bun.file(join(import.meta.dir, "../../home/.grok/config.toml")).text();
+  const codexSnapshot = await Bun.file(
+    join(import.meta.dir, "../../home/.codex/config.toml"),
+  ).text();
+  const host = createFakeHost(["bun"], {
+    homeDir: home,
+    repoDir: repo,
+    packageManager: "apt",
+    homeTree: [".grok/config.toml", ".codex/config.toml"],
+    treeContents: {
+      ".grok/config.toml": grokSnapshot,
+      ".codex/config.toml": codexSnapshot,
+    },
+    fileContents: mcpSource(repo, source),
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  const grok = Bun.TOML.parse(host.fileContents[`${home}/.grok/config.toml`] ?? "") as {
+    mcp_servers: Record<string, { url?: string; command?: string; args?: string[] }>;
+    ui: { theme: string };
+  };
+  expect(Object.keys(grok.mcp_servers).sort()).toEqual([
+    "better-auth",
+    "bun",
+    "mobile-mcp",
+    "nuxt",
+    "nuxt-ui",
+  ]);
+  expect(grok.mcp_servers.bun).toEqual({ url: "https://bun.com/docs/mcp" });
+  expect(grok.mcp_servers["mobile-mcp"]).toEqual({
+    command: "bunx",
+    args: ["--bun", "@mobilenext/mobile-mcp@latest"],
+  });
+  expect(grok.ui.theme).toBe("groknight");
+  const codex = Bun.TOML.parse(host.fileContents[`${home}/.codex/config.toml`] ?? "") as {
+    mcp_servers: Record<string, { url?: string; command?: string; args?: string[] }>;
+    features: { hooks: boolean };
+  };
+  expect(Object.keys(codex.mcp_servers).sort()).toEqual([
+    "better-auth",
+    "bun",
+    "mobile-mcp",
+    "nuxt",
+    "nuxt-ui",
+  ]);
+  expect(codex.mcp_servers.bun).toEqual({ url: "https://bun.com/docs/mcp" });
+  expect(codex.features.hooks).toBe(true);
+  const repoGrok = await Bun.file(join(import.meta.dir, "../../home/.grok/config.toml")).text();
+  expect(repoGrok).not.toContain("[mcp_servers");
+});
+
 test("after init, OpenCode mcp key contains the repo MCP servers", async () => {
   const home = "/fake-home";
   const repo = "/fake-repo";
@@ -1363,6 +1418,17 @@ test("re-running init refreshes agent MCP from the repo list", async () => {
   ]);
   const pi = JSON.parse(host.fileContents[`${home}/.pi/agent/mcp.json`] ?? "{}");
   expect(Object.keys(pi.mcpServers).sort()).toEqual(["bun", "nuxt"]);
+});
+
+test("init MCP Progress Log names pi, OpenCode, Grok, and Codex", async () => {
+  const host = createFakeHost(["bun"], { packageManager: "apt" });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(finalSteps(host).get("MCP")).toEqual({
+    label: "MCP",
+    detail: "pi, OpenCode, Grok, Codex",
+    state: "done",
+  });
 });
 
 test("a Host missing mise is not treated as Workflow already present", async () => {

@@ -167,9 +167,11 @@ test("real dotfiles stow writes pi and OpenCode MCP from the repo list after lin
   const host = createFakeHost(["bun"], {
     homeDir: home,
     repoDir: repo,
-    homeTree: [".config/opencode/opencode.json"],
+    homeTree: [".config/opencode/opencode.json", ".grok/config.toml", ".codex/config.toml"],
     treeContents: {
       ".config/opencode/opencode.json": JSON.stringify({ permission: "allow" }),
+      ".grok/config.toml": 'theme = "groknight"\n',
+      ".codex/config.toml": "[features]\nhooks = true\n",
     },
     fileContents: mcpSource(repo, { bun: { url: "https://bun.com/mcp" } }),
   });
@@ -182,6 +184,16 @@ test("real dotfiles stow writes pi and OpenCode MCP from the repo list after lin
   expect(oc.mcp.bun).toEqual({ type: "remote", url: "https://bun.com/mcp" });
   const pi = JSON.parse(host.fileContents[`${home}/.pi/agent/mcp.json`] ?? "{}");
   expect(pi.mcpServers.bun).toEqual({ url: "https://bun.com/mcp" });
+  const grok = Bun.TOML.parse(host.fileContents[`${home}/.grok/config.toml`] ?? "") as {
+    mcp_servers: { bun: { url: string } };
+  };
+  expect(grok.mcp_servers.bun).toEqual({ url: "https://bun.com/mcp" });
+  const codex = Bun.TOML.parse(host.fileContents[`${home}/.codex/config.toml`] ?? "") as {
+    mcp_servers: { bun: { url: string } };
+    features: { hooks: boolean };
+  };
+  expect(codex.mcp_servers.bun).toEqual({ url: "https://bun.com/mcp" });
+  expect(codex.features.hooks).toBe(true);
 });
 
 test("dotfiles stow --dry-run does not write agent MCP configs", async () => {
@@ -190,9 +202,11 @@ test("dotfiles stow --dry-run does not write agent MCP configs", async () => {
   const host = createFakeHost(["bun"], {
     homeDir: home,
     repoDir: repo,
-    homeTree: [".config/opencode/opencode.json"],
+    homeTree: [".config/opencode/opencode.json", ".grok/config.toml", ".codex/config.toml"],
     treeContents: {
       ".config/opencode/opencode.json": JSON.stringify({ permission: "allow" }),
+      ".grok/config.toml": 'theme = "groknight"\n',
+      ".codex/config.toml": "[features]\nhooks = true\n",
     },
     fileContents: mcpSource(repo, { bun: { url: "https://bun.com/mcp" } }),
   });
@@ -200,6 +214,8 @@ test("dotfiles stow --dry-run does not write agent MCP configs", async () => {
   expect(result.exitCode).toBe(0);
   expect(host.fileContents[`${home}/.config/opencode/opencode.json`]).toBeUndefined();
   expect(host.fileExists(`${home}/.pi/agent/mcp.json`)).toBe(false);
+  expect(host.fileContents[`${home}/.grok/config.toml`]).toBeUndefined();
+  expect(host.fileContents[`${home}/.codex/config.toml`]).toBeUndefined();
 });
 
 test("missing MCP source skips mirror write and does not invent agent configs", async () => {
@@ -212,6 +228,8 @@ test("missing MCP source skips mirror write and does not invent agent configs", 
   expect(result.exitCode).toBe(0);
   expect(host.fileExists(`${home}/.config/opencode/opencode.json`)).toBe(false);
   expect(host.fileExists(`${home}/.pi/agent/mcp.json`)).toBe(false);
+  expect(host.fileExists(`${home}/.grok/config.toml`)).toBe(false);
+  expect(host.fileExists(`${home}/.codex/config.toml`)).toBe(false);
 });
 
 test("help still has no mcp command and mcp command is rejected as unknown", async () => {

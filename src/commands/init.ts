@@ -51,7 +51,7 @@ function initialSteps(preset: DotfilesPreset): ProgressStep[] {
     pending("pi packages", `${preset.piPackages.length} packages`),
     pending(workflowTools.zed.label, "latest"),
     pending("Skills", `${preset.skills.length} skills`),
-    pending("MCP", "PI + OpenCode"),
+    pending("MCP", "pi, OpenCode, Grok, Codex"),
     pending("API Keys", "will prompt"),
     pending(workflowTools.ghostty.label, "will prompt"),
     pending("login shell", "zsh"),
@@ -238,7 +238,7 @@ export async function init(host: Host): Promise<RunResult> {
     }
     update(STEPS.MCP, "running", "translating");
     await mirrorMcp(host);
-    update(STEPS.MCP, "done", "PI + OpenCode");
+    update(STEPS.MCP, "done", "pi, OpenCode, Grok, Codex");
 
     if (Object.keys(envVars).length > 0) {
       if (envConfirmed) {

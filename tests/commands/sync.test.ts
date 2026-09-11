@@ -26,9 +26,16 @@ test("dotfiles sync pulls the repo, re-Stows, and refreshes MCP translations", a
   const host = createFakeHost(["bun"], {
     homeDir: home,
     repoDir: repo,
-    homeTree: [".zshrc", ".config/opencode/opencode.json"],
+    homeTree: [
+      ".zshrc",
+      ".config/opencode/opencode.json",
+      ".grok/config.toml",
+      ".codex/config.toml",
+    ],
     treeContents: {
       ".config/opencode/opencode.json": JSON.stringify({ permission: "allow" }),
+      ".grok/config.toml": 'theme = "groknight"\n',
+      ".codex/config.toml": "[features]\nhooks = true\n",
     },
     fileContents: mcpSource(repo, { bun: { url: "https://bun.com/mcp" } }),
     pullRepoOutput: "Fast-forward; new config.",
@@ -42,10 +49,23 @@ test("dotfiles sync pulls the repo, re-Stows, and refreshes MCP translations", a
   expect(result.stdout).toContain("Config synced");
   expect(result.stdout).toContain("MCP refreshed");
   expect(host.repoPulls).toBe(1);
-  expect(host.linked).toEqual([".zshrc", ".config/opencode/opencode.json"]);
+  expect(host.linked).toEqual([
+    ".zshrc",
+    ".config/opencode/opencode.json",
+    ".grok/config.toml",
+    ".codex/config.toml",
+  ]);
   expect(host.fileContents[`${home}/.config/opencode/opencode.json`]).toContain('"remote"');
   const pi = JSON.parse(host.fileContents[`${home}/.pi/agent/mcp.json`] ?? "{}");
   expect(pi.mcpServers.bun).toEqual({ url: "https://bun.com/mcp" });
+  const grok = Bun.TOML.parse(host.fileContents[`${home}/.grok/config.toml`] ?? "") as {
+    mcp_servers: { bun: { url: string } };
+  };
+  expect(grok.mcp_servers.bun).toEqual({ url: "https://bun.com/mcp" });
+  const codex = Bun.TOML.parse(host.fileContents[`${home}/.codex/config.toml`] ?? "") as {
+    mcp_servers: { bun: { url: string } };
+  };
+  expect(codex.mcp_servers.bun).toEqual({ url: "https://bun.com/mcp" });
   expect(host.upstreamInstalls).toEqual([]);
   expect(host.packagesRequested).toEqual([]);
   expect(host.miseToolsCalls).toBe(0);
@@ -73,6 +93,8 @@ test("dotfiles sync --dry-run prints Stow report, does not pull, and succeeds on
     pullRepoError: "divergent branches",
     fileContents: {
       [`${home}/.config/opencode/opencode.json`]: JSON.stringify({ permission: "allow" }),
+      [`${home}/.grok/config.toml`]: 'theme = "groknight"\n',
+      [`${home}/.codex/config.toml`]: "[features]\nhooks = true\n",
       ...mcpSource("/fake-repo", { bun: { url: "https://bun.com/mcp" } }),
     },
   });
@@ -88,6 +110,8 @@ test("dotfiles sync --dry-run prints Stow report, does not pull, and succeeds on
   const ocConfig = JSON.parse(host.fileContents[`${home}/.config/opencode/opencode.json`] ?? "{}");
   expect(ocConfig).not.toHaveProperty("mcp");
   expect(host.fileExists(`${home}/.pi/agent/mcp.json`)).toBe(false);
+  expect(host.fileContents[`${home}/.grok/config.toml`]).toBe('theme = "groknight"\n');
+  expect(host.fileContents[`${home}/.codex/config.toml`]).toBe("[features]\nhooks = true\n");
 });
 
 test("dotfiles sync --help documents --dry-run", async () => {

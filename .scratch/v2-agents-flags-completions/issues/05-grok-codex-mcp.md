@@ -4,12 +4,12 @@
 
 **Blocked by:** 04: Grok and Codex snapshot
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] After init, Grok and Codex MCP views contain the canonical server names
-- [ ] Real `dotfiles stow` and `dotfiles sync` refresh Grok and Codex MCP from the canonical list
-- [ ] `stow --dry-run` and `sync --dry-run` write no Grok or Codex MCP
-- [ ] A missing canonical list skips Grok and Codex MCP writes
-- [ ] pi and OpenCode MCP translations still match the canonical list
-- [ ] Init MCP Progress Log row names pi, OpenCode, Grok, and Codex
-- [ ] Behaviour is observed only through the CLI against a fake Host
+- [x] After init, Grok and Codex MCP views contain the canonical server names
+- [x] Real `dotfiles stow` and `dotfiles sync` refresh Grok and Codex MCP from the canonical list
+- [x] `stow --dry-run` and `sync --dry-run` write no Grok or Codex MCP
+- [x] A missing canonical list skips Grok and Codex MCP writes
+- [x] pi and OpenCode MCP translations still match the canonical list
+- [x] Init MCP Progress Log row names pi, OpenCode, Grok, and Codex
+- [x] Behaviour is observed only through the CLI against a fake Host
