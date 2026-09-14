@@ -1244,9 +1244,10 @@ test("Zed settings and keymap are Stowed with extensions declared for auto-insta
   const settings = await Bun.file(
     join(import.meta.dir, "../../home/.config/zed/settings.json"),
   ).json();
-  expect(Object.keys(settings.auto_install_extensions)).toHaveLength(18);
+  expect(Object.keys(settings.auto_install_extensions)).toHaveLength(19);
   expect(settings.auto_install_extensions).toMatchObject({
     dracula: true,
+    lua: true,
     "material-icon-theme": true,
     vue: true,
   });

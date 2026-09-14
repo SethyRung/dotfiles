@@ -61,7 +61,7 @@
     "sql": true,
     "toml": true,
     "vue": true,
-    "vue-snippets": true,
+    "vue-snippets": true
   },
   "buffer_font_family": "JetBrainsMono Nerd Font",
   "buffer_font_size": 14,
