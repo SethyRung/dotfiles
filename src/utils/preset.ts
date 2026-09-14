@@ -11,6 +11,7 @@ import {
   type McpServer,
 } from "@/config.ts";
 import type { Host, PackageManager } from "@/types/host.ts";
+import { validatePresetInput } from "@/utils/preset-validation.ts";
 
 export type DotfilesPresetInput = {
   tools?: DotfilesToolsConfig;
@@ -45,8 +46,9 @@ export function parsePreset(content: string): DotfilesPreset {
     const msg = err instanceof Error ? err.message : String(err);
     throw new Error(`Failed to parse dotfiles.json: ${msg}`);
   }
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error("Invalid dotfiles.json: root must be an object");
+  const problems = validatePresetInput(parsed);
+  if (problems.length > 0) {
+    throw new Error(`Invalid dotfiles.json: ${problems.join("; ")}`);
   }
   const raw = parsed as DotfilesPresetInput;
   const skills = Array.isArray(raw.skills) ? raw.skills : [...defaultSkills];

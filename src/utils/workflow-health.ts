@@ -39,6 +39,9 @@ export async function assessWorkflow(host: Host, preset?: DotfilesPreset): Promi
   );
   const git = host.commandExists(workflowTools.git.command);
   const stowOk = host.commandExists(workflowTools.stow.command);
+  const pm = host.packageManager();
+  const distroPackagesOk =
+    pm !== null && activePreset.distroPackagesFor(pm).every((name) => host.commandExists(name));
   const mise = host.commandExists(workflowTools.mise.command);
   const npm = host.commandExists(workflowTools.npm.command);
   const bun = host.commandExists(workflowTools.bun.command);
@@ -70,6 +73,7 @@ export async function assessWorkflow(host: Host, preset?: DotfilesPreset): Promi
   const checkSkills = activePreset.isToolEnabled("skills", true);
 
   const requiredChecks: WorkflowCheck[] = [
+    ...(pm !== null ? [{ label: "Distro packages", ok: distroPackagesOk }] : []),
     { label: "zsh", ok: zsh },
     { label: "Oh My Zsh", ok: omz },
     ...(checkOmzPlugins ? [{ label: "OMZ plugins", ok: plugins }] : []),

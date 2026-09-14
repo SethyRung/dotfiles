@@ -1789,6 +1789,23 @@ test("invalid dotfiles.json causes init to fail with error before doing work", a
   expect(host.packagesRequested).toEqual([]);
 });
 
+test("init fails closed on an unknown Preset key before doing work", async () => {
+  const repo = "/fake-repo";
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    repoDir: repo,
+    files: [`${repo}/dotfiles.json`],
+    fileContents: {
+      [`${repo}/dotfiles.json`]: JSON.stringify({ nope: true }),
+    },
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).not.toBe(0);
+  expect(result.stderr).toContain("Invalid dotfiles.json");
+  expect(result.stderr).toContain('unknown key "nope"');
+  expect(host.packagesRequested).toEqual([]);
+});
+
 test("init skips ghostty prompt and installation when tools.ghostty is false", async () => {
   const repo = "/fake-repo";
   const host = createFakeHost(["bun"], {

@@ -575,3 +575,132 @@ test("--json on init, stow, clean, or sync fails closed", async () => {
   expect(host.linked).toEqual([]);
   expect(host.repoPulls).toBe(0);
 });
+
+test("doctor reports Distro packages ok when the Preset packages are present", async () => {
+  const home = "/fake-home";
+  const host = createFakeHost(presentWorkflowCommands, {
+    homeDir: home,
+    packageManager: "apt",
+    ...healthyWorkflow(home),
+    loginShell: "/bin/zsh",
+  });
+  const result = await run(["doctor"], host);
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("[ok]  Distro packages");
+  expect(result.stdout).toContain("22 required ok");
+});
+
+test("doctor reports a missing Preset distro package as a required failure", async () => {
+  const home = "/fake-home";
+  const repo = "/fake-repo";
+  const host = createFakeHost(presentWorkflowCommands, {
+    homeDir: home,
+    repoDir: repo,
+    packageManager: "apt",
+    ...healthyWorkflow(home, {
+      files: [`${repo}/dotfiles.json`],
+      fileContents: {
+        [`${repo}/dotfiles.json`]: JSON.stringify({ packages: ["zsh", "git", "stow", "htop"] }),
+      },
+    }),
+    loginShell: "/bin/zsh",
+  });
+  const human = await run(["doctor"], host);
+  const json = await run(["doctor", "--json"], host);
+  expect(human.exitCode).toBe(1);
+  expect(json.exitCode).toBe(1);
+  expect(human.stdout).toContain("[!!]  Distro packages");
+  expect(human.stdout).toContain("21/22 required ok");
+  const body = JSON.parse(json.stdout) as { isComplete: boolean; isBootstrapped: boolean };
+  expect(body.isComplete).toBe(false);
+  expect(body.isBootstrapped).toBe(true);
+});
+
+test("doctor omits the Distro packages check when the package manager is unknown", async () => {
+  const host = createFakeHost();
+  const result = await run(["doctor"], host);
+  expect(result.stdout).not.toContain("Distro packages");
+  expect(result.stdout).toContain("0/21 required ok");
+});
+
+test("doctor fails closed on an unknown Preset key and names it", async () => {
+  const repo = "/fake-repo";
+  const host = createFakeHost(["bun"], {
+    repoDir: repo,
+    files: [`${repo}/dotfiles.json`],
+    fileContents: { [`${repo}/dotfiles.json`]: JSON.stringify({ skillz: ["x"] }) },
+  });
+  const result = await run(["doctor"], host);
+  expect(result.exitCode).not.toBe(0);
+  expect(result.stderr).toContain("Invalid dotfiles.json");
+  expect(result.stderr).toContain('unknown key "skillz"');
+});
+
+test("doctor reports every Preset problem in one message", async () => {
+  const repo = "/fake-repo";
+  const host = createFakeHost(["bun"], {
+    repoDir: repo,
+    files: [`${repo}/dotfiles.json`],
+    fileContents: {
+      [`${repo}/dotfiles.json`]: JSON.stringify({
+        skills: "oops",
+        tools: { zed: "yes", nope: true },
+        packages: { brew: ["x"] },
+      }),
+    },
+  });
+  const result = await run(["doctor"], host);
+  expect(result.exitCode).not.toBe(0);
+  expect(result.stderr).toContain('"skills" must be an array of strings');
+  expect(result.stderr).toContain('"tools.zed" must be a boolean');
+  expect(result.stderr).toContain('unknown key "tools.nope"');
+  expect(result.stderr).toContain('unknown package manager "packages.brew"');
+});
+
+test("doctor fails closed on an mcp server without a url or command", async () => {
+  const repo = "/fake-repo";
+  const host = createFakeHost(["bun"], {
+    repoDir: repo,
+    files: [`${repo}/dotfiles.json`],
+    fileContents: { [`${repo}/dotfiles.json`]: JSON.stringify({ mcp: { bad: {} } }) },
+  });
+  const result = await run(["doctor"], host);
+  expect(result.exitCode).not.toBe(0);
+  expect(result.stderr).toContain(
+    '"mcp.bad" must set a string "url" or a non-empty string "command"',
+  );
+});
+
+test("doctor fails closed on a non-object Preset root", async () => {
+  const repo = "/fake-repo";
+  const host = createFakeHost(["bun"], {
+    repoDir: repo,
+    files: [`${repo}/dotfiles.json`],
+    fileContents: { [`${repo}/dotfiles.json`]: "[]" },
+  });
+  const result = await run(["doctor"], host);
+  expect(result.exitCode).not.toBe(0);
+  expect(result.stderr).toContain("Invalid dotfiles.json: root must be an object");
+});
+
+test("doctor still accepts documented Preset aliases", async () => {
+  const home = "/fake-home";
+  const repo = "/fake-repo";
+  const host = createFakeHost(presentWorkflowCommands, {
+    homeDir: home,
+    repoDir: repo,
+    ...healthyWorkflow(home, {
+      files: [`${repo}/dotfiles.json`],
+      fileContents: {
+        [`${repo}/dotfiles.json`]: JSON.stringify({
+          pi_packages: ["npm:pi-subagents"],
+          omz_plugins: ["zsh-autosuggestions", "zsh-syntax-highlighting"],
+          distro_packages: ["zsh", "git", "stow"],
+        }),
+      },
+    }),
+    loginShell: "/bin/zsh",
+  });
+  const result = await run(["doctor"], host);
+  expect(result.stderr).not.toContain("Invalid dotfiles.json");
+});
