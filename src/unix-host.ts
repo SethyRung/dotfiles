@@ -455,4 +455,20 @@ export const unixHost: Host = {
     } catch {}
     await Bun.write(path, content);
   },
+  async openEditor(path) {
+    const editor = process.env.EDITOR?.trim();
+    if (!editor) {
+      throw new Error("EDITOR is not set. Set $EDITOR to edit dotfiles.json.");
+    }
+    const [command, ...args] = editor.split(/\s+/);
+    const proc = Bun.spawn([command, ...args, path], {
+      stdin: "inherit",
+      stdout: "inherit",
+      stderr: "inherit",
+    });
+    const code = await proc.exited;
+    if (code !== 0) {
+      throw new Error(`editor exited with code ${code}`);
+    }
+  },
 };

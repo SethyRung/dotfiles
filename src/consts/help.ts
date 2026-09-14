@@ -6,6 +6,7 @@ Commands:
   stow    Re-link home/ and ~/.local/bin/dotfiles
   clean   Delete Stow backup files from $HOME
   sync    Pull the repo and re-Stow config
+  edit    Open dotfiles.json in $EDITOR
 
 Options:
       --version  Show version
@@ -58,10 +59,19 @@ Options:
   -h, --help     Show help
 `;
 
+export const editHelpText = `Usage: dotfiles edit
+
+Open dotfiles.json in $EDITOR
+
+Options:
+  -h, --help  Show help
+`;
+
 export const commandHelpTexts: Record<string, string> = {
   init: initHelpText,
   doctor: doctorHelpText,
   stow: stowHelpText,
   clean: cleanHelpText,
   sync: syncHelpText,
+  edit: editHelpText,
 };

@@ -291,7 +291,7 @@ test("README documents v2 flags, completions, Grok/Codex snapshot, and Ghostty o
   expect(readme).toContain("init --dry-run");
 });
 
-test("zsh completions for the five commands are Stowed and fpath is set before Oh My Zsh", async () => {
+test("zsh completions for the six commands are Stowed and fpath is set before Oh My Zsh", async () => {
   const host = createFakeHost(["bun"], {
     packageManager: "apt",
     homeTree: [".zshrc", ".zsh/completions/_dotfiles"],
@@ -314,6 +314,7 @@ test("zsh completions for the five commands are Stowed and fpath is set before O
   expect(completion).toContain("stow");
   expect(completion).toContain("clean");
   expect(completion).toContain("sync");
+  expect(completion).toContain("edit");
   expect(completion).toContain("--yes");
   expect(completion).toContain("--json");
   expect(completion).toContain("--dry-run");
@@ -326,6 +327,7 @@ test("zsh completions for the five commands are Stowed and fpath is set before O
   const stowFlags = completion.match(/stow\)[\s\S]*?;;/)?.[0] ?? "";
   const cleanFlags = completion.match(/clean\)[\s\S]*?;;/)?.[0] ?? "";
   const syncFlags = completion.match(/sync\)[\s\S]*?;;/)?.[0] ?? "";
+  const editFlags = completion.match(/edit\)[\s\S]*?;;/)?.[0] ?? "";
   expect(initFlags).toContain("--yes");
   expect(initFlags).toContain("--dry-run");
   expect(initFlags).not.toContain("--json");
@@ -338,6 +340,9 @@ test("zsh completions for the five commands are Stowed and fpath is set before O
   expect(cleanFlags).not.toContain("--json");
   expect(syncFlags).toContain("--dry-run");
   expect(syncFlags).not.toContain("--json");
+  expect(editFlags).toContain("--help");
+  expect(editFlags).not.toContain("--dry-run");
+  expect(editFlags).not.toContain("--yes");
 });
 
 test("a curated zshrc is Stowed without Android SDK paths or out-of-scope aliases", async () => {

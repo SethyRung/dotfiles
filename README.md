@@ -23,6 +23,7 @@ One command takes a Fresh Install of Linux to the full dev Workflow: zsh + Oh My
    - [`dotfiles stow`](#dotfiles-stow)
    - [`dotfiles clean`](#dotfiles-clean)
    - [`dotfiles sync`](#dotfiles-sync)
+   - [`dotfiles edit`](#dotfiles-edit)
 7. [Environment variables & API Keys](#environment-variables--api-keys)
 8. [Preset configuration (`dotfiles.json`)](#preset-configuration-dotfilesjson)
 9. [Re-runs and safety](#re-runs-and-safety)
@@ -59,7 +60,7 @@ From there:
 The `dotfiles` entrypoint is a bash stub that installs [mise](https://mise.run) then bun (via mise) when bun is missing, then runs the TypeScript CLI (`src/`). Bootstrap is a sequence of 14 steps, each a Distro package install via the Package Map, an Upstream Install, a Mise Tool install, a Stow delivery, or a machine-state change:
 
 ```text
-./dotfiles ── bash stub ──▶ bun ──▶ src/main.ts ──▶ init | doctor | stow | clean | sync
+./dotfiles ── bash stub ──▶ bun ──▶ src/main.ts ──▶ init | doctor | stow | clean | sync | edit
 ```
 
 Piped output falls back to plain `label: detail` lines; a terminal gets the live dashboard below.
@@ -173,6 +174,16 @@ Never installs or upgrades tools — presence is `init`'s job, upgrades belong t
 ```bash
 dotfiles sync
 dotfiles sync --dry-run
+```
+
+### `dotfiles edit`
+
+Open the Preset (`dotfiles.json`) in `$EDITOR`.
+
+Use it to change tools, skills, pi packages, OMZ plugins, packages, MCP, or expected API Key names without remembering the repo path. `$EDITOR` may carry arguments (for example `EDITOR="nvim -f"`). `$VISUAL` is not consulted, and there is no fallback editor — an unset `$EDITOR` exits non-zero with a message.
+
+```bash
+dotfiles edit
 ```
 
 ## Environment variables & API Keys

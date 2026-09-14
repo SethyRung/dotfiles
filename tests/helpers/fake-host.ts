@@ -87,6 +87,7 @@ export type FakeHost = Host & {
   progressFrames: ProgressFrame[];
   fileContents: Record<string, string>;
   dotfilesLinks: number;
+  editorOpens: string[];
   miseToolsCalls: number;
   actions: string[];
   environmentFile: string;
@@ -116,6 +117,7 @@ export function createFakeHost(
     environmentFile?: string;
     pullRepoOutput?: string;
     pullRepoError?: string;
+    editorError?: string;
     repoLinks?: string[];
     staleLinks?: string[];
   } = {},
@@ -139,6 +141,7 @@ export function createFakeHost(
   const prompts: string[] = [];
   const promptAnswers = extras.promptAnswers ?? [];
   const progressFrames: ProgressFrame[] = [];
+  const editorOpens: string[] = [];
   let environmentFile = extras.environmentFile ?? "";
   const clock = extras.now ?? parseDate("1970-01-01T00:00:00.000Z");
   const packageManager = extras.packageManager ?? null;
@@ -148,6 +151,7 @@ export function createFakeHost(
   const rebootError = extras.rebootError;
   const pullRepoOutput = extras.pullRepoOutput ?? "Already up to date.";
   const pullRepoError = extras.pullRepoError;
+  const editorError = extras.editorError;
   const repoLinks = new Set(extras.repoLinks ?? []);
   const staleLinks = new Set(extras.staleLinks ?? []);
   let repoPulls = 0;
@@ -179,6 +183,7 @@ export function createFakeHost(
     progressFrames,
     fileContents,
     actions,
+    editorOpens,
     commandExists(command) {
       return present.has(command);
     },
@@ -417,6 +422,13 @@ export function createFakeHost(
     async writeFile(path, content) {
       fileContents[path] = content;
       files.add(path);
+    },
+    async openEditor(path) {
+      actions.push(`edit:${path}`);
+      if (editorError) {
+        throw new Error(editorError);
+      }
+      editorOpens.push(path);
     },
   };
 }

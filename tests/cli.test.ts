@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { run } from "@/cli.ts";
 import { createFakeHost } from "./helpers/fake-host.ts";
 
-test("dotfiles help lists init, doctor, stow, clean, and sync", async () => {
+test("dotfiles help lists init, doctor, stow, clean, sync, and edit", async () => {
   const host = createFakeHost(["bun"]);
   const result = await run(["--help"], host);
   expect(result.exitCode).toBe(0);
@@ -11,6 +11,7 @@ test("dotfiles help lists init, doctor, stow, clean, and sync", async () => {
   expect(result.stdout).toContain("stow");
   expect(result.stdout).toContain("clean");
   expect(result.stdout).toContain("sync");
+  expect(result.stdout).toContain("edit");
   expect(result.stdout).not.toContain("update");
   expect(result.stdout).not.toContain("repair");
 });
@@ -115,7 +116,7 @@ test("dotfiles init --help and -h print init help, exit 0, and do no work", asyn
   }
 });
 
-test("doctor, stow, clean, and sync each print their own help on --help / -h and do no work", async () => {
+test("doctor, stow, clean, sync, and edit each print their own help on --help / -h and do no work", async () => {
   const home = "/fake-home";
   const host = createFakeHost(["bun"], {
     homeDir: home,
@@ -127,6 +128,7 @@ test("doctor, stow, clean, and sync each print their own help on --help / -h and
     { name: "stow", title: "Usage: dotfiles stow" },
     { name: "clean", title: "Usage: dotfiles clean" },
     { name: "sync", title: "Usage: dotfiles sync" },
+    { name: "edit", title: "Usage: dotfiles edit" },
   ];
 
   for (const cmd of commands) {
@@ -141,6 +143,7 @@ test("doctor, stow, clean, and sync each print their own help on --help / -h and
   expect(host.linked).toEqual([]);
   expect(host.prompts).toEqual([]);
   expect(host.removedFiles).toEqual([]);
+  expect(host.editorOpens).toEqual([]);
   expect(host.repoPulls).toBe(0);
 });
 
@@ -211,6 +214,8 @@ test("an unknown flag or extra positional on any command exits 1, writes nothing
       help: "Usage: dotfiles sync",
     },
     { args: ["sync", "bar"], error: "unexpected argument: bar", help: "Usage: dotfiles sync" },
+    { args: ["edit", "--path"], error: "unknown option: --path", help: "Usage: dotfiles edit" },
+    { args: ["edit", "foo"], error: "unexpected argument: foo", help: "Usage: dotfiles edit" },
   ];
 
   for (const { args, error, help } of cases) {
@@ -225,5 +230,6 @@ test("an unknown flag or extra positional on any command exits 1, writes nothing
   expect(host.linked).toEqual([]);
   expect(host.prompts).toEqual([]);
   expect(host.removedFiles).toEqual([]);
+  expect(host.editorOpens).toEqual([]);
   expect(host.repoPulls).toBe(0);
 });

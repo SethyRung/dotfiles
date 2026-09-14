@@ -29,4 +29,5 @@ export type Host = {
   mergeApiKeys(keys: Record<string, string>, targetPath?: string): Promise<void>;
   readFile(path: string): Promise<string | null>;
   writeFile(path: string, content: string): Promise<void>;
+  openEditor(path: string): Promise<void>;
 };

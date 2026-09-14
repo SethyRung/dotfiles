@@ -1,5 +1,6 @@
 import { clean } from "@/commands/clean.ts";
 import { doctor } from "@/commands/doctor.ts";
+import { edit } from "@/commands/edit.ts";
 import { init } from "@/commands/init.ts";
 import { stowCommand } from "@/commands/stow.ts";
 import { sync } from "@/commands/sync.ts";
@@ -35,6 +36,16 @@ function parseDryRun(rest: string[], help: string): { dryRun: boolean } | RunRes
     return parsed;
   }
   return { dryRun: parsed.flags.has("--dry-run") };
+}
+
+function rejectExtraArgs(rest: string[], help: string): RunResult | null {
+  if (rest.length === 0) {
+    return null;
+  }
+  const message = rest[0].startsWith("-")
+    ? `unknown option: ${rest[0]}`
+    : `unexpected argument: ${rest[0]}`;
+  return { exitCode: 1, stdout: "", stderr: `${message}\n\n${help}` };
 }
 
 export async function run(args: string[], host: Host): Promise<RunResult> {
@@ -100,12 +111,17 @@ export async function run(args: string[], host: Host): Promise<RunResult> {
       return await clean(host, { yes: parsed.flags.has("--yes") });
     }
 
-    if (rest.length > 0) {
-      const invalid = rest[0];
-      const message = invalid.startsWith("-")
-        ? `unknown option: ${invalid}`
-        : `unexpected argument: ${invalid}`;
-      return { exitCode: 1, stdout: "", stderr: `${message}\n\n${help}` };
+    if (command === "edit") {
+      const extra = rejectExtraArgs(rest, help);
+      if (extra !== null) {
+        return extra;
+      }
+      return await edit(host);
+    }
+
+    const extra = rejectExtraArgs(rest, help);
+    if (extra !== null) {
+      return extra;
     }
   }
 
