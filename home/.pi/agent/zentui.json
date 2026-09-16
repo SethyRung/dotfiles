@@ -35,23 +35,25 @@
   },
   "components": {
     "editor": {
-      "enabled": false,
+      "enabled": true,
       "style": "minimalist",
-      "colorSource": "theme",
+      "colorSource": "terminal",
       "borderColorMode": "static",
-      "modelLabel": "id",
-      "viewportIndicators": true,
+      "modelLabel": "name",
+      "viewportIndicators": false,
       "styles": {
         "opencode": {
-          "metadataFormat": "$model  $provider(  $thinking)"
+          "metadataFormat": "$model  $provider(  $thinking)",
+          "completionMenu": "palette"
         },
         "opencode-copy-friendly": {
-          "metadataFormat": "$model  $provider(  $thinking)"
+          "metadataFormat": "$model  $provider(  $thinking)",
+          "completionMenu": "palette"
         },
         "minimalist": {
           "pathDisplay": "compact",
-          "contextFormat": "percent",
-          "contextGauge": false,
+          "contextFormat": "percent-total",
+          "contextGauge": true,
           "showSessionName": true,
           "showTimer": true,
           "showCost": true,
@@ -60,13 +62,19 @@
             "warning": 70,
             "error": 90
           }
+        },
+        "accent-rail": {
+          "rail": "▎",
+          "asciiRail": "|",
+          "transparent": false
         }
-      }
+      },
+      "codexQuota": false
     },
     "userMessages": {
       "enabled": true,
       "style": "labeled",
-      "colorSource": "theme",
+      "colorSource": "terminal",
       "styles": {
         "framed": {},
         "framed-copy-friendly": {},
@@ -77,11 +85,11 @@
     "selectorBorders": {
       "enabled": true,
       "style": "zentui",
-      "colorSource": "theme"
+      "colorSource": "terminal"
     },
     "footer": {
-      "style": "starship",
-      "colorSource": "theme",
+      "style": "hidden",
+      "colorSource": "terminal",
       "modelLabel": "id",
       "styles": {
         "starship": {
@@ -103,10 +111,10 @@
             "cwd": true,
             "sessionName": false,
             "gitBranch": true,
-            "gitStatus": false,
-            "gitCounts": false,
-            "gitCommit": false,
-            "gitMetrics": false,
+            "gitStatus": true,
+            "gitCounts": true,
+            "gitCommit": true,
+            "gitMetrics": true,
             "runtime": false,
             "modelInfo": true,
             "context": true,
@@ -124,11 +132,11 @@
           "gitCommit": {
             "hashLength": 7,
             "onlyDetached": true,
-            "showTag": false
+            "showTag": true
           },
           "gitMetrics": {
             "onlyNonzero": true,
-            "ignoreSubmodules": false
+            "ignoreSubmodules": true
           },
           "extensionStatuses": {
             "defaultPlacement": "right",
@@ -210,6 +218,10 @@
         "thought": true,
         "tokens": true
       }
+    },
+    "thinkingSteps": {
+      "enabled": true,
+      "mode": "tree"
     }
   },
   "icons": {
