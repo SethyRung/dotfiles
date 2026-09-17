@@ -12,7 +12,6 @@
     "mattpocock/skills@grill-with-docs",
     "mattpocock/skills@to-spec",
     "mattpocock/skills@to-tickets",
-    "firecrawl/anydoc@convert-documents-to-markdown",
     "mattpocock/skills@code-review",
     "mattpocock/skills@implement",
     "mattpocock/skills@improve-codebase-architecture",
@@ -22,7 +21,9 @@
     "mattpocock/skills@prototype",
     "mattpocock/skills@wait-what",
     "mattpocock/skills@research",
-    "mattpocock/skills@writing-for-agents"
+    "mattpocock/skills@writing-for-agents",
+    "firecrawl/anydoc@convert-documents-to-markdown",
+    "nuxt/ui@nuxt-ui"
   ],
   "piPackages": [
     "npm:pi-subagents",
