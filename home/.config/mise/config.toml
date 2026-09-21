@@ -8,6 +8,7 @@ opencode = "latest"
 pi = "latest"
 "npm:@xai-official/grok" = "latest"
 agy = "latest"
+copilot = "latest"
 
 [settings]
 auto_update = true
