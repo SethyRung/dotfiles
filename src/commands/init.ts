@@ -97,7 +97,6 @@ export async function init(
   let envVars: Record<string, string> = {};
   let envResolvedPath = "/etc/environment";
   let envDisplayPath = "/etc/environment";
-  let envConfirmed = false;
 
   const dotenvPath = join(host.repoDir(), ".env");
   const dotenvContent = await host.readFile(dotenvPath);
@@ -108,7 +107,6 @@ export async function init(
     envVars = {};
   } else if (options.yes) {
     envVars = parsedDotenv;
-    envConfirmed = dotenvKeys.length > 0;
   } else if (dotenvKeys.length > 0) {
     const modifyPrompt =
       `Loaded environment variables from .env:\n  ${dotenvKeys.join(", ")}\n` +
@@ -149,8 +147,6 @@ export async function init(
     }
     envResolvedPath = resolveStorePath(storeTarget, home);
     envDisplayPath = formatStorePath(envResolvedPath, home);
-    const confirmed = await host.prompt(`Write API Keys to ${envDisplayPath}? [y/N] `);
-    envConfirmed = isYes(confirmed);
   }
 
   let wantGhostty = false;
@@ -282,14 +278,10 @@ export async function init(
     update(STEPS.MCP, "done", "pi, OpenCode, Grok, Codex");
 
     if (Object.keys(envVars).length > 0) {
-      if (envConfirmed) {
-        if (write) {
-          await host.mergeApiKeys(envVars, envResolvedPath);
-        }
-        update(STEPS.KEYS, "done", `merged into ${envDisplayPath}`);
-      } else {
-        update(STEPS.KEYS, "skipped", "declined");
+      if (write) {
+        await host.mergeApiKeys(envVars, envResolvedPath);
       }
+      update(STEPS.KEYS, "done", `merged into ${envDisplayPath}`);
     } else {
       update(STEPS.KEYS, "skipped", dryRun ? "dry run" : "empty");
     }

@@ -220,6 +220,7 @@ Store location:
 Select [1-4, default 1]:
 ```
 
+- Choosing a location writes there. There is no second confirm.
 - Writing to `/etc/environment` prompts for `sudo` and provides system-wide visibility.
 - User files (`~/.zshenv`, `~/.profile`, custom paths) are written directly.
 - Existing lines such as `PATH` stay untouched — variables are merged into the target file, never overwriting unrelated lines.
@@ -270,7 +271,7 @@ The repository includes `dotfiles.json` as the single source of truth for tools,
 - **Upfront questions**: All interactive questions (workflow continuation, API Keys/.env, unconfigured optional tools) are asked upfront so the installation runs in one continuous shot without intermediate pauses.
 - Workflow already present: one `Continue? [y/N]` prompt. Decline changes nothing; continue skips installed tools quietly (`[skip] ... present`). Missing pi packages are installed on continue, same as missing Skills.
 - Stow always re-links `home/`; Mise Tools always run `mise install` after that Stow (idempotent; not an upgrade).
-- Extra prompts appear only before destructive writes: `/etc/environment` and Stow conflicts.
+- Extra prompts appear only before Stow conflicts. Store location selection is the API Key write.
 - Fail fast on required steps; Ghostty failure is a warning, not a crash.
 - After changing the login shell, init offers a reboot (default no) — `zsh` or logging out/in also applies it.
 

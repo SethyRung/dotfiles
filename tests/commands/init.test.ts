@@ -770,22 +770,24 @@ test("empty API Key CSV skips the /etc/environment write", async () => {
   expect(await host.readEnvironment()).toBe(existing);
 });
 
-test("non-empty CSV prompts for confirmation before writing", async () => {
+test("non-empty CSV prompts for store location and writes without a second confirm", async () => {
   const host = createFakeHost(["bun"], {
     packageManager: "apt",
     environmentFile: 'PATH="/usr/bin"\n',
-    promptAnswers: ["OPENROUTER_API_KEY=sk-secret", "1", "n"],
+    promptAnswers: ["OPENROUTER_API_KEY=sk-secret", "1"],
   });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
   expect(host.prompts[1]).toContain("/etc/environment");
+  expect(host.prompts.some((p) => p.includes("Write API Keys"))).toBe(false);
+  expect(await host.readEnvironment()).toContain("OPENROUTER_API_KEY=sk-secret");
 });
 
 test("accepting merges keys only; other lines in the file remain", async () => {
   const host = createFakeHost(["bun"], {
     packageManager: "apt",
     environmentFile: 'PATH="/usr/bin"\nKEEP=yes\n',
-    promptAnswers: ["OPENROUTER_API_KEY=sk-secret", "1", "y"],
+    promptAnswers: ["OPENROUTER_API_KEY=sk-secret", "1"],
   });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
@@ -799,25 +801,12 @@ test("accepting merges keys only; other lines in the file remain", async () => {
   });
 });
 
-test("declining confirmation does not write", async () => {
-  const existing = 'PATH="/usr/bin"\nKEEP=yes\n';
-  const host = createFakeHost(["bun"], {
-    packageManager: "apt",
-    environmentFile: existing,
-    promptAnswers: ["OPENROUTER_API_KEY=sk-secret", "1", "n"],
-  });
-  const result = await run(["init"], host);
-  expect(result.exitCode).toBe(0);
-  expect(await host.readEnvironment()).toBe(existing);
-  expect(finalSteps(host).get("API Keys")).toMatchObject({ state: "skipped", detail: "declined" });
-});
-
 test("CLI output and logs never contain API Key values", async () => {
   const secret = "sk-secret-do-not-leak";
   const host = createFakeHost(["bun"], {
     packageManager: "apt",
     environmentFile: 'PATH="/usr/bin"\n',
-    promptAnswers: [`OPENROUTER_API_KEY=${secret}`, "1", "y"],
+    promptAnswers: [`OPENROUTER_API_KEY=${secret}`, "1"],
   });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
@@ -838,7 +827,7 @@ test("init loads .env from repo root, shows variable names, and merges on accept
       [`${repo}/.env`]: `OPENAI_API_KEY=${secret}\nANTHROPIC_API_KEY=anthropic-secret\n`,
     },
     environmentFile: 'PATH="/usr/bin"\n',
-    promptAnswers: ["n", "1", "y"],
+    promptAnswers: ["n", "1"],
   });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
@@ -863,7 +852,7 @@ test("modifying .env with Append merges additional keys into loaded keys", async
       [`${repo}/.env`]: "KEY_ONE=val1\n",
     },
     environmentFile: 'PATH="/usr/bin"\n',
-    promptAnswers: ["y", "a", "KEY_TWO=val2", "1", "y"],
+    promptAnswers: ["y", "a", "KEY_TWO=val2", "1"],
   });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
@@ -882,7 +871,7 @@ test("modifying .env with Override replaces loaded keys with new ones", async ()
       [`${repo}/.env`]: "OLD_KEY=oldval\n",
     },
     environmentFile: 'PATH="/usr/bin"\n',
-    promptAnswers: ["y", "o", "NEW_KEY=newval", "1", "y"],
+    promptAnswers: ["y", "o", "NEW_KEY=newval", "1"],
   });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
@@ -896,7 +885,7 @@ test("store location option 2 writes to ~/.zshenv", async () => {
   const host = createFakeHost(["bun"], {
     packageManager: "apt",
     homeDir: home,
-    promptAnswers: ["FOO_KEY=bar", "2", "y"],
+    promptAnswers: ["FOO_KEY=bar", "2"],
   });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
@@ -913,7 +902,7 @@ test("store location option 4 prompts for custom path and writes there", async (
   const host = createFakeHost(["bun"], {
     packageManager: "apt",
     homeDir: home,
-    promptAnswers: ["CUSTOM_KEY=customval", "4", "~/.custom_env", "y"],
+    promptAnswers: ["CUSTOM_KEY=customval", "4", "~/.custom_env"],
   });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
@@ -936,7 +925,7 @@ test("API Key values loaded from .env are never leaked in logs, stdout, stderr, 
       [`${repo}/.env`]: `SUPER_SECRET=${secret}\n`,
     },
     environmentFile: 'PATH="/usr/bin"\n',
-    promptAnswers: ["n", "1", "y"],
+    promptAnswers: ["n", "1"],
   });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
@@ -1162,7 +1151,7 @@ test("continue does not re-request tools the Host already has", async () => {
   expect(host.skillsRequested).toEqual([]);
 });
 
-test("continue still confirms before /etc/environment writes", async () => {
+test("continue still asks for store location, then writes without a second confirm", async () => {
   const home = "/fake-home";
   const existing = 'PATH="/usr/bin"\n';
   const host = createFakeHost(presentWorkflowCommands, {
@@ -1179,12 +1168,13 @@ test("continue still confirms before /etc/environment writes", async () => {
     ],
     loginShell: "/bin/zsh",
     environmentFile: existing,
-    promptAnswers: ["y", "OPENROUTER_API_KEY=sk-secret", "1", "n"],
+    promptAnswers: ["y", "OPENROUTER_API_KEY=sk-secret", "1"],
   });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
-  expect(host.prompts.some((p) => p.includes("/etc/environment"))).toBe(true);
-  expect(await host.readEnvironment()).toBe(existing);
+  expect(host.prompts.some((p) => p.includes("Store location"))).toBe(true);
+  expect(host.prompts.some((p) => p.includes("Write API Keys"))).toBe(false);
+  expect(await host.readEnvironment()).toContain("OPENROUTER_API_KEY=sk-secret");
 });
 
 test("continue still confirms before Stow conflicts", async () => {
@@ -1966,14 +1956,14 @@ test("init --yes --help prints init help and does no work", async () => {
 test("init asks questions upfront before running installation progress", async () => {
   const host = createFakeHost(["bun"], {
     packageManager: "apt",
-    promptAnswers: ["TEST_KEY=123", "1", "y", "y"],
+    promptAnswers: ["TEST_KEY=123", "1", "y"],
   });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
   expect(host.prompts[0]).toContain("key=value");
   expect(host.prompts[1]).toContain("/etc/environment");
-  expect(host.prompts[2]).toContain("Write API Keys to /etc/environment?");
-  expect(host.prompts[3]).toContain("Install Ghostty?");
+  expect(host.prompts.some((p) => p.includes("Write API Keys"))).toBe(false);
+  expect(host.prompts[2]).toContain("Install Ghostty?");
   expect(host.packagesRequested).toContain("ghostty");
   expect(await host.readEnvironment()).toContain("TEST_KEY=123");
 });
@@ -1989,7 +1979,7 @@ test("init records a custom env store path so doctor can find those API Keys", a
     fileContents: {
       [`${repo}/dotfiles.json`]: JSON.stringify({ apiKeys: ["CUSTOM_KEY"] }),
     },
-    promptAnswers: ["CUSTOM_KEY=secret-value", "4", "~/.custom_env", "y"],
+    promptAnswers: ["CUSTOM_KEY=secret-value", "4", "~/.custom_env"],
   });
   const initResult = await run(["init"], host);
   expect(initResult.exitCode).toBe(0);
