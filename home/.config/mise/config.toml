@@ -12,3 +12,4 @@ copilot = "latest"
 
 [settings]
 auto_update = true
+minimum_release_age="0h"
