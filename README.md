@@ -131,7 +131,7 @@ Report every Workflow piece present or missing.
 - Reports expected API Key **names** from the Preset (`apiKeys`) as present or missing. Never prints values. Extra env-store names including `PATH` are not listed. Scans `/etc/environment`, `~/.zshenv`, `~/.profile`, and the store path last written by init (including a custom path).
 - Reports Preset pi packages present or missing (`~/.pi/agent/npm/node_modules`).
 - Reports the Preset `packages` for the detected package manager as `Distro packages`, as one row; the row is omitted when the Distro is unknown.
-- MCP is healthy when the Preset `mcp` list is translated into pi, OpenCode, Grok, and Codex — not merely when a dest file exists.
+- MCP is healthy when the Preset `mcp` list is translated into pi (`~/.pi/agent/mcp-adapter.json`), OpenCode, Grok, and Codex — not merely when a dest file exists.
 - Reports Ghostty as an **optional** warning, not a failure.
 - Lists Stow dests that are not repo links (missing, regular file, or foreign/broken symlink). Ghostty config dests stay optional and are not required.
 
@@ -262,7 +262,7 @@ The repository includes `dotfiles.json` as the single source of truth for tools,
 - **`omzPlugins`**: Oh My Zsh plugins cloned into custom plugins.
 - **`apiKeys`**: Expected API Key names (identifiers only). Doctor reports these as present or missing and never prints values.
 - **`packages`**: Distro packages required by the workflow (distro-agnostic list or per-package-manager mapping).
-- **`mcp`**: Canonical MCP servers. Bootstrap, Stow, and Sync translate this map into each agent's shape.
+- **`mcp`**: Canonical MCP servers. Bootstrap, Stow, and Sync translate this map into each agent's shape. pi-mcp-adapter reads `~/.pi/agent/mcp-adapter.json`, not `mcp.json`.
 - **JSON Schema**: `schema/dotfiles.schema.json` provides validation and auto-completion in modern editors (Zed, VS Code, etc.).
 - **Validation**: `dotfiles.json` is validated at runtime. Unknown keys and wrong types fail `init` and `doctor` closed with a message naming every offending key, so a typo cannot silently fall back to defaults. The documented aliases (`pi_packages`, `omz_plugins`, `distroPackages`, `distro_packages`) stay accepted.
 

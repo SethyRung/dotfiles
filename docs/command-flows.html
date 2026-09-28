@@ -1104,7 +1104,7 @@
                   3. Zed &amp; Skills ➔ Checked only if enabled
                 </text>
                 <text x="550" y="155" fill="#f0f6fc" font-size="11" font-family="monospace">
-                  4. MCP ➔ ~/.pi/agent/mcp.json
+                  4. MCP ➔ ~/.pi/agent/mcp-adapter.json
                 </text>
                 <text x="550" y="180" fill="#f0f6fc" font-size="11" font-family="monospace">
                   5. PATH Symlink ➔ ~/.local/bin/dotfiles
@@ -1419,8 +1419,8 @@
                 <p>
                   Unless <code>--dry-run</code> is set, reads servers from the Preset
                   <code>mcp</code> key in <code>dotfiles.json</code> and writes translated copies
-                  into pi's <code>~/.pi/agent/mcp.json</code> and OpenCode's <code>mcp</code> key in
-                  <code>~/.config/opencode/opencode.json</code>.
+                  into pi's <code>~/.pi/agent/mcp-adapter.json</code> and OpenCode's
+                  <code>mcp</code> key in <code>~/.config/opencode/opencode.json</code>.
                 </p>
               </div>
             </div>
@@ -1866,9 +1866,9 @@
                 </div>
                 <p>
                   Reads the Preset <code>mcp</code> key in <code>dotfiles.json</code> and refreshes
-                  pi's <code>~/.pi/agent/mcp.json</code> and OpenCode's <code>mcp</code> key in
-                  <code>~/.config/opencode/opencode.json</code>. Prints complete summary and exits
-                  0.
+                  pi's <code>~/.pi/agent/mcp-adapter.json</code> and OpenCode's <code>mcp</code> key
+                  in <code>~/.config/opencode/opencode.json</code>. Prints complete summary and
+                  exits 0.
                 </p>
               </div>
             </div>

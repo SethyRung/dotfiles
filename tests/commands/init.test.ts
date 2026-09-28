@@ -482,7 +482,7 @@ test("when Workflow is already present, frames say skipped with present details"
       `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
       ...skillDirs(home),
       ...piPackageDirs(home),
-      `${home}/.pi/agent/mcp.json`,
+      `${home}/.pi/agent/mcp-adapter.json`,
       `${home}/.local/bin/dotfiles`,
     ],
     loginShell: "/bin/zsh",
@@ -546,7 +546,7 @@ test("no reboot question when the login shell is already zsh", async () => {
       `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
       ...skillDirs(home),
       ...piPackageDirs(home),
-      `${home}/.pi/agent/mcp.json`,
+      `${home}/.pi/agent/mcp-adapter.json`,
       `${home}/.local/bin/dotfiles`,
     ],
     loginShell: "/bin/zsh",
@@ -668,7 +668,7 @@ test("APPEND_SYSTEM and prompts are restored; extensions, auth, sessions, caches
       ".pi/agent/extensions/moshi-hooks.ts",
       ".pi/agent/keybindings.json",
       ".pi/agent/zentui.json",
-      ".pi/agent/mcp.json",
+      ".pi/agent/mcp-adapter.json",
       ".pi/agent/auth.json",
       ".pi/agent/sessions/x.jsonl",
       ".pi/agent/mcp-cache.json",
@@ -683,7 +683,7 @@ test("APPEND_SYSTEM and prompts are restored; extensions, auth, sessions, caches
   expect(host.linked).not.toContain(".pi/agent/extensions/moshi-hooks.ts");
   expect(host.linked).toContain(".pi/agent/keybindings.json");
   expect(host.linked).toContain(".pi/agent/zentui.json");
-  expect(host.linked).toContain(".pi/agent/mcp.json");
+  expect(host.linked).toContain(".pi/agent/mcp-adapter.json");
   expect(host.linked).not.toContain(".pi/agent/auth.json");
   expect(host.linked).not.toContain(".pi/agent/sessions/x.jsonl");
   expect(host.linked).not.toContain(".pi/agent/mcp-cache.json");
@@ -729,7 +729,7 @@ test("init requests only the Skills that are missing", async () => {
   expect(host.skillsRequested).toEqual(skillsList.slice(1));
 });
 
-test("XDG MCP is not Stowed; pi mcp.json is Stowed then filled from the repo list", async () => {
+test("XDG MCP is not Stowed; pi mcp-adapter.json is Stowed then filled from the repo list", async () => {
   const home = "/fake-home";
   const repo = "/fake-repo";
   const source = (await Bun.file(join(import.meta.dir, "../../dotfiles.json")).json()).mcp;
@@ -737,17 +737,17 @@ test("XDG MCP is not Stowed; pi mcp.json is Stowed then filled from the repo lis
     homeDir: home,
     repoDir: repo,
     packageManager: "apt",
-    homeTree: [".pi/agent/mcp.json"],
+    homeTree: [".pi/agent/mcp-adapter.json"],
     treeContents: {
-      ".pi/agent/mcp.json": "{}\n",
+      ".pi/agent/mcp-adapter.json": "{}\n",
     },
     fileContents: mcpSource(repo, source),
   });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
   expect(host.linked).not.toContain(".config/mcp/mcp.json");
-  expect(host.linked).toContain(".pi/agent/mcp.json");
-  const pi = JSON.parse(host.fileContents[`${home}/.pi/agent/mcp.json`] ?? "{}");
+  expect(host.linked).toContain(".pi/agent/mcp-adapter.json");
+  const pi = JSON.parse(host.fileContents[`${home}/.pi/agent/mcp-adapter.json`] ?? "{}");
   expect(pi.mcpServers).toHaveProperty("mobile-mcp");
   expect(pi.mcpServers).toHaveProperty("bun");
   expect(pi.mcpServers.bun).toEqual({ url: "https://bun.com/docs/mcp" });
@@ -1000,7 +1000,7 @@ test("on a re-run, init still offers Ghostty when it is missing", async () => {
       `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
       ...skillDirs(home),
       ...piPackageDirs(home),
-      `${home}/.pi/agent/mcp.json`,
+      `${home}/.pi/agent/mcp-adapter.json`,
       `${home}/.local/bin/dotfiles`,
     ],
     loginShell: "/bin/zsh",
@@ -1082,7 +1082,7 @@ test("when Workflow already looks present, init asks continue? before doing work
       `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
       ...skillDirs(home),
       ...piPackageDirs(home),
-      `${home}/.pi/agent/mcp.json`,
+      `${home}/.pi/agent/mcp-adapter.json`,
       `${home}/.local/bin/dotfiles`,
     ],
     loginShell: "/bin/zsh",
@@ -1106,7 +1106,7 @@ test("declining continue leaves the Host unchanged", async () => {
       `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
       ...skillDirs(home),
       ...piPackageDirs(home),
-      `${home}/.pi/agent/mcp.json`,
+      `${home}/.pi/agent/mcp-adapter.json`,
       `${home}/.local/bin/dotfiles`,
     ],
     loginShell: "/bin/zsh",
@@ -1137,7 +1137,7 @@ test("continue does not re-request tools the Host already has", async () => {
       `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
       ...skillDirs(home),
       ...piPackageDirs(home),
-      `${home}/.pi/agent/mcp.json`,
+      `${home}/.pi/agent/mcp-adapter.json`,
       `${home}/.local/bin/dotfiles`,
     ],
     loginShell: "/bin/zsh",
@@ -1163,7 +1163,7 @@ test("continue still asks for store location, then writes without a second confi
       `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
       ...skillDirs(home),
       ...piPackageDirs(home),
-      `${home}/.pi/agent/mcp.json`,
+      `${home}/.pi/agent/mcp-adapter.json`,
       `${home}/.local/bin/dotfiles`,
     ],
     loginShell: "/bin/zsh",
@@ -1188,7 +1188,7 @@ test("continue still confirms before Stow conflicts", async () => {
       `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
       ...skillDirs(home),
       ...piPackageDirs(home),
-      `${home}/.pi/agent/mcp.json`,
+      `${home}/.pi/agent/mcp-adapter.json`,
       `${home}/.local/bin/dotfiles`,
       `${home}/.zshrc`,
     ],
@@ -1527,10 +1527,10 @@ test("re-running init refreshes agent MCP from the repo list", async () => {
     homeDir: home,
     repoDir: repo,
     packageManager: "apt",
-    homeTree: [".config/opencode/opencode.json", ".pi/agent/mcp.json"],
+    homeTree: [".config/opencode/opencode.json", ".pi/agent/mcp-adapter.json"],
     treeContents: {
       ".config/opencode/opencode.json": JSON.stringify({ permission: "allow" }),
-      ".pi/agent/mcp.json": "{}\n",
+      ".pi/agent/mcp-adapter.json": "{}\n",
     },
     fileContents: mcpSource(repo, { bun: { url: "https://bun.com/docs/mcp" } }),
   });
@@ -1548,7 +1548,7 @@ test("re-running init refreshes agent MCP from the repo list", async () => {
     "bun",
     "nuxt",
   ]);
-  const pi = JSON.parse(host.fileContents[`${home}/.pi/agent/mcp.json`] ?? "{}");
+  const pi = JSON.parse(host.fileContents[`${home}/.pi/agent/mcp-adapter.json`] ?? "{}");
   expect(Object.keys(pi.mcpServers).sort()).toEqual(["bun", "nuxt"]);
 });
 
@@ -1576,7 +1576,7 @@ test("a Host missing mise is not treated as Workflow already present", async () 
         `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
         ...skillDirs(home),
         ...piPackageDirs(home),
-        `${home}/.pi/agent/mcp.json`,
+        `${home}/.pi/agent/mcp-adapter.json`,
         `${home}/.local/bin/dotfiles`,
       ],
       loginShell: "/bin/zsh",
@@ -1601,7 +1601,7 @@ test("a Host missing Grok is not treated as Workflow already present", async () 
         `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
         ...skillDirs(home),
         ...piPackageDirs(home),
-        `${home}/.pi/agent/mcp.json`,
+        `${home}/.pi/agent/mcp-adapter.json`,
         `${home}/.local/bin/dotfiles`,
       ],
       loginShell: "/bin/zsh",
@@ -1623,7 +1623,7 @@ test("a Host missing OpenCode is not treated as Workflow already present", async
       `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
       `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
       `${home}/.agents/skills`,
-      `${home}/.pi/agent/mcp.json`,
+      `${home}/.pi/agent/mcp-adapter.json`,
       `${home}/.local/bin/dotfiles`,
     ],
     loginShell: "/bin/zsh",
@@ -1648,7 +1648,7 @@ test("continue still confirms before Stow conflicts for OpenCode config", async 
       `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
       ...skillDirs(home),
       ...piPackageDirs(home),
-      `${home}/.pi/agent/mcp.json`,
+      `${home}/.pi/agent/mcp-adapter.json`,
       `${home}/.local/bin/dotfiles`,
       `${home}/.config/opencode/opencode.json`,
     ],
@@ -1731,9 +1731,9 @@ test("init uses preset mcp from dotfiles.json to override default mcp", async ()
     homeDir: home,
     repoDir: repo,
     packageManager: "apt",
-    homeTree: [".pi/agent/mcp.json"],
+    homeTree: [".pi/agent/mcp-adapter.json"],
     treeContents: {
-      ".pi/agent/mcp.json": "{}\n",
+      ".pi/agent/mcp-adapter.json": "{}\n",
     },
     fileContents: {
       [`${repo}/dotfiles.json`]: JSON.stringify({
@@ -1743,7 +1743,7 @@ test("init uses preset mcp from dotfiles.json to override default mcp", async ()
   });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
-  const pi = JSON.parse(host.fileContents[`${home}/.pi/agent/mcp.json`] ?? "{}");
+  const pi = JSON.parse(host.fileContents[`${home}/.pi/agent/mcp-adapter.json`] ?? "{}");
   expect(pi.mcpServers).toEqual({ custom: { url: "https://example.com/mcp" } });
 });
 
@@ -1882,7 +1882,7 @@ test("init --yes continues a present Workflow, uses .env as-is, and overwrites S
       `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
       ...skillDirs(home),
       ...piPackageDirs(home),
-      `${home}/.pi/agent/mcp.json`,
+      `${home}/.pi/agent/mcp-adapter.json`,
       `${home}/.local/bin/dotfiles`,
       `${home}/.zshrc`,
       `${repo}/.env`,

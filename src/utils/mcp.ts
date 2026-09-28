@@ -3,7 +3,8 @@ import type { McpServer } from "@/config.ts";
 import type { Host } from "@/types/host.ts";
 import { loadPreset } from "@/utils/preset.ts";
 
-const PI_MCP_DEST = ".pi/agent/mcp.json";
+const PI_MCP_DEST = ".pi/agent/mcp-adapter.json";
+const LEGACY_PI_MCP_DEST = ".pi/agent/mcp.json";
 const OPENCODE_CONFIG_DEST = ".config/opencode/opencode.json";
 const GROK_CONFIG_DEST = ".grok/config.toml";
 const CODEX_CONFIG_DEST = ".codex/config.toml";
@@ -45,7 +46,22 @@ async function loadCanonical(host: Host): Promise<CanonicalMcp> {
   return (await loadPreset(host)).mcp;
 }
 
+async function adoptLegacyPiMcp(host: Host): Promise<void> {
+  const dest = join(host.homeDir(), PI_MCP_DEST);
+  if ((await host.readFile(dest)) != null) {
+    return;
+  }
+  const legacy = join(host.homeDir(), LEGACY_PI_MCP_DEST);
+  const legacyText = await host.readFile(legacy);
+  if (legacyText == null) {
+    return;
+  }
+  await host.writeFile(dest, legacyText);
+  host.removeFile(legacy);
+}
+
 async function writePiMcp(host: Host, servers: CanonicalMcp): Promise<void> {
+  await adoptLegacyPiMcp(host);
   const path = join(host.homeDir(), PI_MCP_DEST);
   const existingText = await host.readFile(path);
   if (existingText == null) {
