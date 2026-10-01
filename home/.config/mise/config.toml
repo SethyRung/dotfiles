@@ -9,6 +9,8 @@ pi = "latest"
 "npm:@xai-official/grok" = "latest"
 agy = "latest"
 copilot = "latest"
+pnpm = "latest"
+claude = "latest"
 
 [settings]
 auto_update = true

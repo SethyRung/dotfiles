@@ -172,7 +172,7 @@ test("pi packages are requested when pi was missing before installMiseTools", as
     "npm:@narumitw/pi-retry",
     "npm:pi-zentui",
     "npm:@ogulcancelik/pi-herdr",
-    "npm:@ollama/pi-web-search",
+    "npm:pi-web-access",
     "npm:pi-antigravity",
   ]);
 });
@@ -190,7 +190,7 @@ test("pi packages are requested when pi is present but package dirs are missing"
     "npm:@narumitw/pi-retry",
     "npm:pi-zentui",
     "npm:@ogulcancelik/pi-herdr",
-    "npm:@ollama/pi-web-search",
+    "npm:pi-web-access",
     "npm:pi-antigravity",
   ]);
 });
@@ -223,7 +223,7 @@ test("init installs only missing pi packages", async () => {
     "npm:@narumitw/pi-retry",
     "npm:pi-zentui",
     "npm:@ogulcancelik/pi-herdr",
-    "npm:@ollama/pi-web-search",
+    "npm:pi-web-access",
     "npm:pi-antigravity",
   ]);
 });
@@ -653,7 +653,7 @@ test("restored pi settings do not include default model or provider", async () =
     "npm:@narumitw/pi-retry",
     "npm:pi-zentui",
     "npm:@ogulcancelik/pi-herdr",
-    "npm:@ollama/pi-web-search",
+    "npm:pi-web-access",
     "npm:pi-antigravity",
   ]);
 });
