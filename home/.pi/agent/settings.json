@@ -1,4 +1,7 @@
 {
+  "defaultTools": [
+    "+codemode"
+  ],
   "autocompleteMaxVisible": 5,
   "defaultThinkingLevel": "high",
   "doubleEscapeAction": "tree",
@@ -6,7 +9,6 @@
   "outputPad": 1,
   "packages": [
     "npm:pi-subagents",
-    "npm:pi-mcp-adapter",
     "npm:@juicesharp/rpiv-ask-user-question",
     "npm:@juicesharp/rpiv-todo",
     "npm:@narumitw/pi-retry",
@@ -21,11 +23,11 @@
   "terminal": {
     "showTerminalProgress": true
   },
-  "theme": "dark",
+  "theme": "system",
   "transport": "auto",
-  "tuiMode": "regular",
   "markdown": {
     "mermaid": "streaming"
   },
-  "editorPaddingX": 1
+  "editorPaddingX": 0,
+  "fullscreenCopyOnSelect": false
 }

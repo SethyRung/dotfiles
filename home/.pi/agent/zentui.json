@@ -53,15 +53,17 @@
         "minimalist": {
           "pathDisplay": "compact",
           "contextFormat": "percent-total",
-          "contextGauge": true,
+          "contextGauge": false,
           "showSessionName": true,
           "showTimer": true,
           "showCost": true,
-          "showGit": true,
+          "showGit": false,
           "contextThresholds": {
             "warning": 70,
             "error": 90
-          }
+          },
+          "showCacheHit": false,
+          "separator": "dash"
         },
         "accent-rail": {
           "rail": "▎",
@@ -69,11 +71,11 @@
           "transparent": false
         }
       },
-      "codexQuota": false
+      "codexQuota": true
     },
     "userMessages": {
-      "enabled": true,
-      "style": "labeled",
+      "enabled": false,
+      "style": "compact",
       "colorSource": "terminal",
       "styles": {
         "framed": {},
@@ -217,7 +219,8 @@
         "elapsed": true,
         "thought": true,
         "tokens": true
-      }
+      },
+      "placement": "above"
     },
     "thinkingSteps": {
       "enabled": true,

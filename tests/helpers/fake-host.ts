@@ -50,13 +50,13 @@ export function mcpAgentFiles(
   servers: Record<string, McpServer> = defaultMcp,
 ): { files: string[]; fileContents: Record<string, string> } {
   const files = [
-    `${home}/.pi/agent/mcp-adapter.json`,
+    `${home}/.pi/agent/mcp.json`,
     `${home}/.config/opencode/opencode.json`,
     `${home}/.grok/config.toml`,
     `${home}/.codex/config.toml`,
   ];
   const fileContents = {
-    [`${home}/.pi/agent/mcp-adapter.json`]: `${JSON.stringify({ mcpServers: piMcpFromCanonical(servers) }, null, 2)}\n`,
+    [`${home}/.pi/agent/mcp.json`]: `${JSON.stringify({ mcpServers: piMcpFromCanonical(servers) }, null, 2)}\n`,
     [`${home}/.config/opencode/opencode.json`]: `${JSON.stringify({ mcp: openCodeMcpFromCanonical(servers) }, null, 2)}\n`,
     [`${home}/.grok/config.toml`]: tomlMcpServers(servers),
     [`${home}/.codex/config.toml`]: tomlMcpServers(servers),

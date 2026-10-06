@@ -101,11 +101,11 @@ test("doctor MCP fails when agent dests are stale versus the Preset", async () =
     },
     loginShell: "/bin/zsh",
   });
-  const before = host.fileContents[`${home}/.pi/agent/mcp-adapter.json`];
+  const before = host.fileContents[`${home}/.pi/agent/mcp.json`];
   const result = await run(["doctor"], host);
   expect(result.exitCode).not.toBe(0);
   expect(result.stdout).toContain("[!!]  MCP");
-  expect(host.fileContents[`${home}/.pi/agent/mcp-adapter.json`]).toBe(before);
+  expect(host.fileContents[`${home}/.pi/agent/mcp.json`]).toBe(before);
 });
 
 test("doctor MCP fails when only the pi dest exists", async () => {
@@ -118,7 +118,7 @@ test("doctor MCP fails when only the pi dest exists", async () => {
       `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
       ...skillDirs(home),
       ...piPackageDirs(home),
-      `${home}/.pi/agent/mcp-adapter.json`,
+      `${home}/.pi/agent/mcp.json`,
       `${home}/.local/bin/dotfiles`,
     ],
     loginShell: "/bin/zsh",

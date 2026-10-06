@@ -82,8 +82,8 @@ An agent skill installed globally for pi and other agents to load.
 _Avoid_: plugin, prompt, instruction file
 
 **MCP**:
-A Model Context Protocol server. The Workflow list is the Preset `mcp` key; each agent gets a translated copy.
-_Avoid_: tool server, plugin, XDG mcp.json as source of truth, hand-maintained per-agent lists
+A Model Context Protocol server. The Workflow list is the Preset `mcp` key; each agent gets a translated copy. Pi's copy is native `~/.pi/agent/mcp.json`.
+_Avoid_: tool server, plugin, XDG mcp.json as source of truth, hand-maintained per-agent lists, pi-mcp-adapter, mcp-adapter.json
 
 **API Key**:
 A secret environment variable needed by AI tools. Supplied during Bootstrap. Never stored in the repo.

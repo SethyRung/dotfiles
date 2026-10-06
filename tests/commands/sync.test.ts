@@ -30,13 +30,13 @@ test("dotfiles sync pulls the repo, re-Stows, and refreshes MCP translations", a
     homeTree: [
       ".zshrc",
       ".config/opencode/opencode.json",
-      ".pi/agent/mcp-adapter.json",
+      ".pi/agent/mcp.json",
       ".grok/config.toml",
       ".codex/config.toml",
     ],
     treeContents: {
       ".config/opencode/opencode.json": JSON.stringify({ permission: "allow" }),
-      ".pi/agent/mcp-adapter.json": "{}\n",
+      ".pi/agent/mcp.json": "{}\n",
       ".grok/config.toml": 'theme = "groknight"\n',
       ".codex/config.toml": "[features]\nhooks = true\n",
     },
@@ -56,12 +56,12 @@ test("dotfiles sync pulls the repo, re-Stows, and refreshes MCP translations", a
   expect(host.linked).toEqual([
     ".zshrc",
     ".config/opencode/opencode.json",
-    ".pi/agent/mcp-adapter.json",
+    ".pi/agent/mcp.json",
     ".grok/config.toml",
     ".codex/config.toml",
   ]);
   expect(host.fileContents[`${home}/.config/opencode/opencode.json`]).toContain('"remote"');
-  const pi = JSON.parse(host.fileContents[`${home}/.pi/agent/mcp-adapter.json`] ?? "{}");
+  const pi = JSON.parse(host.fileContents[`${home}/.pi/agent/mcp.json`] ?? "{}");
   expect(pi.mcpServers.bun).toEqual({ url: "https://bun.com/mcp" });
   const grok = Bun.TOML.parse(host.fileContents[`${home}/.grok/config.toml`] ?? "") as {
     mcp_servers: { bun: { url: string } };
@@ -117,7 +117,7 @@ test("dotfiles sync --dry-run prints Stow report, does not pull, and succeeds on
   expect(host.backups).toEqual([]);
   const ocConfig = JSON.parse(host.fileContents[`${home}/.config/opencode/opencode.json`] ?? "{}");
   expect(ocConfig).not.toHaveProperty("mcp");
-  expect(host.fileExists(`${home}/.pi/agent/mcp-adapter.json`)).toBe(false);
+  expect(host.fileExists(`${home}/.pi/agent/mcp.json`)).toBe(false);
   expect(host.fileContents[`${home}/.grok/config.toml`]).toBe('theme = "groknight"\n');
   expect(host.fileContents[`${home}/.codex/config.toml`]).toBe("[features]\nhooks = true\n");
 });

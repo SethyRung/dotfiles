@@ -169,13 +169,13 @@ test("real dotfiles stow writes pi and OpenCode MCP from the repo list after lin
     repoDir: repo,
     homeTree: [
       ".config/opencode/opencode.json",
-      ".pi/agent/mcp-adapter.json",
+      ".pi/agent/mcp.json",
       ".grok/config.toml",
       ".codex/config.toml",
     ],
     treeContents: {
       ".config/opencode/opencode.json": JSON.stringify({ permission: "allow" }),
-      ".pi/agent/mcp-adapter.json": "{}\n",
+      ".pi/agent/mcp.json": "{}\n",
       ".grok/config.toml": 'theme = "groknight"\n',
       ".codex/config.toml": "[features]\nhooks = true\n",
     },
@@ -184,11 +184,11 @@ test("real dotfiles stow writes pi and OpenCode MCP from the repo list after lin
   const result = await run(["stow"], host);
   expect(result.exitCode).toBe(0);
   expect(host.linked).not.toContain(".config/mcp/mcp.json");
-  expect(host.linked).toContain(".pi/agent/mcp-adapter.json");
+  expect(host.linked).toContain(".pi/agent/mcp.json");
   const oc = JSON.parse(host.fileContents[`${home}/.config/opencode/opencode.json`] ?? "{}");
   expect(oc.mcp).toBeDefined();
   expect(oc.mcp.bun).toEqual({ type: "remote", url: "https://bun.com/mcp" });
-  const pi = JSON.parse(host.fileContents[`${home}/.pi/agent/mcp-adapter.json`] ?? "{}");
+  const pi = JSON.parse(host.fileContents[`${home}/.pi/agent/mcp.json`] ?? "{}");
   expect(pi.mcpServers.bun).toEqual({ url: "https://bun.com/mcp" });
   const grok = Bun.TOML.parse(host.fileContents[`${home}/.grok/config.toml`] ?? "") as {
     mcp_servers: { bun: { url: string } };
@@ -202,7 +202,7 @@ test("real dotfiles stow writes pi and OpenCode MCP from the repo list after lin
   expect(codex.features.hooks).toBe(true);
 });
 
-test("missing pi mcp-adapter.json dest skips pi MCP write", async () => {
+test("missing pi mcp.json dest skips pi MCP write", async () => {
   const home = "/fake-home";
   const repo = "/fake-repo";
   const host = createFakeHost(["bun"], {
@@ -218,52 +218,27 @@ test("missing pi mcp-adapter.json dest skips pi MCP write", async () => {
   expect(result.exitCode).toBe(0);
   const oc = JSON.parse(host.fileContents[`${home}/.config/opencode/opencode.json`] ?? "{}");
   expect(oc.mcp.bun).toEqual({ type: "remote", url: "https://bun.com/mcp" });
-  expect(host.fileExists(`${home}/.pi/agent/mcp-adapter.json`)).toBe(false);
-});
-
-test("legacy pi mcp.json is moved to mcp-adapter.json and then filled", async () => {
-  const home = "/fake-home";
-  const repo = "/fake-repo";
-  const host = createFakeHost(["bun"], {
-    homeDir: home,
-    repoDir: repo,
-    files: [`${home}/.pi/agent/mcp.json`],
-    fileContents: {
-      [`${home}/.pi/agent/mcp.json`]: `${JSON.stringify({ mcpServers: { old: { url: "https://old.example" } }, settings: { keep: true } }, null, 2)}\n`,
-      ...mcpSource(repo, { bun: { url: "https://bun.com/mcp" } }),
-    },
-  });
-  const result = await run(["stow"], host);
-  expect(result.exitCode).toBe(0);
   expect(host.fileExists(`${home}/.pi/agent/mcp.json`)).toBe(false);
-  expect(host.removedFiles).toContain(`${home}/.pi/agent/mcp.json`);
-  const pi = JSON.parse(host.fileContents[`${home}/.pi/agent/mcp-adapter.json`] ?? "{}");
-  expect(pi.mcpServers.bun).toEqual({ url: "https://bun.com/mcp" });
-  expect(pi.mcpServers.old).toBeUndefined();
-  expect(pi.settings).toEqual({ keep: true });
 });
 
-test("existing mcp-adapter.json is not replaced by moving legacy mcp.json", async () => {
+test("pi mcp-adapter.json is ignored and does not create mcp.json", async () => {
   const home = "/fake-home";
   const repo = "/fake-repo";
   const legacy = `${JSON.stringify({ mcpServers: { old: { url: "https://old.example" } } }, null, 2)}\n`;
   const host = createFakeHost(["bun"], {
     homeDir: home,
     repoDir: repo,
-    files: [`${home}/.pi/agent/mcp.json`, `${home}/.pi/agent/mcp-adapter.json`],
+    files: [`${home}/.pi/agent/mcp-adapter.json`],
     fileContents: {
-      [`${home}/.pi/agent/mcp.json`]: legacy,
-      [`${home}/.pi/agent/mcp-adapter.json`]: "{}\n",
+      [`${home}/.pi/agent/mcp-adapter.json`]: legacy,
       ...mcpSource(repo, { bun: { url: "https://bun.com/mcp" } }),
     },
   });
   const result = await run(["stow"], host);
   expect(result.exitCode).toBe(0);
-  expect(host.fileContents[`${home}/.pi/agent/mcp.json`]).toBe(legacy);
-  expect(host.removedFiles).not.toContain(`${home}/.pi/agent/mcp.json`);
-  const pi = JSON.parse(host.fileContents[`${home}/.pi/agent/mcp-adapter.json`] ?? "{}");
-  expect(pi.mcpServers.bun).toEqual({ url: "https://bun.com/mcp" });
-  expect(pi.mcpServers.old).toBeUndefined();
+  expect(host.fileContents[`${home}/.pi/agent/mcp-adapter.json`]).toBe(legacy);
+  expect(host.removedFiles).not.toContain(`${home}/.pi/agent/mcp-adapter.json`);
+  expect(host.fileExists(`${home}/.pi/agent/mcp.json`)).toBe(false);
 });
 
 test("dotfiles stow --dry-run does not write agent MCP configs", async () => {
@@ -274,13 +249,13 @@ test("dotfiles stow --dry-run does not write agent MCP configs", async () => {
     repoDir: repo,
     homeTree: [
       ".config/opencode/opencode.json",
-      ".pi/agent/mcp-adapter.json",
+      ".pi/agent/mcp.json",
       ".grok/config.toml",
       ".codex/config.toml",
     ],
     treeContents: {
       ".config/opencode/opencode.json": JSON.stringify({ permission: "allow" }),
-      ".pi/agent/mcp-adapter.json": "{}\n",
+      ".pi/agent/mcp.json": "{}\n",
       ".grok/config.toml": 'theme = "groknight"\n',
       ".codex/config.toml": "[features]\nhooks = true\n",
     },
@@ -289,7 +264,7 @@ test("dotfiles stow --dry-run does not write agent MCP configs", async () => {
   const result = await run(["stow", "--dry-run"], host);
   expect(result.exitCode).toBe(0);
   expect(host.fileContents[`${home}/.config/opencode/opencode.json`]).toBeUndefined();
-  expect(host.fileExists(`${home}/.pi/agent/mcp-adapter.json`)).toBe(false);
+  expect(host.fileExists(`${home}/.pi/agent/mcp.json`)).toBe(false);
   expect(host.fileContents[`${home}/.grok/config.toml`]).toBeUndefined();
   expect(host.fileContents[`${home}/.codex/config.toml`]).toBeUndefined();
 });
@@ -303,7 +278,7 @@ test("missing MCP source skips mirror write and does not invent agent configs", 
   const result = await run(["stow"], host);
   expect(result.exitCode).toBe(0);
   expect(host.fileExists(`${home}/.config/opencode/opencode.json`)).toBe(false);
-  expect(host.fileExists(`${home}/.pi/agent/mcp-adapter.json`)).toBe(false);
+  expect(host.fileExists(`${home}/.pi/agent/mcp.json`)).toBe(false);
   expect(host.fileExists(`${home}/.grok/config.toml`)).toBe(false);
   expect(host.fileExists(`${home}/.codex/config.toml`)).toBe(false);
 });
