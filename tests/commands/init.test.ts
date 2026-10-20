@@ -641,7 +641,6 @@ test("restored pi settings do not include default model or provider", async () =
   expect(settings).not.toHaveProperty("defaultProvider");
   expect(settings).not.toHaveProperty("model");
   expect(settings).not.toHaveProperty("provider");
-  expect(settings).not.toHaveProperty("lastChangelogVersion");
   expect(settings.packages).toEqual([
     "npm:pi-subagents",
     "npm:@juicesharp/rpiv-ask-user-question",

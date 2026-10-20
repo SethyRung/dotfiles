@@ -8,7 +8,12 @@ export async function clean(host: Host, options: { yes?: boolean } = {}): Promis
     return { exitCode: 0, stdout: "No Stow backups to clean.\n", stderr: "" };
   }
   const confirmed =
-    options.yes || isYes(await host.prompt(`Delete ${backups.length} Stow backup file(s)? [y/N] `));
+    options.yes ||
+    isYes(
+      await host.prompt(
+        `Stow backup files to delete (${backups.length}):\n${backups.join("\n")}\n\nDelete ${backups.length} Stow backup file(s)? [y/N] `,
+      ),
+    );
   if (!confirmed) {
     return {
       exitCode: 0,
