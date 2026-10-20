@@ -11,5 +11,6 @@ Code comment policy
 
 File state policy
 
-- Before editing any file, re-read it from disk. Don't trust content from earlier in the session — the user may have edited files between turns.
-- Never revert or overwrite changes you didn't make; treat them as intentional, build on top, and continue from current state.
+- Before your first edit to a file each turn, read only the target line range (`offset`/`limit`).
+- Disk beats chat history: if disk differs from your prior edits, the user modified it. Build on their code; never revert.
+- Keep `edit` blocks tight to avoid overwriting adjacent lines.
