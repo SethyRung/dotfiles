@@ -102,6 +102,8 @@ A live ASCII dashboard redraws as each step runs:
 
 Skills, pi packages, OMZ plugins, distro packages, and MCP are configured in `dotfiles.json`. Regular files at the destination are timestamp-backed-up then replaced; repo links are left; stale symlinks are replaced.
 
+Shared agent instructions live in [`src/consts/system-prompt.md`](src/consts/system-prompt.md). Edit that file, then run `dotfiles stow`. Bootstrap, Stow, and Sync mirror it into pi's `~/.pi/agent/APPEND_SYSTEM.md` and Codex's `~/.codex/AGENTS.md`; the corresponding files under `home/` are templates. Codex loads this as global guidance alongside project instructions. Restart the agent session to load changes. A Codex `AGENTS.override.md` takes precedence over the shared guidance.
+
 ## Command reference
 
 Usage: `dotfiles <command>` — with no arguments, the CLI prints its help. `dotfiles --version` prints the committed package version.
@@ -120,7 +122,7 @@ dotfiles init --dry-run
 
 `--yes` answers continue, uses `.env` as-is (or skips keys), writes to the default store, skips Ghostty unless the Preset enables it, overwrites Stow conflicts, and does not reboot.
 
-`--dry-run` previews Bootstrap without installing, Stowing, writing MCP, merging API Keys, changing the login shell, or linking `~/.local/bin/dotfiles`.
+`--dry-run` previews Bootstrap without installing, Stowing, writing MCP or system prompts, merging API Keys, changing the login shell, or linking `~/.local/bin/dotfiles`.
 
 See [Re-runs and safety](#re-runs-and-safety) for repeat-run behavior, and [API Keys](#api-keys) for the key prompt.
 
@@ -144,7 +146,7 @@ dotfiles doctor --json
 
 ### `dotfiles stow`
 
-Re-link `home/` into `$HOME` and `~/.local/bin/dotfiles`. Prints a report of linked, backed-up, and skipped destinations.
+Re-link `home/` into `$HOME` and `~/.local/bin/dotfiles`, then refresh MCP translations and the shared system prompt for pi and Codex. Prints a report of linked, backed-up, and skipped destinations.
 
 Use `--dry-run` to preview changes without modifying the filesystem. Use it after editing Stowed config, or after moving the repo (run from the **new** location). Re-running is idempotent — already-correct links are left alone.
 
@@ -166,7 +168,7 @@ dotfiles clean --yes
 
 ### `dotfiles sync`
 
-Sync config: `git pull --ff-only`, relink `~/.local/bin/dotfiles`, re-Stow `home/`, refresh MCP translations. Prints the Stow report along with the sync summary.
+Sync config: `git pull --ff-only`, relink `~/.local/bin/dotfiles`, re-Stow `home/`, refresh MCP translations and the shared system prompt for pi and Codex. Prints the Stow report along with the sync summary.
 
 Use `--dry-run` to preview the Stow report and PATH relink without pulling or writing.
 
@@ -277,13 +279,13 @@ The repository includes `dotfiles.json` as the single source of truth for tools,
 
 ## Keeping machines in sync
 
-The maintainer edits config in this repo (anything under `home/`, `dotfiles.json`), commits, and pushes. On every Bootstrapped machine:
+The maintainer edits config in this repo (anything under `home/`, `dotfiles.json`, `src/consts/system-prompt.md`), commits, and pushes. On every Bootstrapped machine:
 
 ```bash
 dotfiles sync
 ```
 
-pulls the repo fast-forward only, re-Stows `home/` into `$HOME`, and refreshes MCP translations into pi, OpenCode, Grok, and Codex. Never installs missing pi packages — that stays `init`.
+pulls the repo fast-forward only, re-Stows `home/` into `$HOME`, refreshes MCP translations into pi, OpenCode, Grok, and Codex, and mirrors the shared system prompt to pi and Codex. Never installs missing pi packages — that stays `init`.
 
 ## Troubleshooting
 

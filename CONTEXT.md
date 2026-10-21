@@ -85,6 +85,10 @@ _Avoid_: plugin, prompt, instruction file
 A Model Context Protocol server. The Workflow list is the Preset `mcp` key; each agent gets a translated copy. Pi's copy is native `~/.pi/agent/mcp.json`.
 _Avoid_: tool server, plugin, XDG mcp.json as source of truth, hand-maintained per-agent lists, pi-mcp-adapter, mcp-adapter.json
 
+**System Prompt**:
+Shared agent instructions in `src/consts/system-prompt.md`. Bootstrap, Stow, and Sync mirror them into pi's `APPEND_SYSTEM.md` and Codex's global `AGENTS.md` through agent adapters.
+_Avoid_: hand-maintained per-agent instructions, replacing an agent's built-in prompt
+
 **API Key**:
 A secret environment variable needed by AI tools. Supplied during Bootstrap. Never stored in the repo.
 _Avoid_: token, credential (when you mean these env vars)

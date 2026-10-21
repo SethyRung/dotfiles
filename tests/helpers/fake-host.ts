@@ -421,6 +421,8 @@ export function createFakeHost(
       return fileContents[path] ?? null;
     },
     async writeFile(path, content) {
+      repoLinks.delete(path);
+      staleLinks.delete(path);
       fileContents[path] = content;
       files.add(path);
     },

@@ -11,6 +11,6 @@ Code comment policy
 
 File state policy
 
-- Before your first edit to a file each turn, read only the target line range (`offset`/`limit`).
+- Before your first edit to a file each turn, read only the target line range.
 - Disk beats chat history: if disk differs from your prior edits, the user modified it. Build on their code; never revert.
-- Keep `edit` blocks tight to avoid overwriting adjacent lines.
+- Keep edits tight to avoid overwriting adjacent lines.
