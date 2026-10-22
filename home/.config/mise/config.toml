@@ -1,3 +1,7 @@
+[settings]
+auto_update = true
+minimum_release_age="0h"
+
 [tools]
 bun = "latest"
 codex = "latest"
@@ -11,7 +15,7 @@ agy = "latest"
 copilot = "latest"
 pnpm = "latest"
 claude = "latest"
+cursor-agent = { version = "latest", bin_path = "bin", strip_components = 0, url = 'https://downloads.cursor.com/lab/{{ version }}/{{ os(macos="darwin") }}/{{ arch(x64="x64", arm64="arm64") }}/agent-cli-package.tar.gz', version_list_url = "https://cursor.com/install", version_regex = 'downloads\.cursor\.com/lab/([0-9]{4}\.[0-9]{2}\.[0-9]{2}-[0-9a-f]+)/', postinstall = 'mkdir -p "$MISE_TOOL_INSTALL_PATH/bin" && ln -sfn ../dist-package/cursor-agent "$MISE_TOOL_INSTALL_PATH/bin/cursor-agent"' }
 
-[settings]
-auto_update = true
-minimum_release_age="0h"
+[shell_alias]
+agent = "cursor-agent"
