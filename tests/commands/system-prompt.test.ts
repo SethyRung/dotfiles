@@ -11,29 +11,30 @@ import {
 const home = "/fake-home";
 const repo = "/fake-repo with spaces";
 const source = `${repo}/src/consts/system-prompt.md`;
-const destinations = [".pi/agent/APPEND_SYSTEM.md", ".codex/AGENTS.md"];
+const CURSOR_PLUGIN = ".cursor/plugins/local/dotfiles-system-prompt";
+const CURSOR_MANIFEST = `${CURSOR_PLUGIN}/.cursor-plugin/plugin.json`;
+const CURSOR_RULE = `${CURSOR_PLUGIN}/rules/system-prompt.mdc`;
+const LEGACY_CURSOR_RULE = ".cursor/rules/system-prompt.mdc";
+const destinations = [".pi/agent/APPEND_SYSTEM.md", ".codex/AGENTS.md", CURSOR_RULE];
+
+function mirroredPrompt(rel: string, text: string): string {
+  if (rel === CURSOR_RULE) {
+    return `---\nalwaysApply: true\n---\n\n${text}`;
+  }
+  return text;
+}
 const prompt = await Bun.file(join(import.meta.dir, "../../src/consts/system-prompt.md")).text();
-const templates = Object.fromEntries(
-  await Promise.all(
-    destinations.map(async (rel) => [
-      rel,
-      await Bun.file(join(import.meta.dir, "../../home", rel)).text(),
-    ]),
-  ),
-);
 
 for (const command of ["init", "stow", "sync"]) {
-  test(`${command} mirrors the shared system prompt to pi and Codex after Stow`, async () => {
+  test(`${command} creates and refreshes system prompts without Stow templates`, async () => {
     const host = createFakeHost(["bun"], {
       homeDir: home,
       repoDir: repo,
       packageManager: "apt",
-      homeTree: destinations,
-      treeContents: templates,
-      files: destinations.map((rel) => `${home}/${rel}`),
+      files: [`${home}/.pi/agent/APPEND_SYSTEM.md`],
       fileContents: {
         [source]: prompt,
-        ...Object.fromEntries(destinations.map((rel) => [`${home}/${rel}`, "Old instructions.\n"])),
+        [`${home}/.pi/agent/APPEND_SYSTEM.md`]: "Old instructions.\n",
       },
     });
 
@@ -42,21 +43,28 @@ for (const command of ["init", "stow", "sync"]) {
     expect(result.exitCode).toBe(0);
     expect(prompt).toContain("Response style:");
     for (const rel of destinations) {
-      expect(host.linked).toContain(rel);
-      expect(host.backups.some((path) => path.startsWith(`${home}/${rel}.`))).toBe(true);
-      expect(host.fileContents[`${home}/${rel}`]).toBe(prompt);
+      expect(host.linked).not.toContain(rel);
+      expect(host.fileContents[`${home}/${rel}`]).toBe(mirroredPrompt(rel, prompt));
     }
+    expect(JSON.parse(host.fileContents[`${home}/${CURSOR_MANIFEST}`] ?? "{}")).toEqual({
+      name: "dotfiles-system-prompt",
+      description: "Shared Workflow instructions",
+    });
+    expect(host.linked).not.toContain(CURSOR_MANIFEST);
+    expect(host.fileExists(`${home}/${LEGACY_CURSOR_RULE}`)).toBe(false);
+    expect(host.backups).toEqual([]);
     expect(host.fileContents[source]).toBe(prompt);
 
     host.fileContents[source] = "Updated shared instructions.\n";
     expect((await run([command, "--dry-run"], host)).exitCode).toBe(0);
     for (const rel of destinations) {
-      expect(host.fileContents[`${home}/${rel}`]).toBe(prompt);
+      expect(host.fileContents[`${home}/${rel}`]).toBe(mirroredPrompt(rel, prompt));
     }
 
+    const updated = "Updated shared instructions.\n";
     expect((await run([command, ...(command === "init" ? ["--yes"] : [])], host)).exitCode).toBe(0);
     for (const rel of destinations) {
-      expect(host.fileContents[`${home}/${rel}`]).toBe("Updated shared instructions.\n");
+      expect(host.fileContents[`${home}/${rel}`]).toBe(mirroredPrompt(rel, updated));
     }
   });
 
@@ -65,8 +73,6 @@ for (const command of ["init", "stow", "sync"]) {
       homeDir: home,
       repoDir: repo,
       packageManager: "apt",
-      homeTree: destinations,
-      treeContents: templates,
       fileContents: { [source]: prompt },
     });
 
@@ -76,58 +82,67 @@ for (const command of ["init", "stow", "sync"]) {
   });
 }
 
-test("system prompt adapters skip missing destinations independently", async () => {
-  for (const rel of destinations) {
-    const host = createFakeHost(["bun"], {
-      homeDir: home,
-      repoDir: repo,
-      homeTree: [rel],
-      treeContents: templates,
-      fileContents: { [source]: prompt },
-    });
-
-    expect((await run(["stow"], host)).exitCode).toBe(0);
-    expect(host.fileContents[`${home}/${rel}`]).toBe(prompt);
-    for (const missing of destinations.filter((destination) => destination !== rel)) {
-      expect(host.fileExists(`${home}/${missing}`)).toBe(false);
-      expect(host.fileContents[`${home}/${missing}`]).toBeUndefined();
-    }
-  }
-});
-
 test("a missing system prompt source leaves agent instructions unchanged", async () => {
-  const existing = Object.fromEntries(
-    destinations.map((rel) => [`${home}/${rel}`, "Existing instructions.\n"]),
-  );
+  const existing = {
+    [`${home}/.pi/agent/APPEND_SYSTEM.md`]: "Existing instructions.\n",
+  };
   const host = createFakeHost(["bun"], {
     homeDir: home,
     repoDir: repo,
+    files: [`${home}/.pi/agent/APPEND_SYSTEM.md`],
     fileContents: existing,
   });
 
   expect((await run(["stow"], host)).exitCode).toBe(0);
-  expect(host.fileContents).toEqual(existing);
+  expect(host.fileContents[`${home}/.pi/agent/APPEND_SYSTEM.md`]).toBe("Existing instructions.\n");
+  expect(host.fileExists(`${home}/.codex/AGENTS.md`)).toBe(false);
+  expect(host.fileExists(`${home}/${CURSOR_RULE}`)).toBe(false);
+  expect(host.fileExists(`${home}/${CURSOR_MANIFEST}`)).toBe(false);
 });
+
+for (const command of ["init", "stow", "sync"]) {
+  test(`${command} migrates only an unchanged legacy Cursor rule`, async () => {
+    for (const legacy of [mirroredPrompt(CURSOR_RULE, prompt), "Personal instructions.\n"]) {
+      const path = `${home}/${LEGACY_CURSOR_RULE}`;
+      const host = createFakeHost(["bun"], {
+        homeDir: home,
+        repoDir: repo,
+        packageManager: "apt",
+        files: [path],
+        fileContents: { [source]: prompt, [path]: legacy },
+      });
+
+      expect((await run([command, "--dry-run"], host)).exitCode).toBe(0);
+      expect(host.fileContents[path]).toBe(legacy);
+      expect(host.fileExists(`${home}/${CURSOR_MANIFEST}`)).toBe(false);
+
+      expect((await run([command, ...(command === "init" ? ["--yes"] : [])], host)).exitCode).toBe(
+        0,
+      );
+      expect(host.fileContents[`${home}/${CURSOR_RULE}`]).toBe(mirroredPrompt(CURSOR_RULE, prompt));
+      if (legacy === mirroredPrompt(CURSOR_RULE, prompt)) {
+        expect(host.fileExists(path)).toBe(false);
+      } else {
+        expect(host.fileContents[path]).toBe(legacy);
+      }
+    }
+  });
+}
 
 test("an empty shared system prompt clears previous mirrored instructions", async () => {
   const host = createFakeHost(["bun"], {
     homeDir: home,
     repoDir: repo,
-    homeTree: destinations,
-    treeContents: templates,
     fileContents: { [source]: "" },
   });
 
   expect((await run(["stow"], host)).exitCode).toBe(0);
   for (const rel of destinations) {
-    expect(host.fileContents[`${home}/${rel}`]).toBe("");
+    expect(host.fileContents[`${home}/${rel}`]).toBe(mirroredPrompt(rel, ""));
   }
 });
 
-test("init preserves system prompts when Stow conflicts are declined", async () => {
-  const existing = Object.fromEntries(
-    destinations.map((rel) => [`${home}/${rel}`, "Personal instructions.\n"]),
-  );
+test("declining a Stow conflict still writes system prompts", async () => {
   const host = createFakeHost(presentWorkflowCommands, {
     homeDir: home,
     repoDir: repo,
@@ -137,13 +152,18 @@ test("init preserves system prompts when Stow conflicts are declined", async () 
       `${home}/.oh-my-zsh`,
       `${home}/.oh-my-zsh/custom/plugins/zsh-autosuggestions`,
       `${home}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting`,
+      `${home}/.zshrc`,
+      `${home}/.pi/agent/APPEND_SYSTEM.md`,
       ...skillDirs(home),
       ...piPackageDirs(home),
-      ...destinations.map((rel) => `${home}/${rel}`),
     ],
-    homeTree: destinations,
-    treeContents: templates,
-    fileContents: { [source]: prompt, ...existing },
+    homeTree: [".zshrc"],
+    treeContents: { ".zshrc": "repo zshrc\n" },
+    fileContents: {
+      [source]: prompt,
+      [`${home}/.zshrc`]: "personal zshrc\n",
+      [`${home}/.pi/agent/APPEND_SYSTEM.md`]: "Personal instructions.\n",
+    },
     promptAnswers: ["y", "", "", "n"],
   });
 
@@ -151,7 +171,8 @@ test("init preserves system prompts when Stow conflicts are declined", async () 
   expect(host.prompts).toContain("Overwrite existing files with Stow? [y/N] ");
   expect(host.linked).toEqual([]);
   expect(host.backups).toEqual([]);
-  for (const rel of destinations) {
-    expect(host.fileContents[`${home}/${rel}`]).toBe(existing[`${home}/${rel}`]);
-  }
+  expect(host.fileContents[`${home}/.zshrc`]).toBe("personal zshrc\n");
+  expect(host.fileContents[`${home}/.pi/agent/APPEND_SYSTEM.md`]).toBe(prompt);
+  expect(host.fileContents[`${home}/.codex/AGENTS.md`]).toBe(prompt);
+  expect(host.fileContents[`${home}/${CURSOR_RULE}`]).toBe(mirroredPrompt(CURSOR_RULE, prompt));
 });

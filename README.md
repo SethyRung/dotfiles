@@ -80,7 +80,7 @@ A live ASCII dashboard redraws as each step runs:
   [--]   pi packages      9 packages
   [--]   Zed              latest
   [--]   Skills           16 skills
-  [--]   MCP              pi, OpenCode, Grok, Codex
+  [--]   MCP              pi, OpenCode, Grok, Codex, Cursor
   [--]   API Keys         will prompt
   [--]   Ghostty          will prompt
   [--]   login shell      zsh
@@ -102,7 +102,7 @@ A live ASCII dashboard redraws as each step runs:
 
 Skills, pi packages, OMZ plugins, distro packages, and MCP are configured in `dotfiles.json`. Regular files at the destination are timestamp-backed-up then replaced; repo links are left; stale symlinks are replaced.
 
-Shared agent instructions live in [`src/consts/system-prompt.md`](src/consts/system-prompt.md). Edit that file, then run `dotfiles stow`. Bootstrap, Stow, and Sync mirror it into pi's `~/.pi/agent/APPEND_SYSTEM.md` and Codex's `~/.codex/AGENTS.md`; the corresponding files under `home/` are templates. Codex loads this as global guidance alongside project instructions. Restart the agent session to load changes. A Codex `AGENTS.override.md` takes precedence over the shared guidance.
+Shared agent instructions live in [`src/consts/system-prompt.md`](src/consts/system-prompt.md). Edit that file, then run `dotfiles stow`. Bootstrap, Stow, and Sync write it to pi's `~/.pi/agent/APPEND_SYSTEM.md`, Codex's `~/.codex/AGENTS.md`, and Cursor's always-applied `~/.cursor/plugins/local/dotfiles-system-prompt/rules/system-prompt.mdc`, creating each file when it is missing. Cursor also gets a `.cursor-plugin/plugin.json` manifest in that plugin directory. These are generated files, not Stow templates or plugin symlinks. Codex loads this as global guidance alongside project instructions. Cursor keeps its built-in system prompt; the local plugin supplies the shared rule across projects in the editor and CLI. Restart Cursor or run **Developer: Reload Window**, then start a new Agent conversation; restart CLI sessions too. Check **Customize → Rules** for the plugin rule. Enterprise policy must allow local plugin imports. The old `~/.cursor/rules/system-prompt.mdc` is removed only if it still exactly matches the current generated prompt; edited or stale copies are preserved for manual review. A Codex `AGENTS.override.md` takes precedence over the shared guidance.
 
 ## Command reference
 
@@ -112,7 +112,7 @@ Usage: `dotfiles <command>` — with no arguments, the CLI prints its help. `dot
 
 Bootstrap the Workflow, guided by the live Progress Log.
 
-Runs all 14 steps: Distro packages, Oh My Zsh + plugins, mise, Stow, Mise Tools, pi packages, Zed, Skills, MCP (pi, OpenCode, Grok, and Codex translations), API Keys, optional Ghostty, login shell, and the `~/.local/bin/dotfiles` symlink. zsh TAB-completes `dotfiles` after Stow (fpath is set in the curated zshrc before Oh My Zsh).
+Runs all 14 steps: Distro packages, Oh My Zsh + plugins, mise, Stow, Mise Tools, pi packages, Zed, Skills, MCP (pi, OpenCode, Grok, Codex, and Cursor translations), API Keys, optional Ghostty, login shell, and the `~/.local/bin/dotfiles` symlink. zsh TAB-completes `dotfiles` after Stow (fpath is set in the curated zshrc before Oh My Zsh).
 
 ```bash
 dotfiles init
@@ -133,7 +133,7 @@ Report every Workflow piece present or missing.
 - Reports expected API Key **names** from the Preset (`apiKeys`) as present or missing. Never prints values. Extra env-store names including `PATH` are not listed. Scans `/etc/environment`, `~/.zshenv`, `~/.profile`, and the store path last written by init (including a custom path).
 - Reports Preset pi packages present or missing (`~/.pi/agent/npm/node_modules`).
 - Reports the Preset `packages` for the detected package manager as `Distro packages`, as one row; the row is omitted when the Distro is unknown.
-- MCP is healthy when the Preset `mcp` list is translated into pi (`~/.pi/agent/mcp.json`), OpenCode, Grok, and Codex — not merely when a dest file exists.
+- MCP is healthy when the Preset `mcp` list is translated into pi (`~/.pi/agent/mcp.json`), Cursor (`~/.cursor/mcp.json`), OpenCode, Grok, and Codex — not merely when a dest file exists.
 - Reports Ghostty as an **optional** warning, not a failure.
 - Lists Stow dests that are not repo links (missing, regular file, or foreign/broken symlink). Ghostty config dests stay optional and are not required.
 
@@ -146,7 +146,7 @@ dotfiles doctor --json
 
 ### `dotfiles stow`
 
-Re-link `home/` into `$HOME` and `~/.local/bin/dotfiles`, then refresh MCP translations and the shared system prompt for pi and Codex. Prints a report of linked, backed-up, and skipped destinations.
+Re-link `home/` into `$HOME` and `~/.local/bin/dotfiles`, then refresh MCP translations and the shared system prompt for pi, Codex, and Cursor. Prints a report of linked, backed-up, and skipped destinations.
 
 Use `--dry-run` to preview changes without modifying the filesystem. Use it after editing Stowed config, or after moving the repo (run from the **new** location). Re-running is idempotent — already-correct links are left alone.
 
@@ -168,7 +168,7 @@ dotfiles clean --yes
 
 ### `dotfiles sync`
 
-Sync config: `git pull --ff-only`, relink `~/.local/bin/dotfiles`, re-Stow `home/`, refresh MCP translations and the shared system prompt for pi and Codex. Prints the Stow report along with the sync summary.
+Sync config: `git pull --ff-only`, relink `~/.local/bin/dotfiles`, re-Stow `home/`, refresh MCP translations and the shared system prompt for pi, Codex, and Cursor. Prints the Stow report along with the sync summary.
 
 Use `--dry-run` to preview the Stow report and PATH relink without pulling or writing.
 
@@ -264,7 +264,7 @@ The repository includes `dotfiles.json` as the single source of truth for tools,
 - **`omzPlugins`**: Oh My Zsh plugins cloned into custom plugins.
 - **`apiKeys`**: Expected API Key names (identifiers only). Doctor reports these as present or missing and never prints values.
 - **`packages`**: Distro packages required by the workflow (distro-agnostic list or per-package-manager mapping).
-- **`mcp`**: Canonical MCP servers. Bootstrap, Stow, and Sync translate this map into each agent's shape. Pi reads `~/.pi/agent/mcp.json`. Do not install `pi-mcp-adapter`; it replaces built-in MCP and ignores that file.
+- **`mcp`**: Canonical MCP servers. Bootstrap, Stow, and Sync translate this map into each agent's shape. Pi's `~/.pi/agent/mcp.json` and Cursor's `~/.cursor/mcp.json` are created when missing (`mcpServers`, `url` or `command` plus `args`). OpenCode, Grok, and Codex keep their Stow configs; the MCP key is filled only when that config already exists. Do not install `pi-mcp-adapter`; it replaces built-in MCP and ignores `mcp.json`.
 - **JSON Schema**: `schema/dotfiles.schema.json` provides validation and auto-completion in modern editors (Zed, VS Code, etc.).
 - **Validation**: `dotfiles.json` is validated at runtime. Unknown keys and wrong types fail `init` and `doctor` closed with a message naming every offending key, so a typo cannot silently fall back to defaults. The documented aliases (`pi_packages`, `omz_plugins`, `distroPackages`, `distro_packages`) stay accepted.
 
@@ -285,7 +285,7 @@ The maintainer edits config in this repo (anything under `home/`, `dotfiles.json
 dotfiles sync
 ```
 
-pulls the repo fast-forward only, re-Stows `home/` into `$HOME`, refreshes MCP translations into pi, OpenCode, Grok, and Codex, and mirrors the shared system prompt to pi and Codex. Never installs missing pi packages — that stays `init`.
+pulls the repo fast-forward only, re-Stows `home/` into `$HOME`, refreshes MCP translations into pi, Cursor, OpenCode, Grok, and Codex, and mirrors the shared system prompt to pi, Codex, and Cursor. Never installs missing pi packages — that stays `init`.
 
 ## Troubleshooting
 

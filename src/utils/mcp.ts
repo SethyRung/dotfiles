@@ -4,9 +4,11 @@ import type { Host } from "@/types/host.ts";
 import { loadPreset } from "@/utils/preset.ts";
 
 const PI_MCP_DEST = ".pi/agent/mcp.json";
+const CURSOR_MCP_DEST = ".cursor/mcp.json";
 const OPENCODE_CONFIG_DEST = ".config/opencode/opencode.json";
 const GROK_CONFIG_DEST = ".grok/config.toml";
 const CODEX_CONFIG_DEST = ".codex/config.toml";
+const JSON_MCP_DESTS = [PI_MCP_DEST, CURSOR_MCP_DEST];
 
 type CanonicalMcp = Record<string, McpServer>;
 
@@ -45,14 +47,16 @@ async function loadCanonical(host: Host): Promise<CanonicalMcp> {
   return (await loadPreset(host)).mcp;
 }
 
-async function writePiMcp(host: Host, servers: CanonicalMcp): Promise<void> {
-  const path = join(host.homeDir(), PI_MCP_DEST);
+async function writeJsonMcp(host: Host, rel: string, servers: CanonicalMcp): Promise<void> {
+  const path = join(host.homeDir(), rel);
+  const rendered = piMcpFromCanonical(servers);
   const existingText = await host.readFile(path);
   if (existingText == null) {
+    await host.writeFile(path, `${JSON.stringify({ mcpServers: rendered }, null, 2)}\n`);
     return;
   }
   const existing = JSON.parse(existingText);
-  existing.mcpServers = piMcpFromCanonical(servers);
+  existing.mcpServers = rendered;
   await host.writeFile(path, `${JSON.stringify(existing, null, 2)}\n`);
 }
 
@@ -184,7 +188,7 @@ export async function mcpMatchesPreset(host: Host, servers: CanonicalMcp): Promi
   const json = (text: string) => JSON.parse(text) as Record<string, unknown>;
   const toml = (text: string) => Bun.TOML.parse(text) as Record<string, unknown>;
   const matches = await Promise.all([
-    destMcpMatches(host, PI_MCP_DEST, "mcpServers", pi, json),
+    ...JSON_MCP_DESTS.map((rel) => destMcpMatches(host, rel, "mcpServers", pi, json)),
     destMcpMatches(host, OPENCODE_CONFIG_DEST, "mcp", openCode, json),
     destMcpMatches(host, GROK_CONFIG_DEST, "mcp_servers", pi, toml),
     destMcpMatches(host, CODEX_CONFIG_DEST, "mcp_servers", pi, toml),
@@ -194,7 +198,9 @@ export async function mcpMatchesPreset(host: Host, servers: CanonicalMcp): Promi
 
 export async function mirrorMcp(host: Host): Promise<void> {
   const servers = await loadCanonical(host);
-  await writePiMcp(host, servers);
+  for (const rel of JSON_MCP_DESTS) {
+    await writeJsonMcp(host, rel, servers);
+  }
   await writeOpenCodeMcp(host, servers);
   await writeTomlMcp(host, GROK_CONFIG_DEST, servers);
   await writeTomlMcp(host, CODEX_CONFIG_DEST, servers);

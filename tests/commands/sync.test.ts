@@ -31,12 +31,14 @@ test("dotfiles sync pulls the repo, re-Stows, and refreshes MCP translations", a
       ".zshrc",
       ".config/opencode/opencode.json",
       ".pi/agent/mcp.json",
+      ".cursor/mcp.json",
       ".grok/config.toml",
       ".codex/config.toml",
     ],
     treeContents: {
       ".config/opencode/opencode.json": JSON.stringify({ permission: "allow" }),
       ".pi/agent/mcp.json": "{}\n",
+      ".cursor/mcp.json": "{}\n",
       ".grok/config.toml": 'theme = "groknight"\n',
       ".codex/config.toml": "[features]\nhooks = true\n",
     },
@@ -57,12 +59,15 @@ test("dotfiles sync pulls the repo, re-Stows, and refreshes MCP translations", a
     ".zshrc",
     ".config/opencode/opencode.json",
     ".pi/agent/mcp.json",
+    ".cursor/mcp.json",
     ".grok/config.toml",
     ".codex/config.toml",
   ]);
   expect(host.fileContents[`${home}/.config/opencode/opencode.json`]).toContain('"remote"');
   const pi = JSON.parse(host.fileContents[`${home}/.pi/agent/mcp.json`] ?? "{}");
   expect(pi.mcpServers.bun).toEqual({ url: "https://bun.com/mcp" });
+  const cursor = JSON.parse(host.fileContents[`${home}/.cursor/mcp.json`] ?? "{}");
+  expect(cursor.mcpServers.bun).toEqual({ url: "https://bun.com/mcp" });
   const grok = Bun.TOML.parse(host.fileContents[`${home}/.grok/config.toml`] ?? "") as {
     mcp_servers: { bun: { url: string } };
   };

@@ -32,7 +32,7 @@ export async function sync(host: Host, options: StowOptions = {}): Promise<RunRe
   await mirrorMcp(host);
   return {
     exitCode: 0,
-    stdout: `${pull}\n${stowed.stdout}Config synced: home/ re-Stowed into $HOME, MCP refreshed, and system prompt mirrored to pi and Codex.\n`,
+    stdout: `${pull}\n${stowed.stdout}Config synced: home/ re-Stowed into $HOME, MCP refreshed, and system prompt mirrored to pi, Codex, and Cursor.\n`,
     stderr: "",
   };
 }

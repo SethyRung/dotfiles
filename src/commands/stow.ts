@@ -7,7 +7,7 @@ import { mirrorSystemPrompt } from "@/utils/system-prompt.ts";
 export async function stow(host: Host, options: StowOptions = {}): Promise<RunResult> {
   const report = await host.stowTree(options);
   if (!options.dryRun) {
-    await mirrorSystemPrompt(host, [...report.linked, ...report.skipped]);
+    await mirrorSystemPrompt(host);
   }
   return { exitCode: 0, stdout: formatStowReport(report), stderr: "" };
 }

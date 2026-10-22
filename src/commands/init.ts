@@ -19,6 +19,8 @@ import { loadPreset } from "@/utils/preset.ts";
 import { isYes, isZsh } from "@/utils/prompt.ts";
 import { assessWorkflow } from "@/utils/workflow-health.ts";
 
+const MCP_AGENTS = "pi, OpenCode, Grok, Codex, Cursor";
+
 const STEPS = {
   DISTRO: 0,
   OMZ: 1,
@@ -52,7 +54,7 @@ function initialSteps(preset: DotfilesPreset): ProgressStep[] {
     pending("pi packages", `${preset.piPackages.length} packages`),
     pending(workflowTools.zed.label, "latest"),
     pending("Skills", `${preset.skills.length} skills`),
-    pending("MCP", "pi, OpenCode, Grok, Codex"),
+    pending("MCP", MCP_AGENTS),
     pending("API Keys", "will prompt"),
     pending(workflowTools.ghostty.label, "will prompt"),
     pending("login shell", "zsh"),
@@ -275,7 +277,7 @@ export async function init(
     if (write) {
       await mirrorMcp(host);
     }
-    update(STEPS.MCP, "done", "pi, OpenCode, Grok, Codex");
+    update(STEPS.MCP, "done", MCP_AGENTS);
 
     if (Object.keys(envVars).length > 0) {
       if (write) {

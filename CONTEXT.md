@@ -82,12 +82,16 @@ An agent skill installed globally for pi and other agents to load.
 _Avoid_: plugin, prompt, instruction file
 
 **MCP**:
-A Model Context Protocol server. The Workflow list is the Preset `mcp` key; each agent gets a translated copy. Pi's copy is native `~/.pi/agent/mcp.json`.
+A Model Context Protocol server. The Workflow list is the Preset `mcp` key; each agent gets a translated copy. Pi's copy is native `~/.pi/agent/mcp.json`. Cursor's copy is native `~/.cursor/mcp.json`.
 _Avoid_: tool server, plugin, XDG mcp.json as source of truth, hand-maintained per-agent lists, pi-mcp-adapter, mcp-adapter.json
 
 **System Prompt**:
-Shared agent instructions in `src/consts/system-prompt.md`. Bootstrap, Stow, and Sync mirror them into pi's `APPEND_SYSTEM.md` and Codex's global `AGENTS.md` through agent adapters.
-_Avoid_: hand-maintained per-agent instructions, replacing an agent's built-in prompt
+Shared agent instructions in `src/consts/system-prompt.md`. Bootstrap, Stow, and Sync write them to pi's `APPEND_SYSTEM.md`, Codex's global `AGENTS.md`, and an always-applied rule in Cursor's local `~/.cursor/plugins/local/dotfiles-system-prompt/` plugin, creating missing files including the plugin manifest. These paths are generated files, not Stow templates or plugin symlinks.
+_Avoid_: hand-maintained per-agent instructions, replacing an agent's built-in prompt, Cursor cloud User Rules, Stow templates for generated prompts
+
+**Cursor**:
+Global MCP and the shared system prompt for the Cursor agent. Not a Mise Tool and not an Upstream Install.
+_Avoid_: Cursor cloud User Rules, a local plugin symlink outside `~/.cursor/plugins/local`
 
 **API Key**:
 A secret environment variable needed by AI tools. Supplied during Bootstrap. Never stored in the repo.

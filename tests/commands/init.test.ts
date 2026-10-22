@@ -1547,13 +1547,13 @@ test("re-running init refreshes agent MCP from the repo list", async () => {
   expect(Object.keys(pi.mcpServers).sort()).toEqual(["bun", "nuxt"]);
 });
 
-test("init MCP Progress Log names pi, OpenCode, Grok, and Codex", async () => {
+test("init MCP Progress Log names pi, OpenCode, Grok, Codex, and Cursor", async () => {
   const host = createFakeHost(["bun"], { packageManager: "apt" });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
   expect(finalSteps(host).get("MCP")).toEqual({
     label: "MCP",
-    detail: "pi, OpenCode, Grok, Codex",
+    detail: "pi, OpenCode, Grok, Codex, Cursor",
     state: "done",
   });
 });
