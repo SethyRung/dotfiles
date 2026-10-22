@@ -14,3 +14,7 @@ File state policy
 - Before your first edit to a file each turn, read only the target line range.
 - Disk beats chat history: if disk differs from your prior edits, the user modified it. Build on their code; never revert.
 - Keep edits tight to avoid overwriting adjacent lines.
+
+Git commit policy
+
+- Never add a co-author. No `Co-authored-by`, `Signed-off-by`, or any other author trailer in a commit message.
