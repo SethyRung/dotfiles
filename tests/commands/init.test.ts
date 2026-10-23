@@ -1245,26 +1245,20 @@ test("Zed settings and keymap are Stowed with extensions declared for auto-insta
   expect(JSON.stringify(keymap)).toContain("editor::DuplicateLineUp");
 });
 
-test("Codex config and herdr hooks are Stowed", async () => {
+test("Codex config is Stowed without the generated hooks", async () => {
   const host = createFakeHost(["bun"], {
     packageManager: "apt",
     homeTree: [".codex/config.toml", ".codex/hooks.json", ".codex/herdr-agent-state.sh"],
   });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
-  expect(host.linked).toContain(".codex/config.toml");
-  expect(host.linked).toContain(".codex/hooks.json");
-  expect(host.linked).toContain(".codex/herdr-agent-state.sh");
+  expect(host.linked).toEqual([".codex/config.toml"]);
   const cfg = await Bun.file(join(import.meta.dir, "../../home/.codex/config.toml")).text();
   expect(cfg).toContain("hooks = true");
   expect(cfg).not.toContain("[models]");
-  const hooks = await Bun.file(join(import.meta.dir, "../../home/.codex/hooks.json")).text();
-  expect(hooks).toContain("herdr-agent-state.sh");
-  expect(hooks).not.toContain("/home/sethyrung/");
-  const herdr = await Bun.file(
-    join(import.meta.dir, "../../home/.codex/herdr-agent-state.sh"),
-  ).text();
-  expect(herdr).toContain("HERDR_INTEGRATION_ID=codex");
+  for (const rel of [".codex/hooks.json", ".codex/herdr-agent-state.sh"]) {
+    expect(await Bun.file(join(import.meta.dir, "../../home", rel)).exists()).toBe(false);
+  }
 });
 
 test("Grok and Codex secrets, sessions, sqlite, and local skills are not Stowed", async () => {
@@ -1291,12 +1285,7 @@ test("Grok and Codex secrets, sessions, sqlite, and local skills are not Stowed"
   });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
-  expect(host.linked).toEqual([
-    ".grok/config.toml",
-    ".codex/config.toml",
-    ".codex/hooks.json",
-    ".codex/herdr-agent-state.sh",
-  ]);
+  expect(host.linked).toEqual([".grok/config.toml", ".codex/config.toml"]);
 });
 
 test("gh and agy have no Stowed config in the home tree", async () => {
@@ -1324,7 +1313,7 @@ test("Grok config is Stowed without privacy banner or default model", async () =
   expect(cfg).not.toContain("[models]");
 });
 
-test("OpenCode global config and TUI config are Stowed", async () => {
+test("OpenCode global config is Stowed without the generated TUI config", async () => {
   const host = createFakeHost(["bun"], {
     packageManager: "apt",
     homeTree: [
@@ -1335,9 +1324,7 @@ test("OpenCode global config and TUI config are Stowed", async () => {
   });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
-  expect(host.linked).toContain(".config/opencode/opencode.json");
-  expect(host.linked).toContain(".config/opencode/tui.json");
-  expect(host.linked).toContain(".config/opencode/tui.jsonc");
+  expect(host.linked).toEqual([".config/opencode/opencode.json"]);
   const cfg = await Bun.file(
     join(import.meta.dir, "../../home/.config/opencode/opencode.json"),
   ).json();
@@ -1348,15 +1335,12 @@ test("OpenCode global config and TUI config are Stowed", async () => {
   expect(cfg).not.toHaveProperty("provider");
   expect(cfg).not.toHaveProperty("defaultModel");
   expect(cfg).not.toHaveProperty("defaultProvider");
-  const tui = await Bun.file(join(import.meta.dir, "../../home/.config/opencode/tui.json")).json();
-  expect(tui.$schema).toBe("https://opencode.ai/tui.json");
-  const tuiC = await Bun.file(
-    join(import.meta.dir, "../../home/.config/opencode/tui.jsonc"),
-  ).text();
-  expect(tuiC).toContain("./herdr-tui-session.js");
+  for (const rel of [".config/opencode/tui.json", ".config/opencode/tui.jsonc"]) {
+    expect(await Bun.file(join(import.meta.dir, "../../home", rel)).exists()).toBe(false);
+  }
 });
 
-test("herdr OpenCode plugin files are Stowed", async () => {
+test("herdr OpenCode plugin files are not Stowed", async () => {
   const host = createFakeHost(["bun"], {
     packageManager: "apt",
     homeTree: [
@@ -1366,16 +1350,13 @@ test("herdr OpenCode plugin files are Stowed", async () => {
   });
   const result = await run(["init"], host);
   expect(result.exitCode).toBe(0);
-  expect(host.linked).toContain(".config/opencode/herdr-tui-session.js");
-  expect(host.linked).toContain(".config/opencode/plugins/herdr-agent-state.js");
-  const tuiPlugin = await Bun.file(
-    join(import.meta.dir, "../../home/.config/opencode/herdr-tui-session.js"),
-  ).text();
-  expect(tuiPlugin).toContain("HERDR_INTEGRATION_ID=opencode-tui");
-  const agentPlugin = await Bun.file(
-    join(import.meta.dir, "../../home/.config/opencode/plugins/herdr-agent-state.js"),
-  ).text();
-  expect(agentPlugin).toContain("HERDR_INTEGRATION_ID=opencode");
+  expect(host.linked).toEqual([]);
+  for (const rel of [
+    ".config/opencode/herdr-tui-session.js",
+    ".config/opencode/plugins/herdr-agent-state.js",
+  ]) {
+    expect(await Bun.file(join(import.meta.dir, "../../home", rel)).exists()).toBe(false);
+  }
 });
 
 test("OpenCode-local skills, auth, sessions, and node_modules are not Stowed", async () => {

@@ -71,6 +71,24 @@ test("herdr logs and sockets are not linked", async () => {
   expect(host.linked).toEqual([".config/herdr/config.toml"]);
 });
 
+test("herdr and orca generated agent files are not linked", async () => {
+  const host = createFakeHost(["bun"], {
+    homeTree: [
+      ".codex/config.toml",
+      ".codex/hooks.json",
+      ".codex/herdr-agent-state.sh",
+      ".config/opencode/opencode.json",
+      ".config/opencode/herdr-tui-session.js",
+      ".config/opencode/plugins/herdr-agent-state.js",
+      ".config/opencode/tui.json",
+      ".config/opencode/tui.jsonc",
+    ],
+  });
+  const result = await run(["stow"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.linked).toEqual([".codex/config.toml", ".config/opencode/opencode.json"]);
+});
+
 test("dotfiles stow relinks the PATH stub even when a dest already exists", async () => {
   const home = "/fake-home";
   const host = createFakeHost(["bun"], {

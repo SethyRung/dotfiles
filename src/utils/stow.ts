@@ -1,9 +1,24 @@
 import type { StowReport } from "@/types/result.ts";
 
+// herdr/orca write these into $HOME themselves and overwrite them on reinstall (ADR 0033).
+const generatedAgentFiles = new Set([
+  ".codex/herdr-agent-state.sh",
+  ".codex/hooks.json",
+  ".config/opencode/herdr-tui-session.js",
+  ".config/opencode/plugins/herdr-agent-state.js",
+  ".config/opencode/tui.json",
+  ".config/opencode/tui.jsonc",
+]);
+
+export function isGeneratedAgentFile(rel: string): boolean {
+  return generatedAgentFiles.has(rel);
+}
+
 export function isStowJunk(rel: string): boolean {
   const parts = rel.split("/");
   const base = parts.at(-1) ?? rel;
   return (
+    isGeneratedAgentFile(rel) ||
     parts.includes("logs") ||
     parts.includes("sockets") ||
     parts.includes("sessions") ||
