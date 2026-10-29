@@ -1,5 +1,19 @@
 import type { StowReport } from "@/types/result.ts";
 
+// These files hold curated settings plus machine state. Stow leaves an existing file in place; the MCP mirror overlays the repo copy onto it.
+const liveAgentConfigs = new Set([
+  ".codex/config.toml",
+  ".grok/config.toml",
+  ".config/opencode/opencode.json",
+  ".config/Cursor/User/settings.json",
+  ".gemini/antigravity-cli/settings.json",
+  ".gemini/config/config.json",
+]);
+
+export function keepsLiveAgentConfig(rel: string): boolean {
+  return liveAgentConfigs.has(rel);
+}
+
 // herdr/orca write these into $HOME themselves and overwrite them on reinstall (ADR 0033).
 const generatedAgentFiles = new Set([
   ".codex/herdr-agent-state.sh",
@@ -30,6 +44,13 @@ export function isStowJunk(rel: string): boolean {
     rel.startsWith(".codex/skills/") ||
     rel.startsWith(".codex/tmp/") ||
     rel.startsWith(".codex/.tmp/") ||
+    rel.startsWith(".gemini/antigravity-cli/conversations/") ||
+    rel === ".gemini/antigravity-cli/history.jsonl" ||
+    rel.startsWith(".gemini/antigravity-cli/crashes/") ||
+    rel.startsWith(".gemini/antigravity-cli/implicit/") ||
+    rel.startsWith(".gemini/antigravity-cli/knowledge/") ||
+    rel.startsWith(".gemini/antigravity-cli/presence/") ||
+    rel.startsWith(".cursor/projects/") ||
     rel.endsWith(".log") ||
     rel.endsWith(".sock") ||
     rel.endsWith(".db") ||

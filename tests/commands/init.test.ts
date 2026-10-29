@@ -138,7 +138,7 @@ test("the committed mise config declares the Workflow Mise Tools with auto_updat
   expect(toml).toContain("auto_update = true");
   expect(toml).toContain('gh = "latest"');
   expect(toml).toContain('"npm:@xai-official/grok" = "latest"');
-  expect(toml).toContain('agy = "latest"');
+  expect(toml).toContain('"antigravity-cli" = "latest"');
 });
 
 test("init always requests installMiseTools even when the Mise Tool commands already exist", async () => {
@@ -1288,11 +1288,37 @@ test("Grok and Codex secrets, sessions, sqlite, and local skills are not Stowed"
   expect(host.linked).toEqual([".grok/config.toml", ".codex/config.toml"]);
 });
 
-test("gh and agy have no Stowed config in the home tree", async () => {
+test("Antigravity conversations and Cursor project state are not Stowed", async () => {
+  const host = createFakeHost(["bun"], {
+    packageManager: "apt",
+    homeTree: [
+      ".gemini/antigravity-cli/settings.json",
+      ".gemini/antigravity-cli/conversations/x.db",
+      ".gemini/antigravity-cli/history.jsonl",
+      ".gemini/config/config.json",
+      ".cursor/projects/dotfiles/state.json",
+      ".config/Cursor/User/settings.json",
+    ],
+  });
+  const result = await run(["init"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.linked).toEqual([
+    ".gemini/antigravity-cli/settings.json",
+    ".gemini/config/config.json",
+    ".config/Cursor/User/settings.json",
+  ]);
+});
+
+test("gh has no Stowed config; antigravity settings omit workspace trust", async () => {
   expect(await Bun.file(join(import.meta.dir, "../../home/.config/gh/config.yml")).exists()).toBe(
     false,
   );
   expect(await Bun.file(join(import.meta.dir, "../../home/.agy")).exists()).toBe(false);
+  const settings = await Bun.file(
+    join(import.meta.dir, "../../home/.gemini/antigravity-cli/settings.json"),
+  ).json();
+  expect(settings.model).toBe("Gemini 3.8 Flash (High)");
+  expect(settings).not.toHaveProperty("trustedWorkspaces");
 });
 
 test("Grok config is Stowed without privacy banner or default model", async () => {

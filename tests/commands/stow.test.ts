@@ -224,6 +224,164 @@ test("real dotfiles stow writes pi and OpenCode MCP from the repo list after lin
   expect(codex.features.hooks).toBe(true);
 });
 
+test("stow overlays curated agent config and keeps machine state", async () => {
+  const home = "/fake-home";
+  const repo = "/fake-repo";
+  const codexTemplate = [
+    'model = "gpt-6.1-sol"',
+    'model_reasoning_effort = "high"',
+    "",
+    "[features]",
+    "hooks = true",
+    "",
+    "[tui]",
+    'theme = "catppuccin-mocha"',
+    "",
+  ].join("\n");
+  const grokTemplate = '[ui]\ntheme = "groknight"\n';
+  const openCodeTemplate = JSON.stringify({ permission: "allow", autoupdate: true });
+  const host = createFakeHost(["bun"], {
+    homeDir: home,
+    repoDir: repo,
+    homeTree: [".codex/config.toml", ".grok/config.toml", ".config/opencode/opencode.json"],
+    treeContents: {
+      ".codex/config.toml": codexTemplate,
+      ".grok/config.toml": grokTemplate,
+      ".config/opencode/opencode.json": openCodeTemplate,
+    },
+    files: [
+      `${home}/.codex/config.toml`,
+      `${home}/.grok/config.toml`,
+      `${home}/.config/opencode/opencode.json`,
+    ],
+    fileContents: {
+      [`${repo}/home/.codex/config.toml`]: codexTemplate,
+      [`${repo}/home/.grok/config.toml`]: grokTemplate,
+      [`${repo}/home/.config/opencode/opencode.json`]: openCodeTemplate,
+      [`${home}/.codex/config.toml`]: [
+        'model = "old"',
+        "",
+        "[features]",
+        "hooks = false",
+        "",
+        "[tui]",
+        "animations = false",
+        'theme = "dracula"',
+        "",
+        '[hooks.state."/tmp/hooks.json:stop:0:0"]',
+        'trusted_hash = "sha256:abc"',
+        "",
+        '[projects."/tmp/proj"]',
+        'trust_level = "trusted"',
+        "",
+      ].join("\n"),
+      [`${home}/.grok/config.toml`]: '[ui]\ntheme = "old"\ncompact_mode = true\n',
+      [`${home}/.config/opencode/opencode.json`]: JSON.stringify({
+        permission: "ask",
+        plugin: ["custom"],
+      }),
+      ...mcpSource(repo, { bun: { url: "https://bun.com/mcp" } }),
+    },
+  });
+  const result = await run(["stow"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.backups).toEqual([]);
+  expect(host.fileContents[`${repo}/home/.codex/config.toml`]).toBe(codexTemplate);
+  const codex = Bun.TOML.parse(host.fileContents[`${home}/.codex/config.toml`] ?? "") as {
+    model: string;
+    model_reasoning_effort: string;
+    features: { hooks: boolean };
+    tui: { animations: boolean; theme: string };
+    hooks: { state: Record<string, { trusted_hash: string }> };
+    projects: Record<string, { trust_level: string }>;
+    mcp_servers: { bun: { url: string } };
+  };
+  expect(codex.model).toBe("gpt-6.1-sol");
+  expect(codex.model_reasoning_effort).toBe("high");
+  expect(codex.features.hooks).toBe(true);
+  expect(codex.tui).toEqual({ animations: false, theme: "catppuccin-mocha" });
+  expect(codex.hooks.state["/tmp/hooks.json:stop:0:0"]?.trusted_hash).toBe("sha256:abc");
+  expect(codex.projects["/tmp/proj"]?.trust_level).toBe("trusted");
+  expect(codex.mcp_servers.bun).toEqual({ url: "https://bun.com/mcp" });
+  const grok = Bun.TOML.parse(host.fileContents[`${home}/.grok/config.toml`] ?? "") as {
+    ui: { theme: string; compact_mode: boolean };
+    mcp_servers: { bun: { url: string } };
+  };
+  expect(grok.ui).toEqual({ theme: "groknight", compact_mode: true });
+  expect(grok.mcp_servers.bun).toEqual({ url: "https://bun.com/mcp" });
+  const oc = JSON.parse(host.fileContents[`${home}/.config/opencode/opencode.json`] ?? "{}");
+  expect(oc.permission).toBe("allow");
+  expect(oc.autoupdate).toBe(true);
+  expect(oc.plugin).toEqual(["custom"]);
+  expect(oc.mcp.bun).toEqual({ type: "remote", url: "https://bun.com/mcp" });
+});
+
+test("stow overlays Cursor and Antigravity settings and keeps machine state", async () => {
+  const home = "/fake-home";
+  const repo = "/fake-repo";
+  const cursorTemplate = JSON.stringify({ "workbench.colorTheme": "Omarchy" });
+  const agyTemplate = JSON.stringify({ model: "Gemini 3.8 Flash (High)" });
+  const agyConfigTemplate = JSON.stringify({
+    userSettings: { permissionPreset: "AGENT_PERMISSION_PRESET_TURBO" },
+  });
+  const host = createFakeHost(["bun"], {
+    homeDir: home,
+    repoDir: repo,
+    homeTree: [
+      ".config/Cursor/User/settings.json",
+      ".gemini/antigravity-cli/settings.json",
+      ".gemini/config/config.json",
+    ],
+    treeContents: {
+      ".config/Cursor/User/settings.json": cursorTemplate,
+      ".gemini/antigravity-cli/settings.json": agyTemplate,
+      ".gemini/config/config.json": agyConfigTemplate,
+    },
+    files: [
+      `${home}/.config/Cursor/User/settings.json`,
+      `${home}/.gemini/antigravity-cli/settings.json`,
+      `${home}/.gemini/config/config.json`,
+    ],
+    fileContents: {
+      [`${repo}/home/.config/Cursor/User/settings.json`]: cursorTemplate,
+      [`${repo}/home/.gemini/antigravity-cli/settings.json`]: agyTemplate,
+      [`${repo}/home/.gemini/config/config.json`]: agyConfigTemplate,
+      [`${home}/.config/Cursor/User/settings.json`]: JSON.stringify({
+        "workbench.colorTheme": "Default Dark+",
+        "editor.fontSize": 16,
+      }),
+      [`${home}/.gemini/antigravity-cli/settings.json`]: JSON.stringify({
+        model: "old",
+        trustedWorkspaces: ["/tmp/proj"],
+      }),
+      [`${home}/.gemini/config/config.json`]: JSON.stringify({
+        userSettings: {
+          permissionPreset: "AGENT_PERMISSION_PRESET_DEFAULT",
+          remoteControlHostname: "this-machine",
+        },
+      }),
+      ...mcpSource(repo, { bun: { url: "https://bun.com/mcp" } }),
+    },
+  });
+  const result = await run(["stow"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.backups).toEqual([]);
+  expect(host.fileContents[`${repo}/home/.gemini/antigravity-cli/settings.json`]).toBe(agyTemplate);
+  const cursor = JSON.parse(host.fileContents[`${home}/.config/Cursor/User/settings.json`] ?? "{}");
+  expect(cursor["workbench.colorTheme"]).toBe("Omarchy");
+  expect(cursor["editor.fontSize"]).toBe(16);
+  const agy = JSON.parse(
+    host.fileContents[`${home}/.gemini/antigravity-cli/settings.json`] ?? "{}",
+  );
+  expect(agy.model).toBe("Gemini 3.8 Flash (High)");
+  expect(agy.trustedWorkspaces).toEqual(["/tmp/proj"]);
+  const agyConfig = JSON.parse(host.fileContents[`${home}/.gemini/config/config.json`] ?? "{}");
+  expect(agyConfig.userSettings.permissionPreset).toBe("AGENT_PERMISSION_PRESET_TURBO");
+  expect(agyConfig.userSettings.remoteControlHostname).toBe("this-machine");
+  const mcp = JSON.parse(host.fileContents[`${home}/.gemini/config/mcp_config.json`] ?? "{}");
+  expect(mcp.mcpServers.bun).toEqual({ url: "https://bun.com/mcp" });
+});
+
 test("missing pi and cursor mcp.json dests are created from the Preset", async () => {
   const home = "/fake-home";
   const repo = "/fake-repo";
@@ -313,8 +471,12 @@ test("a missing Preset file creates pi and cursor mcp.json from defaults and doe
   expect(host.fileExists(`${home}/.codex/config.toml`)).toBe(false);
   const pi = JSON.parse(host.fileContents[`${home}/.pi/agent/mcp.json`] ?? "{}");
   const cursor = JSON.parse(host.fileContents[`${home}/.cursor/mcp.json`] ?? "{}");
+  const antigravity = JSON.parse(
+    host.fileContents[`${home}/.gemini/config/mcp_config.json`] ?? "{}",
+  );
   expect(pi.mcpServers.bun).toEqual({ url: "https://bun.com/docs/mcp" });
   expect(cursor.mcpServers.bun).toEqual({ url: "https://bun.com/docs/mcp" });
+  expect(antigravity.mcpServers.bun).toEqual({ url: "https://bun.com/docs/mcp" });
 });
 
 test("help still has no mcp command and mcp command is rejected as unknown", async () => {

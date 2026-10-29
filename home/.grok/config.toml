@@ -8,6 +8,7 @@ git = "https://github.com/xai-org/plugin-marketplace.git"
 
 [cli]
 installer = "npm"
+auto_update = true
 
 [ui]
 max_thoughts_width = 120

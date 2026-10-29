@@ -8,7 +8,13 @@ const CURSOR_MCP_DEST = ".cursor/mcp.json";
 const OPENCODE_CONFIG_DEST = ".config/opencode/opencode.json";
 const GROK_CONFIG_DEST = ".grok/config.toml";
 const CODEX_CONFIG_DEST = ".codex/config.toml";
-const JSON_MCP_DESTS = [PI_MCP_DEST, CURSOR_MCP_DEST];
+const ANTIGRAVITY_MCP_DEST = ".gemini/config/mcp_config.json";
+const JSON_MCP_DESTS = [PI_MCP_DEST, CURSOR_MCP_DEST, ANTIGRAVITY_MCP_DEST];
+const CURATED_JSON_DESTS = [
+  ".config/Cursor/User/settings.json",
+  ".gemini/antigravity-cli/settings.json",
+  ".gemini/config/config.json",
+];
 
 type CanonicalMcp = Record<string, McpServer>;
 
@@ -60,19 +66,66 @@ async function writeJsonMcp(host: Host, rel: string, servers: CanonicalMcp): Pro
   await host.writeFile(path, `${JSON.stringify(existing, null, 2)}\n`);
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function overlayTemplate(template: unknown, live: unknown): unknown {
+  if (isPlainObject(template) && isPlainObject(live)) {
+    const merged: Record<string, unknown> = { ...live };
+    for (const [key, value] of Object.entries(template)) {
+      merged[key] = overlayTemplate(value, live[key]);
+    }
+    return merged;
+  }
+  return template === undefined ? live : template;
+}
+
+async function curatedTemplate(host: Host, rel: string): Promise<Record<string, unknown> | null> {
+  const text = await host.readFile(join(host.repoDir(), "home", rel));
+  if (text == null) {
+    return null;
+  }
+  const parsed = (rel.endsWith(".json") ? JSON.parse(text) : Bun.TOML.parse(text)) as Record<
+    string,
+    unknown
+  >;
+  delete parsed.mcp;
+  delete parsed.mcp_servers;
+  return parsed;
+}
+
+async function mergeCurated(
+  host: Host,
+  rel: string,
+  live: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const template = await curatedTemplate(host, rel);
+  if (template == null) {
+    return live;
+  }
+  return overlayTemplate(template, live) as Record<string, unknown>;
+}
+
+async function writeCuratedJson(host: Host, rel: string): Promise<void> {
+  const path = join(host.homeDir(), rel);
+  const existingText = await host.readFile(path);
+  if (existingText == null) {
+    return;
+  }
+  const existing = await mergeCurated(host, rel, JSON.parse(existingText));
+  await host.writeFile(path, `${JSON.stringify(existing, null, 2)}\n`);
+}
+
 async function writeOpenCodeMcp(host: Host, servers: CanonicalMcp): Promise<void> {
   const path = join(host.homeDir(), OPENCODE_CONFIG_DEST);
   const existingText = await host.readFile(path);
   if (existingText == null) {
     return;
   }
-  const existing = JSON.parse(existingText);
+  const existing = await mergeCurated(host, OPENCODE_CONFIG_DEST, JSON.parse(existingText));
   existing.mcp = openCodeMcpFromCanonical(servers);
   await host.writeFile(path, `${JSON.stringify(existing, null, 2)}\n`);
-}
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function tomlKey(key: string): string {
@@ -144,7 +197,11 @@ async function writeTomlMcp(host: Host, rel: string, servers: CanonicalMcp): Pro
   if (existingText == null) {
     return;
   }
-  const existing = Bun.TOML.parse(existingText) as Record<string, unknown>;
+  const existing = await mergeCurated(
+    host,
+    rel,
+    Bun.TOML.parse(existingText) as Record<string, unknown>,
+  );
   existing.mcp_servers = piMcpFromCanonical(servers);
   await host.writeFile(path, `${stringifyToml(existing)}\n`);
 }
@@ -204,4 +261,7 @@ export async function mirrorMcp(host: Host): Promise<void> {
   await writeOpenCodeMcp(host, servers);
   await writeTomlMcp(host, GROK_CONFIG_DEST, servers);
   await writeTomlMcp(host, CODEX_CONFIG_DEST, servers);
+  for (const rel of CURATED_JSON_DESTS) {
+    await writeCuratedJson(host, rel);
+  }
 }

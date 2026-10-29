@@ -25,7 +25,7 @@ import type { StowOptions, StowReport } from "@/types/result.ts";
 import { apiKeyNamesFrom, envStoreStatePath, mergeEnvironment } from "@/utils/environment.ts";
 import { renderBanner, renderPanel, spinnerFrames } from "@/utils/panel.ts";
 import { isYes } from "@/utils/prompt.ts";
-import { isGhosttyConfig, isStowJunk } from "@/utils/stow.ts";
+import { isGhosttyConfig, isStowJunk, keepsLiveAgentConfig } from "@/utils/stow.ts";
 import { backupStamp, isBackupStamp } from "@/utils/time.ts";
 
 class UnixProgressSession implements ProgressSession {
@@ -374,6 +374,8 @@ export const unixHost: Host = {
             unlinkSync(dest);
             symlinkSync(src, dest);
           }
+        } else if (keepsLiveAgentConfig(rel)) {
+          report.skipped.push(dest);
         } else {
           report.backedUp.push(dest);
           report.linked.push(dest);

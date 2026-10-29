@@ -1,0 +1,7 @@
+{
+  "workbench.colorTheme": "Omarchy",
+  "window.autoDetectColorScheme": true,
+  "cursor.composer.queueManualSendBehavior2": "steer",
+  "cursor.composer.editorConversationDensity": "compact-ungrouped",
+  "cursor.composer.shouldChimeAfterChatFinishes": true
+}

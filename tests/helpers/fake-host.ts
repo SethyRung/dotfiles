@@ -13,7 +13,7 @@ import type { StowOptions, StowReport } from "@/types/result.ts";
 import { apiKeyNamesFrom, envStoreStatePath, mergeEnvironment } from "@/utils/environment.ts";
 import { openCodeMcpFromCanonical, piMcpFromCanonical } from "@/utils/mcp.ts";
 import { isYes } from "@/utils/prompt.ts";
-import { isGhosttyConfig, isStowJunk } from "@/utils/stow.ts";
+import { isGhosttyConfig, isStowJunk, keepsLiveAgentConfig } from "@/utils/stow.ts";
 import { backupStamp, parseDate } from "@/utils/time.ts";
 
 export const presentWorkflowCommands: string[] = [...requiredWorkflowCommands];
@@ -52,6 +52,7 @@ export function mcpAgentFiles(
   const files = [
     `${home}/.pi/agent/mcp.json`,
     `${home}/.cursor/mcp.json`,
+    `${home}/.gemini/config/mcp_config.json`,
     `${home}/.config/opencode/opencode.json`,
     `${home}/.grok/config.toml`,
     `${home}/.codex/config.toml`,
@@ -60,6 +61,7 @@ export function mcpAgentFiles(
   const fileContents = {
     [`${home}/.pi/agent/mcp.json`]: piMcp,
     [`${home}/.cursor/mcp.json`]: piMcp,
+    [`${home}/.gemini/config/mcp_config.json`]: piMcp,
     [`${home}/.config/opencode/opencode.json`]: `${JSON.stringify({ mcp: openCodeMcpFromCanonical(servers) }, null, 2)}\n`,
     [`${home}/.grok/config.toml`]: tomlMcpServers(servers),
     [`${home}/.codex/config.toml`]: tomlMcpServers(servers),
@@ -327,6 +329,11 @@ export function createFakeHost(
           if (!options.dryRun) {
             linked.push(rel);
           }
+          continue;
+        }
+
+        if (exists && !isStale && keepsLiveAgentConfig(rel)) {
+          report.skipped.push(dest);
           continue;
         }
 
