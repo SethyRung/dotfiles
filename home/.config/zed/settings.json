@@ -10,7 +10,9 @@
     "dock": "left"
   },
   "agent": {
-    "sidebar_side": "right",
+    "threads_sidebar": {
+      "position": "right"
+    },
     "dock": "right",
     "favorite_models": [],
     "model_parameters": []
@@ -35,7 +37,7 @@
   "theme": {
     "mode": "system",
     "light": "Dracula Light (Alucard)",
-    "dark": "Dracula Solid"
+    "dark": "GitHub Dark"
   },
   "icon_theme": {
     "mode": "system",
@@ -114,6 +116,16 @@
           "run": "onSave"
         }
       }
+    }
+  },
+  "context_servers": {
+    "cua-driver": {
+      "command": "/home/sethyrung/.local/bin/cua-driver",
+      "args": ["mcp"]
+    },
+    "cua": {
+      "command": "/home/sethyrung/.local/share/cua-spaces/daemon/0.13.1-141643536-1792681206000/cua",
+      "args": ["mcp"]
     }
   }
 }
