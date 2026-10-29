@@ -1423,6 +1423,7 @@ test("after init, Grok and Codex MCP views contain the repo MCP servers", async 
     "bun",
     "mobile-mcp",
     "nuxt",
+    "nuxt-seo",
     "nuxt-ui",
   ]);
   expect(grok.mcp_servers.bun).toEqual({ url: "https://bun.com/docs/mcp" });
@@ -1440,6 +1441,7 @@ test("after init, Grok and Codex MCP views contain the repo MCP servers", async 
     "bun",
     "mobile-mcp",
     "nuxt",
+    "nuxt-seo",
     "nuxt-ui",
   ]);
   expect(codex.mcp_servers.bun).toEqual({ url: "https://bun.com/docs/mcp" });
@@ -1473,11 +1475,13 @@ test("after init, OpenCode mcp key contains the repo MCP servers", async () => {
     "bun",
     "mobile-mcp",
     "nuxt",
+    "nuxt-seo",
     "nuxt-ui",
   ]);
   expect(written.mcp.bun).toEqual({ type: "remote", url: "https://bun.com/docs/mcp" });
   expect(written.mcp.nuxt).toEqual({ type: "remote", url: "https://nuxt.com/mcp" });
   expect(written.mcp["nuxt-ui"]).toEqual({ type: "remote", url: "https://ui.nuxt.com/mcp" });
+  expect(written.mcp["nuxt-seo"]).toEqual({ type: "remote", url: "https://nuxtseo.com/mcp" });
   expect(written.mcp["better-auth"]).toEqual({
     type: "remote",
     url: "https://mcp.better-auth.com/mcp",
