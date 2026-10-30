@@ -11,6 +11,7 @@ const CODEX_CONFIG_DEST = ".codex/config.toml";
 const ANTIGRAVITY_MCP_DEST = ".gemini/config/mcp_config.json";
 const JSON_MCP_DESTS = [PI_MCP_DEST, CURSOR_MCP_DEST, ANTIGRAVITY_MCP_DEST];
 const CURATED_JSON_DESTS = [
+  ".pi/agent/settings.json",
   ".config/Cursor/User/settings.json",
   ".gemini/antigravity-cli/settings.json",
   ".gemini/config/config.json",

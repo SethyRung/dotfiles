@@ -316,6 +316,43 @@ test("stow overlays curated agent config and keeps machine state", async () => {
   expect(oc.mcp.bun).toEqual({ type: "remote", url: "https://bun.com/mcp" });
 });
 
+test("stow writes pi settings from the repo and keeps live-only keys", async () => {
+  const home = "/fake-home";
+  const repo = "/fake-repo";
+  const template = JSON.stringify({
+    theme: "system",
+    packages: ["npm:pi-zentui"],
+  });
+  const host = createFakeHost(["bun"], {
+    homeDir: home,
+    repoDir: repo,
+    homeTree: [".pi/agent/settings.json"],
+    treeContents: {
+      ".pi/agent/settings.json": template,
+    },
+    files: [`${home}/.pi/agent/settings.json`],
+    fileContents: {
+      [`${repo}/home/.pi/agent/settings.json`]: template,
+      [`${home}/.pi/agent/settings.json`]: JSON.stringify({
+        theme: "dark",
+        packages: ["old"],
+        lastChangelogVersion: "9.9.9",
+      }),
+      ...mcpSource(repo, { bun: { url: "https://bun.com/mcp" } }),
+    },
+  });
+  const result = await run(["stow"], host);
+  expect(result.exitCode).toBe(0);
+  expect(host.backups).toEqual([]);
+  expect(host.fileContents[`${repo}/home/.pi/agent/settings.json`]).toBe(template);
+  const settings = JSON.parse(host.fileContents[`${home}/.pi/agent/settings.json`] ?? "{}");
+  expect(settings.theme).toBe("system");
+  expect(settings.packages).toEqual(["npm:pi-zentui"]);
+  expect(settings.lastChangelogVersion).toBe("9.9.9");
+  const pi = JSON.parse(host.fileContents[`${home}/.pi/agent/mcp.json`] ?? "{}");
+  expect(pi.mcpServers.bun).toEqual({ url: "https://bun.com/mcp" });
+});
+
 test("stow overlays Cursor and Antigravity settings and keeps machine state", async () => {
   const home = "/fake-home";
   const repo = "/fake-repo";

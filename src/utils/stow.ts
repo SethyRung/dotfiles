@@ -2,6 +2,7 @@ import type { StowReport } from "@/types/result.ts";
 
 // These files hold curated settings plus machine state. Stow leaves an existing file in place; the MCP mirror overlays the repo copy onto it.
 const liveAgentConfigs = new Set([
+  ".pi/agent/settings.json",
   ".codex/config.toml",
   ".grok/config.toml",
   ".config/opencode/opencode.json",
