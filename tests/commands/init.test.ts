@@ -743,13 +743,8 @@ test("XDG MCP is not Stowed; pi mcp.json is Stowed then filled from the repo lis
   expect(host.linked).not.toContain(".config/mcp/mcp.json");
   expect(host.linked).toContain(".pi/agent/mcp.json");
   const pi = JSON.parse(host.fileContents[`${home}/.pi/agent/mcp.json`] ?? "{}");
-  expect(pi.mcpServers).toHaveProperty("mobile-mcp");
   expect(pi.mcpServers).toHaveProperty("bun");
   expect(pi.mcpServers.bun).toEqual({ url: "https://bun.com/docs/mcp" });
-  expect(pi.mcpServers["mobile-mcp"]).toEqual({
-    command: "bunx",
-    args: ["--bun", "@mobilenext/mobile-mcp@latest"],
-  });
 });
 
 test("empty API Key CSV skips the /etc/environment write", async () => {
@@ -1447,16 +1442,11 @@ test("after init, Grok and Codex MCP views contain the repo MCP servers", async 
   expect(Object.keys(grok.mcp_servers).sort()).toEqual([
     "better-auth",
     "bun",
-    "mobile-mcp",
     "nuxt",
     "nuxt-seo",
     "nuxt-ui",
   ]);
   expect(grok.mcp_servers.bun).toEqual({ url: "https://bun.com/docs/mcp" });
-  expect(grok.mcp_servers["mobile-mcp"]).toEqual({
-    command: "bunx",
-    args: ["--bun", "@mobilenext/mobile-mcp@latest"],
-  });
   expect(grok.ui.theme).toBe("groknight");
   const codex = Bun.TOML.parse(host.fileContents[`${home}/.codex/config.toml`] ?? "") as {
     mcp_servers: Record<string, { url?: string; command?: string; args?: string[] }>;
@@ -1465,7 +1455,6 @@ test("after init, Grok and Codex MCP views contain the repo MCP servers", async 
   expect(Object.keys(codex.mcp_servers).sort()).toEqual([
     "better-auth",
     "bun",
-    "mobile-mcp",
     "nuxt",
     "nuxt-seo",
     "nuxt-ui",
@@ -1499,7 +1488,6 @@ test("after init, OpenCode mcp key contains the repo MCP servers", async () => {
   expect(Object.keys(written.mcp).sort()).toEqual([
     "better-auth",
     "bun",
-    "mobile-mcp",
     "nuxt",
     "nuxt-seo",
     "nuxt-ui",
@@ -1511,10 +1499,6 @@ test("after init, OpenCode mcp key contains the repo MCP servers", async () => {
   expect(written.mcp["better-auth"]).toEqual({
     type: "remote",
     url: "https://mcp.better-auth.com/mcp",
-  });
-  expect(written.mcp["mobile-mcp"]).toEqual({
-    type: "local",
-    command: ["bunx", "--bun", "@mobilenext/mobile-mcp@latest"],
   });
   expect(written.permission).toBe("allow");
   expect(written.autoupdate).toBe(true);

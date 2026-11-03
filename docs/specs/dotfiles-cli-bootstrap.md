@@ -34,7 +34,7 @@ A `dotfiles` CLI in this Dotfiles repo. `dotfiles init` runs Bootstrap, `dotfile
 20. As a developer, I want `APPEND_SYSTEM.md` and `prompts/` restored so that pi's local behaviour matches this machine minus model.
 21. As a developer, I do not want `auth.json`, sessions, caches, model stores, or auto-generated `extensions/` in the repo so that secrets, machine state, and herdr/moshi-hook output stay off git.
 22. As a developer, I want Skills reinstalled via skills.sh from a list/lock in the repo so that global Skills are current, not a frozen file snapshot.
-23. As a developer, I want `~/.config/mcp/mcp.json` Stowed (including mobile-mcp) so that MCP is the XDG file, not pi's private mcp.json.
+23. As a developer, I want `~/.config/mcp/mcp.json` Stowed so that MCP is the XDG file, not pi's private mcp.json.
 24. As a developer, I want to be prompted for API Keys as `key1=value1,key2=value2,...` so that secrets are supplied at Bootstrap and never stored in Dotfiles.
 25. As a developer, I want those keys merged into `/etc/environment` so that every process on the machine sees them, not only the shell.
 26. As a developer, I want existing PATH and other lines in `/etc/environment` left alone so that a re-run does not wipe Distro environment.

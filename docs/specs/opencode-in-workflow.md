@@ -26,7 +26,7 @@ OpenCode becomes a required Workflow piece. `dotfiles init` Upstream-Installs la
 12. As a developer, I want those XDG MCP servers mirrored into OpenCode's `mcp` key during Bootstrap so that OpenCode sees the same servers even though it cannot read the XDG file.
 13. As a developer who adds or changes an MCP server in the XDG file, I want a re-run of init to refresh OpenCode's `mcp` key from that list so that the two views do not drift.
 14. As a developer, I do not want a hand-maintained OpenCode-only MCP list so that pi and OpenCode cannot silently diverge.
-15. As a developer, I want bun, nuxt, nuxt-ui, better-auth, and mobile-mcp to appear for OpenCode after Bootstrap so that the mirrored list matches the XDG file this machine already has.
+15. As a developer, I want bun, nuxt, nuxt-ui, and better-auth to appear for OpenCode after Bootstrap so that the mirrored list matches the XDG file this machine already has.
 16. As a developer, I want `~/.opencode/bin` on PATH in the curated zshrc so that new terminals find `opencode` without extra setup.
 17. As a developer whose current bash session does not yet have that PATH, I still want init to succeed so that the next zsh session finds OpenCode.
 18. As a developer, I want `dotfiles doctor` to report OpenCode present or missing as a required piece so that I can see if Bootstrap missed the agent.

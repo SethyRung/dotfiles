@@ -8,12 +8,15 @@
   },
   "skills": [
     "vercel-labs/skills@find-skills",
+    "mattpocock/skills@domain-modeling",
+    "mattpocock/skills@grilling",
     "mattpocock/skills@grill-me",
     "mattpocock/skills@grill-with-docs",
     "mattpocock/skills@to-spec",
     "mattpocock/skills@to-tickets",
     "mattpocock/skills@code-review",
     "mattpocock/skills@implement",
+    "mattpocock/skills@implement-spec",
     "mattpocock/skills@improve-codebase-architecture",
     "mattpocock/skills@tdd",
     "mattpocock/skills@teach",
@@ -66,10 +69,6 @@
     },
     "better-auth": {
       "url": "https://mcp.better-auth.com/mcp"
-    },
-    "mobile-mcp": {
-      "command": "bunx",
-      "args": ["--bun", "@mobilenext/mobile-mcp@latest"]
     }
   }
 }
