@@ -8,6 +8,8 @@
   },
   "skills": [
     "vercel-labs/skills@find-skills",
+    "vercel-labs/agent-browser@agent-browser",
+    "vercel-labs/agent-desktop@agent-desktop",
     "mattpocock/skills@domain-modeling",
     "mattpocock/skills@grilling",
     "mattpocock/skills@grill-me",
