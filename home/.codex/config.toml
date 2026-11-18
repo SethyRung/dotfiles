@@ -1,4 +1,4 @@
-model = "gpt-6.1-terra"
+model = "gpt-6.2-sol"
 model_reasoning_effort = "xhigh"
 
 [features]
@@ -15,7 +15,7 @@ notifications = true
 right_click_paste = "off"
 
 [tui.model_availability_nux]
-"gpt-6.1-sol" = 1
+"gpt-6.2-sol" = 1
 
 [tui.effects]
 starfield = true
